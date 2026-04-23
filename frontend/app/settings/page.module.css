@@ -1,0 +1,165 @@
+.settings {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 96px var(--space-xl) var(--space-3xl);
+}
+
+.title {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: var(--space-2xl);
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--space-2xl);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+}
+
+/* CF Form */
+.cfDesc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-lg);
+  line-height: 1.6;
+}
+
+.inputGroup {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.inputGroup .input {
+  flex: 1;
+}
+
+/* CF Verify */
+.verifyTitle {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  margin-bottom: var(--space-md);
+  color: var(--cm-orange);
+}
+
+.tokenBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.token {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--cm-cyan);
+  letter-spacing: 1px;
+  word-break: break-all;
+}
+
+.verifySteps {
+  margin-bottom: var(--space-lg);
+}
+
+.verifySteps p {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+  padding-left: var(--space-sm);
+}
+
+.verifyActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.cfLink {
+  color: var(--cm-cyan);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cfLink:hover {
+  opacity: 0.8;
+}
+
+/* Linked State */
+.linkedState {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.linkedIcon {
+  font-size: 36px;
+}
+
+.linkedTitle {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.linkedHandle {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.cfRating {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+/* Account Info */
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.infoValue {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Messages */
+.errorMsg {
+  color: var(--cm-red);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-md);
+}
+
+.successMsg {
+  color: var(--cm-green);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-xs);
+}
+
+.dangerDesc {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}

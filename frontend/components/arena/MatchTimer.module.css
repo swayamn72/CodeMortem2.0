@@ -1,0 +1,35 @@
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--cm-cyan);
+}
+
+.icon {
+  font-size: var(--font-size-base);
+}
+
+.time {
+  min-width: 70px;
+  text-align: center;
+}
+
+.warning {
+  color: var(--cm-orange);
+}
+
+.danger {
+  color: var(--cm-red);
+}
+
+.pulse {
+  animation: timerPulse 0.5s ease-in-out;
+}
+
+@keyframes timerPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}

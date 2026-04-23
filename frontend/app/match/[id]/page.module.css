@@ -1,0 +1,352 @@
+/* ── Match Arena Layout ── */
+.arena {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+/* ── Arena Header ── */
+.arenaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  min-height: 52px;
+  padding: 0 var(--space-md);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  z-index: 10;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.brand {
+  font-weight: 800;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+}
+
+.headerCenter {
+  display: flex;
+  align-items: center;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+}
+
+.scoreBoard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.scoreItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoreLabel {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.scoreNum {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+}
+
+.myScore {
+  color: var(--cm-cyan);
+}
+
+.oppScore {
+  color: var(--cm-red);
+}
+
+.scoreSep {
+  color: var(--text-muted);
+  font-weight: 300;
+  font-size: var(--font-size-lg);
+}
+
+/* ── Arena Body ── */
+.arenaBody {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 170px 1fr 1fr;
+  overflow: hidden;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-primary);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.sidebarTitle {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-md);
+}
+
+.qTab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-sans);
+  width: 100%;
+  text-align: left;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.qTab:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.qTabActive {
+  background: var(--bg-glass);
+  border-color: var(--border-accent);
+  color: var(--cm-cyan);
+}
+
+.qTabMySolved {
+  border-color: rgba(0, 255, 136, 0.3);
+  color: var(--cm-green);
+  background: rgba(0, 255, 136, 0.05);
+}
+
+.qTabOppSolved {
+  border-color: rgba(255, 45, 85, 0.3);
+  color: var(--cm-red);
+  background: rgba(255, 45, 85, 0.05);
+}
+
+.qTabIdx {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  min-width: 28px;
+}
+
+.qTabPts {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.qTabIcon {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+}
+
+.sidebarDivider {
+  height: 1px;
+  background: var(--border-primary);
+  margin: var(--space-md) 0;
+}
+
+.sidebarStats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.sidebarStat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-xs);
+}
+
+.sidebarStatLabel {
+  color: var(--text-muted);
+}
+
+.sidebarStatValue {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ── Problem Panel ── */
+.problemPanel {
+  border-right: 1px solid var(--border-primary);
+  overflow: hidden;
+}
+
+/* ── Editor Panel ── */
+.editorPanel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editorToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.toolbarActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.editorArea {
+  flex: 1;
+  overflow: hidden;
+}
+
+.editorLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  background: var(--bg-primary);
+}
+
+/* ── Console ── */
+.console {
+  height: 180px;
+  min-height: 140px;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.consoleTabs {
+  display: flex;
+  height: 32px;
+  min-height: 32px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.consoleTab {
+  padding: 0 var(--space-md);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.consoleTab:hover {
+  color: var(--text-secondary);
+}
+
+.consoleTabActive {
+  color: var(--cm-cyan);
+  border-bottom-color: var(--cm-cyan);
+}
+
+.consoleBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.consoleBody pre {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.consoleInfo {
+  color: var(--text-secondary);
+}
+
+.consoleSuccess {
+  color: var(--cm-green);
+}
+
+.consoleError {
+  color: var(--cm-red);
+}
+
+.customInput {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  resize: none;
+  outline: none;
+}
+
+.customInput::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .arenaBody {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .sidebar {
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-primary);
+    padding: var(--space-sm);
+  }
+
+  .qTab {
+    min-width: 80px;
+    margin-bottom: 0;
+    margin-right: 4px;
+    flex-direction: column;
+    text-align: center;
+    padding: 6px 10px;
+  }
+
+  .problemPanel {
+    display: none;
+  }
+}

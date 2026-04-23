@@ -1,0 +1,121 @@
+# CodeMortem Docker Compose - Development
+version: "3.9"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: codemortem-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codemortem
+      POSTGRES_PASSWORD: codemortem_dev_2026
+      POSTGRES_DB: codemortem
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codemortem"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: codemortem-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Judge0 - Code Execution Engine
+  judge0-server:
+    image: judge0/judge0:1.13.1
+    container_name: codemortem-judge0
+    restart: unless-stopped
+    ports:
+      - "2358:2358"
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=judge0-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0_dev
+      - RAILS_MAX_THREADS=8
+      - RAILS_SERVER_URL=http://0.0.0.0:2358
+    privileged: true
+    depends_on:
+      judge0-postgres:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
+  # Judge0 Workers
+  judge0-workers:
+    image: judge0/judge0:1.13.1
+    container_name: codemortem-judge0-workers
+    restart: unless-stopped
+    command: ["./scripts/workers"]
+    environment:
+      - REDIS_HOST=judge0-redis
+      - REDIS_PORT=6379
+      - POSTGRES_HOST=judge0-postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=judge0
+      - POSTGRES_USER=judge0
+      - POSTGRES_PASSWORD=judge0_dev
+    privileged: true
+    depends_on:
+      judge0-postgres:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
+  # Judge0's own PostgreSQL
+  judge0-postgres:
+    image: postgres:16-alpine
+    container_name: codemortem-judge0-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_dev
+      POSTGRES_DB: judge0
+    volumes:
+      - judge0_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U judge0"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Judge0's own Redis
+  judge0-redis:
+    image: redis:7-alpine
+    container_name: codemortem-judge0-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - judge0_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  judge0_postgres_data:
+  judge0_redis_data:
