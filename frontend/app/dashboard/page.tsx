@@ -54,6 +54,7 @@ export default function DashboardPage() {
         </Link>
         <ul className="navbar-nav">
           <li><Link href="/dashboard" className="active">Dashboard</Link></li>
+          <li><Link href="/learn/segment-tree">Learn</Link></li>
           <li><Link href="/leaderboard">Leaderboard</Link></li>
           <li><Link href={`/profile/${user.username}`}>Profile</Link></li>
         </ul>
@@ -89,9 +90,47 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <Link href="/match/queue" className="btn btn-primary btn-lg btn-pulse">
-            ⚡ Find a Match
-          </Link>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <Link
+              href="/match/queue"
+              className="btn btn-primary btn-lg btn-pulse"
+              style={!user.cfVerified ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+              aria-disabled={!user.cfVerified}
+            >
+              ⚡ Find a Match
+            </Link>
+            <Link
+              href="/match/solo"
+              className="btn btn-secondary btn-lg"
+              style={!user.cfVerified ? { opacity: 0.5, pointerEvents: 'none' } : {}}
+              aria-disabled={!user.cfVerified}
+            >
+              👤 Play Solo
+            </Link>
+          </div>
+
+          {/* CF not linked warning */}
+          {!user.cfVerified && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              marginTop: '0.75rem',
+              padding: '0.65rem 1rem',
+              background: 'rgba(255, 165, 0, 0.08)',
+              border: '1px solid rgba(255, 165, 0, 0.3)',
+              borderRadius: '8px',
+              fontSize: 'var(--font-size-sm)',
+            }}>
+              <span>⚠️</span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                Matchmaking requires a verified Codeforces account.
+              </span>
+              <Link href="/settings" style={{ color: '#ffa500', fontWeight: 600, marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+                Link CF →
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Stats Grid */}
@@ -136,6 +175,12 @@ export default function DashboardPage() {
               <p>Find an opponent and compete for rating</p>
             </Link>
 
+            <Link href="/learn/segment-tree" className={`card ${styles.actionCard}`}>
+              <span className={styles.actionIcon}>🌳</span>
+              <h3>Learning Path</h3>
+              <p>Learn Segment Trees interactively</p>
+            </Link>
+
             <Link href="/leaderboard" className={`card ${styles.actionCard}`}>
               <span className={styles.actionIcon}>🏆</span>
               <h3>Leaderboard</h3>
@@ -149,9 +194,9 @@ export default function DashboardPage() {
             </Link>
 
             <Link href="/settings" className={`card ${styles.actionCard}`}>
-              <span className={styles.actionIcon}>🔗</span>
-              <h3>Link Codeforces</h3>
-              <p>Connect your CF account for calibration</p>
+              <span className={styles.actionIcon}>{user.cfVerified ? '✅' : '🔗'}</span>
+              <h3>{user.cfVerified ? `CF: ${user.cfHandle}` : 'Link Codeforces'}</h3>
+              <p>{user.cfVerified ? `Rating: ${user.cfRating ?? 'N/A'}` : 'Required for matchmaking — link now'}</p>
             </Link>
           </div>
         </div>

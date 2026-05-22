@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Panel, Group, Separator } from "react-resizable-panels";
 import dynamic from "next/dynamic";
 import { useAuthStore } from "@/stores/authStore";
 import { useMatchStore } from "@/stores/matchStore";
@@ -9,6 +10,9 @@ import ProblemPanel from "@/components/arena/ProblemPanel";
 import MatchTimer from "@/components/arena/MatchTimer";
 import MatchResults from "@/components/arena/MatchResults";
 import LanguageSelector from "@/components/editor/LanguageSelector";
+import HintPanel from "@/components/arena/HintPanel";
+import SolutionExplainer from "@/components/arena/SolutionExplainer";
+import MatchReportView from "@/components/arena/MatchReport";
 import styles from "./page.module.css";
 
 const CodeEditor = dynamic(() => import("@/components/editor/CodeEditor"), {
@@ -84,8 +88,12 @@ export default function MatchPage() {
     switch (msg.type) {
       case "match_state": {
         const d = msg.data;
+        useMatchStore.setState({ isCF: d.isCF as boolean });
         store.setQuestions(d.questions as never);
-        store.setOpponent(d.opponent as string);
+        useMatchStore.setState({ isSolo: d.isSolo as boolean });
+        if (!d.isSolo) {
+          store.setOpponent(d.opponent as string);
+        }
         store.setRemainingSeconds(d.remainingSeconds as number);
         store.setStatus("active");
         
@@ -115,6 +123,19 @@ export default function MatchPage() {
         break;
       }
 
+      case "cf_solved": {
+        const d = msg.data;
+        if (d.solvedBy === "you") {
+          store.recordMySolve(d.questionIndex as number, d.points as number);
+          store.setCFVerificationStatus(d.questionIndex as number, 'verified');
+          store.setConsole(`✅ Codeforces submission verified! +${d.points} points!`, "success");
+        } else if (d.solvedBy === "opponent") {
+          store.recordOpponentSolve(d.questionIndex as number, d.opponentScore as number);
+          store.setConsole(`⚠️ Opponent solved Q${d.questionIndex} on Codeforces! Their score: ${d.opponentScore}`, "error");
+        }
+        break;
+      }
+
       case "run_result": {
         store.setRunResult(msg.data as unknown as import("@/stores/matchStore").RunResult);
         break;
@@ -139,8 +160,41 @@ export default function MatchPage() {
       case "heartbeat_ack":
         break;
 
+      case "hint_response": {
+        const h = msg.data;
+        store.addHint(h.questionIndex as number, h.hintText as string);
+        if (typeof h.newScore === "number") {
+          const penalty = h.pointsDeducted as number;
+          if (penalty > 0) {
+            store.setConsole(`💡 Hint received (-${penalty} pts)`, "info");
+          } else {
+            store.setConsole(`💡 Hint received (free in solo mode)`, "info");
+          }
+        }
+        break;
+      }
+
+      case "hint_loading":
+        store.setHintsPending(true);
+        break;
+
+      case "explanation_response": {
+        const e = msg.data;
+        store.setExplanation(
+          e.questionIndex as number,
+          e.explanation as import("@/stores/matchStore").SolutionExplanation
+        );
+        break;
+      }
+
+      case "explanation_loading":
+        store.setExplanationPending(msg.data.questionIndex as number);
+        break;
+
       case "error":
         store.setConsole(`Error: ${(msg.data as { message: string }).message}`, "error");
+        store.setHintsPending(false);
+        store.setExplanationPending(null);
         break;
     }
   }, [store]);
@@ -167,11 +221,23 @@ export default function MatchPage() {
 
   // Handlers
   const handleSubmit = () => {
+    if (store.isCF) {
+      // In CF mode, the user must submit on Codeforces.
+      const q = currentQuestion?.question;
+      if (q?.cfUrl) {
+        store.setConsole("Please submit your code on Codeforces. We will automatically detect your submission once it is accepted.", "info");
+        window.open(q.cfUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        store.setConsole("Codeforces URL not available for this problem.", "error");
+      }
+      return;
+    }
+
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     
     const codeState = store.codeStates[store.activeQuestionIndex];
-    if (!codeState?.code.trim()) {
+    if (!codeState?.code?.trim()) {
       store.setConsole("Cannot submit empty code.", "error");
       return;
     }
@@ -192,7 +258,7 @@ export default function MatchPage() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
     const codeState = store.codeStates[store.activeQuestionIndex];
-    if (!codeState?.code.trim()) {
+    if (!codeState?.code?.trim()) {
       store.setConsole("Cannot run empty code.", "error");
       return;
     }
@@ -246,19 +312,25 @@ export default function MatchPage() {
               <span className={styles.scoreLabel}>You</span>
               <span className={`${styles.scoreNum} ${styles.myScore}`}>{store.myScore}</span>
             </div>
-            <span className={styles.scoreSep}>—</span>
-            <div className={styles.scoreItem}>
-              <span className={`${styles.scoreNum} ${styles.oppScore}`}>{store.opponentScore}</span>
-              <span className={styles.scoreLabel}>{store.opponentUsername || "Opponent"}</span>
-            </div>
+            {!store.isSolo && (
+              <>
+                <span className={styles.scoreSep}>—</span>
+                <div className={styles.scoreItem}>
+                  <span className={`${styles.scoreNum} ${styles.oppScore}`}>{store.opponentScore}</span>
+                  <span className={styles.scoreLabel}>{store.opponentUsername || "Opponent"}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Arena Content */}
       <div className={styles.arenaBody}>
-        {/* Question Sidebar */}
-        <aside className={styles.sidebar}>
+        <Group direction="horizontal" id="arena-main-group">
+          {/* Question Sidebar */}
+          <Panel id="sidebar-panel" defaultSize={12} minSize={8} maxSize={25}>
+            <aside className={styles.sidebar}>
           <div className={styles.sidebarTitle}>Questions</div>
           {store.questions.map((q) => {
             const isMySolved = store.mySolved.has(q.questionIndex);
@@ -279,7 +351,7 @@ export default function MatchPage() {
                 <span className={styles.qTabIdx}>Q{q.questionIndex}</span>
                 <span className={styles.qTabPts}>+{q.pointsValue}</span>
                 {isMySolved && <span className={styles.qTabIcon}>✓</span>}
-                {isOppSolved && !isMySolved && <span className={styles.qTabIcon}>✗</span>}
+                {!store.isSolo && isOppSolved && !isMySolved && <span className={styles.qTabIcon}>✗</span>}
               </button>
             );
           })}
@@ -289,22 +361,38 @@ export default function MatchPage() {
           <div className={styles.sidebarStats}>
             <div className={styles.sidebarStat}>
               <span className={styles.sidebarStatLabel}>Solved</span>
-              <span className={styles.sidebarStatValue}>{store.mySolved.size}/7</span>
+              <span className={styles.sidebarStatValue}>{store.mySolved.size}/{store.isCF ? 5 : 7}</span>
             </div>
             <div className={styles.sidebarStat}>
               <span className={styles.sidebarStatLabel}>Score</span>
               <span className={styles.sidebarStatValue} style={{ color: "var(--cm-cyan)" }}>{store.myScore}</span>
             </div>
           </div>
-        </aside>
+            </aside>
+          </Panel>
 
-        {/* Problem Panel */}
-        <div className={styles.problemPanel}>
+          <Separator id="sep-1" className={styles.resizeHandle} />
+
+          {/* Problem Panel */}
+          <Panel id="problem-panel" defaultSize={38} minSize={20}>
+            <div className={styles.problemPanel}>
           <ProblemPanel question={currentQuestion || null} />
-        </div>
+          {currentQuestion && (
+            <HintPanel
+              questionIndex={store.activeQuestionIndex}
+              isSolo={store.isSolo}
+            />
+          )}
+            </div>
+          </Panel>
 
-        {/* Editor + Console Panel */}
-        <div className={styles.editorPanel}>
+          <Separator id="sep-2" className={styles.resizeHandle} />
+
+          {/* Editor + Console Panel */}
+          <Panel id="editor-console-panel" defaultSize={50} minSize={30}>
+            <Group direction="vertical" id="editor-console-group">
+              <Panel id="editor-panel" defaultSize={70} minSize={20}>
+                <div className={styles.editorPanel}>
           {/* Editor Toolbar */}
           <div className={styles.editorToolbar}>
             <LanguageSelector
@@ -324,8 +412,11 @@ export default function MatchPage() {
                 onClick={handleSubmit}
                 disabled={store.isSubmitting || store.status !== "active" || store.mySolved.has(store.activeQuestionIndex)}
               >
-                {store.isSubmitting ? "Judging..." : store.mySolved.has(store.activeQuestionIndex) ? "✓ Solved" : "Submit"}
+                {store.mySolved.has(store.activeQuestionIndex) ? "✓ Solved" : store.isCF ? "Submit on CF" : store.isSubmitting ? "Judging..." : "Submit"}
               </button>
+              {store.mySolved.has(store.activeQuestionIndex) && (
+                <SolutionExplainer questionIndex={store.activeQuestionIndex} />
+              )}
             </div>
           </div>
 
@@ -338,9 +429,14 @@ export default function MatchPage() {
               readOnly={store.status !== "active"}
             />
           </div>
+        </div>
+      </Panel>
 
-          {/* Console */}
-          <div className={styles.console}>
+              <Separator id="sep-3" className={styles.resizeHandleHorizontal} />
+
+              <Panel id="console-panel" defaultSize={30} minSize={10}>
+                {/* Console */}
+                <div className={styles.console}>
             <div className={styles.consoleTabs}>
               <button
                 className={`${styles.consoleTab} ${consoleTab === "output" ? styles.consoleTabActive : ""}`}
@@ -380,7 +476,10 @@ export default function MatchPage() {
               )}
             </div>
           </div>
-        </div>
+        </Panel>
+            </Group>
+          </Panel>
+        </Group>
       </div>
     </div>
   );

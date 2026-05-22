@@ -46,12 +46,26 @@ export default function ProblemPanel({ question }: ProblemPanelProps) {
             {diff.text}
           </span>
           <span className={styles.points}>+{question.pointsValue} pts</span>
+          
+          {q.source === "codeforces" && q.cfRating && (
+            <span className={styles.badge} style={{ color: "#2196f3", borderColor: "#2196f340", background: "#2196f315" }}>
+              CF {q.cfRating}
+            </span>
+          )}
+          
           {question.solvedBy && (
             <span className={`verdict ${question.solvedBy === "you" ? "verdict-ac" : "verdict-wa"}`}>
               {question.solvedBy === "you" ? "✓ Solved" : "✗ Taken"}
             </span>
           )}
         </div>
+        {q.source === "codeforces" && q.cfUrl && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <a href={q.cfUrl} target="_blank" rel="noopener noreferrer" className={styles.cfLink}>
+              ↗ View on Codeforces
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Statement */}

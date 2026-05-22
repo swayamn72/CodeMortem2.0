@@ -55,7 +55,10 @@ services:
       - POSTGRES_PASSWORD=judge0_dev
       - RAILS_MAX_THREADS=8
       - RAILS_SERVER_URL=http://0.0.0.0:2358
+      - CGROUP_VERSION=2
     privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
     depends_on:
       judge0-postgres:
         condition: service_healthy
@@ -76,7 +79,10 @@ services:
       - POSTGRES_DB=judge0
       - POSTGRES_USER=judge0
       - POSTGRES_PASSWORD=judge0_dev
+      - CGROUP_VERSION=2
     privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
     depends_on:
       judge0-postgres:
         condition: service_healthy
@@ -113,6 +119,49 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # CodeMortem API Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codemortem-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=codemortem
+      - DB_PASSWORD=codemortem_dev_2026
+      - DB_NAME=codemortem
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JUDGE0_URL=http://judge0-server:2358
+      - JWT_ACCESS_SECRET=8f3c2e1b7a9d4c6f0e5a2b8d1c7f9e4a6b3d0c8e1f5a7b9c2d4e6f8a1b3c5d7
+      - JWT_REFRESH_SECRET=4d9a1c7e3b6f0a2d8c5e1f9b7a4c6d3e0f2a8b1c7e5d9f4a6b3c0e2d8f1a7c5
+      - AI_PROVIDER=openai
+      - AI_API_KEY=sk-proj-YOUR_API_KEY_HERE
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # CodeMortem Web Frontend
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: codemortem-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
+    depends_on:
+      - api
 
 volumes:
   postgres_data:

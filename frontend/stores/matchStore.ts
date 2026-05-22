@@ -10,6 +10,11 @@ export interface Question {
   examples: { input: string; output: string; explanation?: string }[];
   difficulty: number;
   tags: string[];
+  source?: string;
+  cfUrl?: string;
+  cfRating?: number;
+  cfContestId?: number;
+  cfIndex?: string;
 }
 
 export interface MatchQuestion {
@@ -57,6 +62,34 @@ export interface MatchEndData {
   player2: MatchPlayer;
 }
 
+export interface SolutionExplanation {
+  keyInsight: string;
+  approach: string;
+  timeComplexity: string;
+  spaceComplexity: string;
+  pseudocode: string;
+  commonPitfalls?: string[];
+  codeFeedback?: string;
+}
+
+export interface MatchReport {
+  overallGrade: string;
+  summary: string;
+  problemGrades: {
+    questionIndex: number;
+    grade: string;
+    solved: boolean;
+    commentary: string;
+  }[];
+  strengths: string[];
+  weaknesses: string[];
+  recommendations?: {
+    topic: string;
+    priority: string;
+    description: string;
+  }[];
+}
+
 type MatchStatus = "loading" | "countdown" | "active" | "ended";
 
 interface CodeState {
@@ -67,6 +100,8 @@ interface CodeState {
 interface MatchState {
   matchId: string | null;
   status: MatchStatus;
+  isCF: boolean;
+  isSolo: boolean;
   questions: MatchQuestion[];
   activeQuestionIndex: number;
   
@@ -102,6 +137,19 @@ interface MatchState {
   // WebSocket
   ws: WebSocket | null;
 
+  // Codeforces Verification
+  cfVerificationStatus: Record<number, 'waiting' | 'verified'>;
+
+  // AI Features
+  hints: Record<number, string[]>;
+  hintsPending: boolean;
+  hintLoading: Record<number, boolean>;
+  explanations: Record<number, SolutionExplanation>;
+  explanationPending: number | null;
+  explanationLoading: Record<number, boolean>;
+  matchReport: MatchReport | null;
+  matchReportPending: boolean;
+
   // Actions
   setMatchId: (id: string) => void;
   setStatus: (status: MatchStatus) => void;
@@ -121,6 +169,13 @@ interface MatchState {
   setConsole: (output: string, type: "info" | "success" | "error") => void;
   setOpponent: (username: string) => void;
   setWs: (ws: WebSocket | null) => void;
+  setCFVerificationStatus: (index: number, status: 'waiting' | 'verified') => void;
+  addHint: (questionIndex: number, hintText: string) => void;
+  setHintsPending: (v: boolean) => void;
+  setExplanation: (questionIndex: number, explanation: SolutionExplanation) => void;
+  setExplanationPending: (questionIndex: number | null) => void;
+  setMatchReport: (report: MatchReport) => void;
+  setMatchReportPending: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -190,6 +245,8 @@ function buildInitialCodeStates(): Record<number, CodeState> {
 export const useMatchStore = create<MatchState>((set, get) => ({
   matchId: null,
   status: "loading",
+  isCF: false,
+  isSolo: false,
   questions: [],
   activeQuestionIndex: 1,
   myId: null,
@@ -208,6 +265,15 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   mySolved: new Set(),
   opponentSolved: new Set(),
   ws: null,
+  cfVerificationStatus: {},
+  hints: {},
+  hintsPending: false,
+  hintLoading: {},
+  explanations: {},
+  explanationPending: null,
+  explanationLoading: {},
+  matchReport: null,
+  matchReportPending: false,
 
   setMatchId: (matchId) => set({ matchId }),
   setStatus: (status) => set({ status }),
@@ -247,12 +313,31 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     consoleType: result.verdict === "accepted" ? "success" : "error",
   }),
 
-  setRunResult: (result) => set({
-    lastRunResult: result,
-    isRunning: false,
-    consoleOutput: result.output || result.stderr || result.compileOutput || "(no output)",
-    consoleType: result.stderr || result.compileOutput ? "error" : "info",
-  }),
+  setRunResult: (result) => {
+    const lines: string[] = [];
+    if (result.status && result.status !== "Accepted") {
+      lines.push(`[${result.status}]`);
+    }
+    if (result.compileOutput) {
+      lines.push("Compile Error:\n" + result.compileOutput);
+    } else if (result.stderr) {
+      lines.push("Runtime Error:\n" + result.stderr);
+    } else if (result.output !== undefined && result.output !== null && result.output !== "") {
+      lines.push(result.output);
+    } else {
+      lines.push("(no output)");
+    }
+    if (result.executionTime) {
+      lines.push(`\nTime: ${result.executionTime}s`);
+    }
+    const isError = !!(result.compileOutput || result.stderr);
+    set({
+      lastRunResult: result,
+      isRunning: false,
+      consoleOutput: lines.join("\n"),
+      consoleType: isError ? "error" : "info",
+    });
+  },
 
   recordMySolve: (questionIndex, points) =>
     set((state) => {
@@ -272,10 +357,32 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   setConsole: (consoleOutput, consoleType) => set({ consoleOutput, consoleType }),
   setOpponent: (opponentUsername) => set({ opponentUsername }),
   setWs: (ws) => set({ ws }),
+  setCFVerificationStatus: (index, status) => set((state) => ({
+    cfVerificationStatus: { ...state.cfVerificationStatus, [index]: status }
+  })),
+
+  addHint: (questionIndex, hintText) =>
+    set((state) => {
+      const existing = state.hints[questionIndex] || [];
+      return {
+        hints: { ...state.hints, [questionIndex]: [...existing, hintText] },
+        hintsPending: false,
+      };
+    }),
+  setHintsPending: (hintsPending) => set({ hintsPending }),
+  setExplanation: (questionIndex, explanation) =>
+    set((state) => ({
+      explanations: { ...state.explanations, [questionIndex]: explanation },
+      explanationPending: null,
+    })),
+  setExplanationPending: (explanationPending) => set({ explanationPending }),
+  setMatchReport: (matchReport) => set({ matchReport, matchReportPending: false }),
+  setMatchReportPending: (matchReportPending) => set({ matchReportPending }),
 
   reset: () => set({
     matchId: null,
     status: "loading",
+    isCF: false,
     questions: [],
     activeQuestionIndex: 1,
     myId: null,
@@ -294,5 +401,14 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     mySolved: new Set(),
     opponentSolved: new Set(),
     ws: null,
+    cfVerificationStatus: {},
+    hints: {},
+    hintsPending: false,
+    hintLoading: {},
+    explanations: {},
+    explanationPending: null,
+    explanationLoading: {},
+    matchReport: null,
+    matchReportPending: false,
   }),
 }));

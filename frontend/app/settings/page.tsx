@@ -181,7 +181,7 @@ export default function SettingsPage() {
 
                 <div className={styles.verifySteps}>
                   <p>1. Go to <a href="https://codeforces.com/settings/social" target="_blank" rel="noopener noreferrer" className={styles.cfLink}>CF Settings → Social</a></p>
-                  <p>2. Paste the token into your <strong>Organization</strong> field</p>
+                  <p>2. Paste the token into your <strong>First Name</strong> field</p>
                   <p>3. Save, then click &quot;Verify&quot; below</p>
                 </div>
 

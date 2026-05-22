@@ -2,15 +2,18 @@ package game
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"codemortem/internal/codeforces"
 	"codemortem/internal/models"
 	"codemortem/internal/rating"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 // Session represents an active 1v1 match in memory.
@@ -25,6 +28,10 @@ type Session struct {
 	EndAt     time.Time
 	Done      chan struct{}
 
+	// Codeforces mode
+	IsCF       bool
+	CFProblems map[int]*codeforces.SelectedProblem // questionIndex → CF problem info
+
 	mu sync.RWMutex
 }
 
@@ -37,21 +44,28 @@ type SessionPlayer struct {
 	Vol      float64
 	Score    int
 	Solved   map[int]bool // questionIndex → solved
+	CFHandle string       // Codeforces handle
+	HintsUsed          map[int]int    // questionIndex → max hint level used
+	HintTexts          map[int][]string // questionIndex → hint texts received
+	SubmissionAttempts map[int]int    // questionIndex → number of submissions
+	LastVerdicts       map[int]string // questionIndex → last verdict
 }
 
 // SessionManager manages all active game sessions.
 type SessionManager struct {
 	db       *sqlx.DB
 	hub      *Hub
+	cfClient *codeforces.Client
 	sessions map[string]*Session // matchID → session
 	mu       sync.RWMutex
 }
 
 // NewSessionManager creates a new session manager.
-func NewSessionManager(db *sqlx.DB, hub *Hub) *SessionManager {
+func NewSessionManager(db *sqlx.DB, hub *Hub, cfClient *codeforces.Client) *SessionManager {
 	return &SessionManager{
 		db:       db,
 		hub:      hub,
+		cfClient: cfClient,
 		sessions: make(map[string]*Session),
 	}
 }
@@ -111,6 +125,10 @@ func (sm *SessionManager) CreateSession(ctx context.Context, matchID, p1ID, p1Us
 			Vol:      p1Vol,
 			Score:    0,
 			Solved:   make(map[int]bool),
+			HintsUsed:          make(map[int]int),
+			HintTexts:          make(map[int][]string),
+			SubmissionAttempts: make(map[int]int),
+			LastVerdicts:       make(map[int]string),
 		},
 		Player2: &SessionPlayer{
 			UserID:   p2ID,
@@ -120,6 +138,10 @@ func (sm *SessionManager) CreateSession(ctx context.Context, matchID, p1ID, p1Us
 			Vol:      p2Vol,
 			Score:    0,
 			Solved:   make(map[int]bool),
+			HintsUsed:          make(map[int]int),
+			HintTexts:          make(map[int][]string),
+			SubmissionAttempts: make(map[int]int),
+			LastVerdicts:       make(map[int]string),
 		},
 		StartedAt: now,
 		EndAt:     endAt,
@@ -136,6 +158,86 @@ func (sm *SessionManager) CreateSession(ctx context.Context, matchID, p1ID, p1Us
 	sm.mu.Unlock()
 
 	log.Printf("[session] created match %s: %s vs %s", matchID, p1User, p2User)
+
+	return session, nil
+}
+
+// CreateSoloSession creates a new solo match session.
+func (sm *SessionManager) CreateSoloSession(ctx context.Context, p1ID, p1User string, p1Rating, p1RD, p1Vol float64, questionSetID string) (*Session, error) {
+	now := time.Now()
+	duration := 30 * time.Minute
+	endAt := now.Add(duration)
+
+	// Create match in DB
+	var match models.Match
+	err := sm.db.QueryRowxContext(ctx, `
+		INSERT INTO matches (player1_id, player2_id, question_set_id, status, mode, started_at, duration_secs,
+			player1_rating_before)
+		VALUES ($1, NULL, $2, 'in_progress', 'solo', $3, $4, $5)
+		RETURNING *
+	`, p1ID, questionSetID, now, int(duration.Seconds()), p1Rating).StructScan(&match)
+	if err != nil {
+		return nil, fmt.Errorf("create solo match: %w", err)
+	}
+
+	// Load question set and create match_questions entries
+	var qs models.QuestionSet
+	err = sm.db.GetContext(ctx, &qs, "SELECT * FROM question_sets WHERE id = $1", questionSetID)
+	if err != nil {
+		return nil, fmt.Errorf("load question set: %w", err)
+	}
+
+	qIDs := []string{qs.Q1ID, qs.Q2ID, qs.Q3ID, qs.Q4ID, qs.Q5ID, qs.Q6ID, qs.Q7ID}
+	matchQuestions := make([]*models.MatchQuestion, 7)
+
+	for i, qID := range qIDs {
+		var mq models.MatchQuestion
+		err = sm.db.QueryRowxContext(ctx, `
+			INSERT INTO match_questions (match_id, question_id, question_index, points_value, unlocked_at)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING *
+		`, match.ID, qID, i+1, (i+1)*100, now).StructScan(&mq)
+		if err != nil {
+			return nil, fmt.Errorf("create match question %d: %w", i+1, err)
+		}
+		matchQuestions[i] = &mq
+	}
+
+	// Increment usage counter
+	sm.db.ExecContext(ctx, "UPDATE question_sets SET times_used = times_used + 1 WHERE id = $1", questionSetID)
+
+	session := &Session{
+		Match:     &match,
+		Questions: matchQuestions,
+		Player1: &SessionPlayer{
+			UserID:   p1ID,
+			Username: p1User,
+			Rating:   p1Rating,
+			RD:       p1RD,
+			Vol:      p1Vol,
+			Score:    0,
+			Solved:   make(map[int]bool),
+			HintsUsed:          make(map[int]int),
+			HintTexts:          make(map[int][]string),
+			SubmissionAttempts: make(map[int]int),
+			LastVerdicts:       make(map[int]string),
+		},
+		Player2:   nil, // No opponent
+		StartedAt: now,
+		EndAt:     endAt,
+		Done:      make(chan struct{}),
+	}
+
+	// Start timer
+	session.Timer = time.AfterFunc(duration, func() {
+		sm.EndMatch(context.Background(), match.ID, "timeout")
+	})
+
+	sm.mu.Lock()
+	sm.sessions[match.ID] = session
+	sm.mu.Unlock()
+
+	log.Printf("[session] created solo match %s for %s", match.ID, p1User)
 
 	return session, nil
 }
@@ -159,7 +261,7 @@ func (sm *SessionManager) RecordSolve(ctx context.Context, matchID, userID strin
 	session.mu.Lock()
 	defer session.mu.Unlock()
 
-	if questionIndex < 1 || questionIndex > 7 {
+	if questionIndex < 1 || questionIndex > len(session.Questions) {
 		return 0, fmt.Errorf("invalid question index: %d", questionIndex)
 	}
 
@@ -189,18 +291,24 @@ func (sm *SessionManager) RecordSolve(ctx context.Context, matchID, userID strin
 	}
 
 	// Update match scores in DB
-	sm.db.ExecContext(ctx, `
-		UPDATE matches SET player1_score = $1, player2_score = $2 WHERE id = $3
-	`, session.Player1.Score, session.Player2.Score, matchID)
+	if session.Player2 != nil {
+		sm.db.ExecContext(ctx, `
+			UPDATE matches SET player1_score = $1, player2_score = $2 WHERE id = $3
+		`, session.Player1.Score, session.Player2.Score, matchID)
 
-	// Notify opponent
-	sm.hub.SendToOpponent(matchID, userID, &ServerMessage{
-		Type: "opponent_solved",
-		Data: map[string]interface{}{
-			"questionIndex": questionIndex,
-			"opponentScore": player.Score,
-		},
-	})
+		// Notify opponent
+		sm.hub.SendToOpponent(matchID, userID, &ServerMessage{
+			Type: "opponent_solved",
+			Data: map[string]interface{}{
+				"questionIndex": questionIndex,
+				"opponentScore": player.Score,
+			},
+		})
+	} else {
+		sm.db.ExecContext(ctx, `
+			UPDATE matches SET player1_score = $1 WHERE id = $2
+		`, session.Player1.Score, matchID)
+	}
 
 	log.Printf("[session] %s solved Q%d in match %s (+%d pts)", player.Username, questionIndex, matchID, points)
 
@@ -245,7 +353,41 @@ func (sm *SessionManager) EndMatch(ctx context.Context, matchID, reason string) 
 	p1 := session.Player1
 	p2 := session.Player2
 
-	// Determine winner
+	if p2 == nil {
+		// Solo match logic
+		sm.db.ExecContext(ctx, `
+			UPDATE matches SET 
+				status = 'completed', ended_at = $1, player1_score = $2
+			WHERE id = $3
+		`, now, p1.Score, matchID)
+
+		sm.db.ExecContext(ctx, `
+			UPDATE users SET 
+				solo_matches_played = solo_matches_played + 1,
+				solo_problems_solved = solo_problems_solved + $1
+			WHERE id = $2
+		`, len(p1.Solved), p1.UserID)
+
+		resultData := map[string]interface{}{
+			"matchId": matchID,
+			"reason":  reason,
+			"player1": map[string]interface{}{"userId": p1.UserID, "username": p1.Username, "score": p1.Score},
+		}
+
+		sm.hub.BroadcastToRoom(matchID, &ServerMessage{
+			Type: "match_end",
+			Data: resultData,
+		})
+
+		sm.mu.Lock()
+		delete(sm.sessions, matchID)
+		sm.mu.Unlock()
+
+		log.Printf("[session] solo match %s ended (%s): %s(%d)", matchID, reason, p1.Username, p1.Score)
+		return
+	}
+
+	// Determine winner (1v1 logic)
 	var status models.MatchStatus
 	var winnerID *string
 	var p1Score float64
@@ -374,10 +516,19 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 	session.mu.RLock()
 	defer session.mu.RUnlock()
 
-	// Determine opponent
-	opponent := session.Player2
-	if session.Player2.UserID == userID {
-		opponent = session.Player1
+	// Determine opponent if 1v1
+	var oppUsername *string
+	var oppRating *float64
+	var oppScore *int
+
+	if session.Player2 != nil {
+		opponent := session.Player2
+		if session.Player2.UserID == userID {
+			opponent = session.Player1
+		}
+		oppUsername = &opponent.Username
+		oppRating = &opponent.Rating
+		oppScore = &opponent.Score
 	}
 
 	// Build questions payload with details
@@ -385,16 +536,21 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 	questions := make([]map[string]interface{}, len(session.Questions))
 	for i, mq := range session.Questions {
 		var q struct {
-			Title        string `db:"title"`
-			Statement    string `db:"statement"`
-			InputFormat  string `db:"input_format"`
-			OutputFormat string `db:"output_format"`
-			Constraints  string `db:"constraints"`
-			Examples     []byte `db:"examples"`
-			Difficulty   int    `db:"difficulty"`
-			Tags         []byte `db:"tags"`
+			Title        string         `db:"title"`
+			Statement    string         `db:"statement"`
+			InputFormat  string         `db:"input_format"`
+			OutputFormat string         `db:"output_format"`
+			Constraints  string         `db:"constraints"`
+			Examples     []byte         `db:"examples"`
+			Difficulty   int            `db:"difficulty"`
+			Tags         pq.StringArray `db:"tags"`
+			Source       string         `db:"source"`
+			CFContestID  *int           `db:"cf_contest_id"`
+			CFIndex      *string        `db:"cf_index"`
+			CFURL        *string        `db:"cf_url"`
+			CFRating     *int           `db:"cf_rating"`
 		}
-		sm.db.GetContext(ctx, &q, "SELECT title, statement, input_format, output_format, constraints, examples, difficulty, tags FROM questions WHERE id = $1", mq.QuestionID)
+		sm.db.GetContext(ctx, &q, "SELECT title, statement, input_format, output_format, constraints, examples, difficulty, tags, source, cf_contest_id, cf_index, cf_url, cf_rating FROM questions WHERE id = $1", mq.QuestionID)
 
 		solvedBy := ""
 		if mq.SolvedBy != nil {
@@ -405,21 +561,46 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 			}
 		}
 
+		// Unmarshal examples to avoid returning as string
+		var examples interface{}
+		if len(q.Examples) > 0 {
+			json.Unmarshal(q.Examples, &examples)
+		} else {
+			examples = []interface{}{}
+		}
+
+		qData := map[string]interface{}{
+			"id":           mq.QuestionID,
+			"title":        q.Title,
+			"statement":    q.Statement,
+			"inputFormat":  q.InputFormat,
+			"outputFormat": q.OutputFormat,
+			"constraints":  q.Constraints,
+			"examples":     examples,
+			"difficulty":   q.Difficulty,
+			"tags":         []string(q.Tags),
+			"source":       q.Source,
+		}
+
+		// Add CF-specific fields
+		if q.CFURL != nil {
+			qData["cfUrl"] = *q.CFURL
+		}
+		if q.CFRating != nil {
+			qData["cfRating"] = *q.CFRating
+		}
+		if q.CFContestID != nil {
+			qData["cfContestId"] = *q.CFContestID
+		}
+		if q.CFIndex != nil {
+			qData["cfIndex"] = *q.CFIndex
+		}
+
 		questions[i] = map[string]interface{}{
 			"questionIndex": mq.QuestionIndex,
 			"pointsValue":   mq.PointsValue,
 			"solvedBy":      solvedBy,
-			"question": map[string]interface{}{
-				"id":           mq.QuestionID,
-				"title":        q.Title,
-				"statement":    q.Statement,
-				"inputFormat":  q.InputFormat,
-				"outputFormat": q.OutputFormat,
-				"constraints":  q.Constraints,
-				"examples":     string(q.Examples),
-				"difficulty":   q.Difficulty,
-				"tags":         string(q.Tags),
-			},
+			"question":      qData,
 		}
 	}
 
@@ -427,20 +608,260 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 
 	me := session.GetPlayer(userID)
 	myScore := 0
-	oppScore := 0
 	if me != nil {
 		myScore = me.Score
-		oppScore = opponent.Score
 	}
 
-	return map[string]interface{}{
+	state := map[string]interface{}{
 		"matchId":          matchID,
 		"questions":        questions,
-		"opponent":         opponent.Username,
-		"opponentRating":   opponent.Rating,
 		"remainingSeconds": remaining,
 		"myScore":          myScore,
-		"opponentScore":    oppScore,
-	}, nil
+		"isSolo":           session.Player2 == nil,
+		"isCF":             session.IsCF,
+	}
+
+	if oppUsername != nil {
+		state["opponent"] = *oppUsername
+		state["opponentRating"] = *oppRating
+		state["opponentScore"] = *oppScore
+	}
+
+	return state, nil
 }
 
+// CreateCFSession creates a new match session using Codeforces problems.
+func (sm *SessionManager) CreateCFSession(ctx context.Context,
+	p1ID, p1User, p1CFHandle string, p1Rating, p1RD, p1Vol float64,
+	p2ID, p2User, p2CFHandle string, p2Rating, p2RD, p2Vol float64,
+	questionIDs []string, cfProblems []*codeforces.SelectedProblem,
+) (*Session, error) {
+	now := time.Now()
+	duration := 30 * time.Minute
+	endAt := now.Add(duration)
+
+	// We need a question_set_id. Create a dummy one for CF matches.
+	// Use q1-q5 from questionIDs, pad q6/q7 with q5 for schema compat
+	q6 := questionIDs[len(questionIDs)-1]
+	q7 := questionIDs[len(questionIDs)-1]
+	var qsID string
+	err := sm.db.QueryRowxContext(ctx, `
+		INSERT INTO question_sets (rating_min, rating_max, q1_id, q2_id, q3_id, q4_id, q5_id, q6_id, q7_id, is_active)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, false)
+		RETURNING id
+	`, cfProblems[0].Rating, cfProblems[len(cfProblems)-1].Rating,
+		questionIDs[0], questionIDs[1], questionIDs[2], questionIDs[3], questionIDs[4],
+		q6, q7).Scan(&qsID)
+	if err != nil {
+		return nil, fmt.Errorf("create cf question set: %w", err)
+	}
+
+	var p2IDPtr *string
+	if p2ID != "" {
+		p2IDPtr = &p2ID
+	}
+
+	// Create match in DB
+	var match models.Match
+	err = sm.db.QueryRowxContext(ctx, `
+		INSERT INTO matches (player1_id, player2_id, question_set_id, status, mode, started_at, duration_secs,
+			player1_rating_before, player2_rating_before)
+		VALUES ($1, $2, $3, 'in_progress', 'codeforces', $4, $5, $6, $7)
+		RETURNING *
+	`, p1ID, p2IDPtr, qsID, now, int(duration.Seconds()), p1Rating, p2Rating).StructScan(&match)
+	if err != nil {
+		return nil, fmt.Errorf("create cf match: %w", err)
+	}
+
+	matchQuestions := make([]*models.MatchQuestion, len(questionIDs))
+	for i, qID := range questionIDs {
+		var mq models.MatchQuestion
+		err = sm.db.QueryRowxContext(ctx, `
+			INSERT INTO match_questions (match_id, question_id, question_index, points_value, unlocked_at)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING *
+		`, match.ID, qID, i+1, (i+1)*100, now).StructScan(&mq)
+		if err != nil {
+			return nil, fmt.Errorf("create cf match question %d: %w", i+1, err)
+		}
+		matchQuestions[i] = &mq
+	}
+
+	cfProblemMap := make(map[int]*codeforces.SelectedProblem)
+	for i, p := range cfProblems {
+		cfProblemMap[i+1] = p
+	}
+
+	session := &Session{
+		Match:     &match,
+		Questions: matchQuestions,
+		Player1: &SessionPlayer{
+			UserID:   p1ID,
+			Username: p1User,
+			Rating:   p1Rating,
+			RD:       p1RD,
+			Vol:      p1Vol,
+			Score:    0,
+			Solved:   make(map[int]bool),
+			CFHandle: p1CFHandle,
+			HintsUsed:          make(map[int]int),
+			HintTexts:          make(map[int][]string),
+			SubmissionAttempts: make(map[int]int),
+			LastVerdicts:       make(map[int]string),
+		},
+		IsCF:       true,
+		CFProblems: cfProblemMap,
+		StartedAt:  now,
+		EndAt:      endAt,
+		Done:       make(chan struct{}),
+	}
+
+	if p2ID != "" {
+		session.Player2 = &SessionPlayer{
+			UserID:   p2ID,
+			Username: p2User,
+			Rating:   p2Rating,
+			RD:       p2RD,
+			Vol:      p2Vol,
+			Score:    0,
+			Solved:   make(map[int]bool),
+			CFHandle: p2CFHandle,
+			HintsUsed:          make(map[int]int),
+			HintTexts:          make(map[int][]string),
+			SubmissionAttempts: make(map[int]int),
+			LastVerdicts:       make(map[int]string),
+		}
+	}
+
+	// Start timer
+	session.Timer = time.AfterFunc(duration, func() {
+		sm.EndMatch(context.Background(), match.ID, "timeout")
+	})
+
+	sm.mu.Lock()
+	sm.sessions[match.ID] = session
+	sm.mu.Unlock()
+
+	// Start CF verification poller
+	go sm.startCFVerificationPoller(match.ID)
+
+	if p2ID != "" {
+		log.Printf("[session] created CF match %s: %s(%s) vs %s(%s)", match.ID, p1User, p1CFHandle, p2User, p2CFHandle)
+	} else {
+		log.Printf("[session] created CF solo match %s: %s(%s)", match.ID, p1User, p1CFHandle)
+	}
+
+	return session, nil
+}
+
+// startCFVerificationPoller polls Codeforces for accepted submissions during a match.
+func (sm *SessionManager) startCFVerificationPoller(matchID string) {
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	session, ok := sm.GetSession(matchID)
+	if !ok {
+		return
+	}
+
+	matchStartTimestamp := session.StartedAt.Unix()
+
+	log.Printf("[cf-poller] started for match %s", matchID)
+
+	for {
+		select {
+		case <-session.Done:
+			log.Printf("[cf-poller] match %s ended, stopping poller", matchID)
+			return
+		case <-ticker.C:
+			session, ok = sm.GetSession(matchID)
+			if !ok {
+				return
+			}
+
+			session.mu.RLock()
+			players := []*SessionPlayer{session.Player1}
+			if session.Player2 != nil {
+				players = append(players, session.Player2)
+			}
+			questions := session.Questions
+			cfProblems := session.CFProblems
+			session.mu.RUnlock()
+
+			for _, player := range players {
+				if player.CFHandle == "" {
+					continue
+				}
+
+				for _, mq := range questions {
+					if mq.SolvedBy != nil {
+						// Already solved by someone
+						continue
+					}
+
+					cfProb, ok := cfProblems[mq.QuestionIndex]
+					if !ok {
+						continue
+					}
+
+					// Check if this player submitted an AC for this problem on CF
+					subID, err := sm.cfClient.CheckRecentSubmission(
+						player.CFHandle,
+						cfProb.ContestID,
+						cfProb.Index,
+						matchStartTimestamp,
+					)
+					if err != nil {
+						log.Printf("[cf-poller] error checking %s for Q%d: %v", player.CFHandle, mq.QuestionIndex, err)
+						continue
+					}
+
+					if subID > 0 {
+						// Player solved it on CF!
+						log.Printf("[cf-poller] %s solved Q%d (CF sub %d) in match %s",
+							player.Username, mq.QuestionIndex, subID, matchID)
+
+						// Update DB
+						sm.db.ExecContext(context.Background(), `
+							UPDATE match_questions SET cf_verified = true, cf_submission_id = $1 WHERE id = $2
+						`, subID, mq.ID)
+
+						// Record solve
+						points, err := sm.RecordSolve(context.Background(), matchID, player.UserID, mq.QuestionIndex)
+						if err != nil {
+							log.Printf("[cf-poller] record solve error: %v", err)
+							continue
+						}
+
+						// Notify the solver
+						sm.hub.SendToUser(player.UserID, &ServerMessage{
+							Type: "cf_solved",
+							Data: map[string]interface{}{
+								"questionIndex":  mq.QuestionIndex,
+								"solvedBy":       "you",
+								"points":         points,
+								"cfSubmissionId": subID,
+							},
+						})
+
+						// Notify opponent if 1v1
+						if session.Player2 != nil {
+							sm.hub.SendToOpponent(matchID, player.UserID, &ServerMessage{
+								Type: "cf_solved",
+								Data: map[string]interface{}{
+									"questionIndex":  mq.QuestionIndex,
+									"solvedBy":       "opponent",
+									"points":         0,
+									"opponentScore":  player.Score,
+								},
+							})
+						}
+					}
+				}
+
+				// Rate limit: wait 1 second between players to respect CF API limits
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
+}

@@ -21,6 +21,13 @@ type Question struct {
 	Difficulty int      `json:"difficulty" db:"difficulty"` // 800-3500
 	Tags       []string `json:"tags" db:"tags"`
 
+	// Source: "ai" or "codeforces"
+	Source      string  `json:"source" db:"source"`
+	CFContestID *int    `json:"cfContestId,omitempty" db:"cf_contest_id"`
+	CFIndex     *string `json:"cfIndex,omitempty" db:"cf_index"`
+	CFURL       *string `json:"cfUrl,omitempty" db:"cf_url"`
+	CFRating    *int    `json:"cfRating,omitempty" db:"cf_rating"`
+
 	// AI generation metadata
 	GeneratedBy       string  `json:"generatedBy" db:"generated_by"`
 	GenerationPrompt  *string `json:"-" db:"generation_prompt"`
@@ -56,7 +63,11 @@ type TestCase struct {
 	CreatedAt      time.Time `json:"createdAt" db:"created_at"`
 }
 
+// MatchQuestionCount is the number of questions per match (Codeforces mode).
+const MatchQuestionCount = 5
+
 // QuestionSet represents a pre-bundled set of 7 questions for a rating range.
+// Kept for backwards compatibility with AI-generated sets.
 type QuestionSet struct {
 	ID        string `json:"id" db:"id"`
 	RatingMin int    `json:"ratingMin" db:"rating_min"`
@@ -79,4 +90,10 @@ type QuestionSet struct {
 type QuestionSetWithQuestions struct {
 	QuestionSet
 	Questions [7]*Question `json:"questions"`
+}
+
+// PointsForCFQuestion returns points for a CF match question index (1-5).
+func PointsForCFQuestion(index int) int {
+	// 100, 200, 300, 400, 500
+	return index * 100
 }

@@ -28,6 +28,8 @@ type User struct {
 	MatchesWon          int `json:"matchesWon" db:"matches_won"`
 	MatchesDrawn        int `json:"matchesDrawn" db:"matches_drawn"`
 	TotalProblemsSolved int `json:"totalProblemsSolved" db:"total_problems_solved"`
+	SoloMatchesPlayed   int `json:"soloMatchesPlayed" db:"solo_matches_played"`
+	SoloProblemsSolved  int `json:"soloProblemsSolved" db:"solo_problems_solved"`
 
 	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt    time.Time `json:"updatedAt" db:"updated_at"`
@@ -48,6 +50,8 @@ type UserPublic struct {
 	MatchesWon          int     `json:"matchesWon"`
 	MatchesDrawn        int     `json:"matchesDrawn"`
 	TotalProblemsSolved int     `json:"totalProblemsSolved"`
+	SoloMatchesPlayed   int     `json:"soloMatchesPlayed"`
+	SoloProblemsSolved  int     `json:"soloProblemsSolved"`
 	RankTitle           string  `json:"rankTitle"`
 	Email               string  `json:"email"`
 	CreatedAt           time.Time `json:"createdAt"`
@@ -68,6 +72,8 @@ func (u *User) ToPublic() *UserPublic {
 		MatchesWon:          u.MatchesWon,
 		MatchesDrawn:        u.MatchesDrawn,
 		TotalProblemsSolved: u.TotalProblemsSolved,
+		SoloMatchesPlayed:   u.SoloMatchesPlayed,
+		SoloProblemsSolved:  u.SoloProblemsSolved,
 		RankTitle:           GetRankTitle(u.Rating),
 		Email:               u.Email,
 		CreatedAt:           u.CreatedAt,

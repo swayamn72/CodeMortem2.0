@@ -83,19 +83,56 @@
 /* ── Arena Body ── */
 .arenaBody {
   flex: 1;
-  display: grid;
-  grid-template-columns: 170px 1fr 1fr;
+  display: flex;
   overflow: hidden;
+}
+
+/* ── Resize Handles ── */
+.resizeHandle {
+  width: 6px;
+  background-color: var(--bg-primary);
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  position: relative;
+}
+.resizeHandle::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 2px; right: 2px;
+  background-color: var(--border-primary);
+  border-radius: 2px;
+}
+.resizeHandle:hover::after, .resizeHandle:active::after {
+  background-color: var(--cm-cyan);
+}
+
+.resizeHandleHorizontal {
+  height: 6px;
+  background-color: var(--bg-primary);
+  cursor: row-resize;
+  transition: background-color 0.2s;
+  position: relative;
+  z-index: 10;
+}
+.resizeHandleHorizontal::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 2px; bottom: 2px;
+  background-color: var(--border-primary);
+  border-radius: 2px;
+}
+.resizeHandleHorizontal:hover::after, .resizeHandleHorizontal:active::after {
+  background-color: var(--cm-cyan);
 }
 
 /* ── Sidebar ── */
 .sidebar {
   background: var(--bg-secondary);
-  border-right: 1px solid var(--border-primary);
   padding: var(--space-md);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  height: 100%;
 }
 
 .sidebarTitle {
@@ -197,8 +234,10 @@
 
 /* ── Problem Panel ── */
 .problemPanel {
-  border-right: 1px solid var(--border-primary);
   overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Editor Panel ── */
@@ -206,6 +245,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
 }
 
 .editorToolbar {
@@ -242,9 +282,7 @@
 
 /* ── Console ── */
 .console {
-  height: 180px;
-  min-height: 140px;
-  border-top: 1px solid var(--border-primary);
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);

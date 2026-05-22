@@ -211,61 +211,80 @@ func (h *Handler) VerifyCFLink(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "no pending verification — call /cf-link first"})
 	}
 
-	// Fetch CF user info from public API
-	cfRating, err := fetchCFRating(body.CFHandle)
+	// Fetch CF user info from public API and check for token
+	cfInfo, err := fetchCFUserInfo(body.CFHandle)
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("could not verify CF handle: %v", err)})
+		return c.Status(400).JSON(fiber.Map{"error": fmt.Sprintf("could not reach Codeforces: %v", err)})
+	}
+
+	// Check the token appears in the First Name field
+	expectedToken := *user.CFVerifyToken
+	if cfInfo.FirstName != expectedToken {
+		return c.Status(400).JSON(fiber.Map{
+			"error": fmt.Sprintf(
+				"Token not found in CF profile. Expected '%s' in the First Name field of https://codeforces.com/settings/social — found: '%s'",
+				expectedToken, cfInfo.FirstName,
+			),
+		})
 	}
 
 	// Calibrate CM rating based on CF rating (linear mapping with floor)
-	cmRating := float64(cfRating)
+	cmRating := float64(cfInfo.Rating)
 	if cmRating < 800 {
 		cmRating = 800
 	}
 
-	err = h.repo.VerifyCF(c.Context(), userID, cfRating, cmRating)
+	err = h.repo.VerifyCF(c.Context(), userID, cfInfo.Rating, cmRating)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to verify"})
 	}
 
 	return c.JSON(fiber.Map{
 		"verified": true,
-		"cfRating": cfRating,
+		"cfRating": cfInfo.Rating,
 		"cmRating": cmRating,
 		"message":  "Codeforces account verified and rating calibrated!",
 	})
 }
 
-// fetchCFRating fetches a user's current rating from the Codeforces API.
-func fetchCFRating(handle string) (int, error) {
+// cfUserInfo holds the relevant fields from CF API for a user.
+type cfUserInfo struct {
+	Rating    int
+	FirstName string
+}
+
+// fetchCFUserInfo fetches a user's current info from the Codeforces API.
+func fetchCFUserInfo(handle string) (*cfUserInfo, error) {
 	resp, err := http.Get(fmt.Sprintf("https://codeforces.com/api/user.info?handles=%s", handle))
 	if err != nil {
-		return 0, fmt.Errorf("cf api request failed: %w", err)
+		return nil, fmt.Errorf("cf api request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, fmt.Errorf("read cf response: %w", err)
+		return nil, fmt.Errorf("read cf response: %w", err)
 	}
 
 	var result struct {
 		Status string `json:"status"`
 		Result []struct {
-			Handle       string `json:"handle"`
-			Rating       int    `json:"rating"`
-			MaxRating    int    `json:"maxRating"`
-			Organization string `json:"organization"`
+			Handle    string `json:"handle"`
+			Rating    int    `json:"rating"`
+			FirstName string `json:"firstName"`
 		} `json:"result"`
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return 0, fmt.Errorf("parse cf response: %w", err)
+		return nil, fmt.Errorf("parse cf response: %w", err)
 	}
 
 	if result.Status != "OK" || len(result.Result) == 0 {
-		return 0, fmt.Errorf("codeforces handle not found: %s", handle)
+		return nil, fmt.Errorf("codeforces handle not found: %s", handle)
 	}
 
-	return result.Result[0].Rating, nil
+	return &cfUserInfo{
+		Rating:    result.Result[0].Rating,
+		FirstName: result.Result[0].FirstName,
+	}, nil
 }

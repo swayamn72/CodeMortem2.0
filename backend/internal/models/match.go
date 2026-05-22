@@ -16,10 +16,12 @@ const (
 
 // Match represents a 1v1 competitive programming match.
 type Match struct {
-	ID            string `json:"id" db:"id"`
-	Player1ID     string `json:"player1Id" db:"player1_id"`
-	Player2ID     string `json:"player2Id" db:"player2_id"`
-	QuestionSetID string `json:"questionSetId" db:"question_set_id"`
+	ID            string  `json:"id" db:"id"`
+	Player1ID     string  `json:"player1Id" db:"player1_id"`
+	Player2ID     *string `json:"player2Id" db:"player2_id"`
+	QuestionSetID string  `json:"questionSetId" db:"question_set_id"`
+	Mode          string  `json:"mode" db:"mode"`
+
 
 	Status       MatchStatus `json:"status" db:"status"`
 	StartedAt    time.Time   `json:"startedAt" db:"started_at"`
@@ -47,11 +49,15 @@ type MatchQuestion struct {
 	ID            string    `json:"id" db:"id"`
 	MatchID       string    `json:"matchId" db:"match_id"`
 	QuestionID    string    `json:"questionId" db:"question_id"`
-	QuestionIndex int       `json:"questionIndex" db:"question_index"` // 1-7
-	PointsValue   int       `json:"pointsValue" db:"points_value"`     // 100-700
+	QuestionIndex int       `json:"questionIndex" db:"question_index"` // 1-5 for CF, 1-7 for legacy
+	PointsValue   int       `json:"pointsValue" db:"points_value"`     // 100-500 for CF
 	SolvedBy      *string   `json:"solvedBy" db:"solved_by"`
 	SolvedAt      *time.Time `json:"solvedAt" db:"solved_at"`
 	UnlockedAt    time.Time `json:"unlockedAt" db:"unlocked_at"`
+
+	// Codeforces submission verification
+	CFVerified    bool   `json:"cfVerified" db:"cf_verified"`
+	CFSubmissionID *int64 `json:"cfSubmissionId,omitempty" db:"cf_submission_id"`
 }
 
 // Verdict represents the result of a code submission.

@@ -9,21 +9,27 @@ import (
 // Middleware returns a Fiber middleware that validates JWT access tokens.
 func Middleware(jwtMgr *JWTManager) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		var tokenStr string
 		authHeader := c.Get("Authorization")
-		if authHeader == "" {
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+				tokenStr = parts[1]
+			}
+		}
+
+		if tokenStr == "" {
+			// Fallback to query parameter for WebSockets
+			tokenStr = c.Query("token")
+		}
+
+		if tokenStr == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "missing authorization header",
+				"error": "missing authorization token",
 			})
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error": "invalid authorization format, expected: Bearer <token>",
-			})
-		}
-
-		claims, err := jwtMgr.ValidateAccessToken(parts[1])
+		claims, err := jwtMgr.ValidateAccessToken(tokenStr)
 		if err != nil {
 			if err == ErrTokenExpired {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

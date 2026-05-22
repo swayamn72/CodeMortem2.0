@@ -22,6 +22,13 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	auth.Post("/refresh", h.Refresh)
 }
 
+// RegisterRoutesWithGroup registers auth routes on the given Fiber router group.
+func (h *Handler) RegisterRoutesWithGroup(auth fiber.Router) {
+	auth.Post("/register", h.Register)
+	auth.Post("/login", h.Login)
+	auth.Post("/refresh", h.Refresh)
+}
+
 // Register handles POST /api/auth/register
 func (h *Handler) Register(c *fiber.Ctx) error {
 	var req RegisterRequest

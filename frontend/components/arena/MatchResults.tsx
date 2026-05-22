@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useMatchStore } from "@/stores/matchStore";
 import type { MatchEndData } from "@/stores/matchStore";
+import MatchReportView from "./MatchReport";
 import styles from "./MatchResults.module.css";
 
 interface MatchResultsProps {
@@ -155,6 +157,9 @@ export default function MatchResults({ data, myId }: MatchResultsProps) {
           </div>
         </div>
 
+        {/* AI Performance Report */}
+        <AIReportSection />
+
         {/* Actions */}
         <div className={styles.actions}>
           <button className="btn btn-primary btn-lg" onClick={() => router.push("/match/queue")}>
@@ -165,6 +170,46 @@ export default function MatchResults({ data, myId }: MatchResultsProps) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AIReportSection() {
+  const { matchReport, matchReportPending, ws } = useMatchStore();
+
+  if (matchReport) {
+    return <MatchReportView report={matchReport} />;
+  }
+
+  if (matchReportPending) {
+    return (
+      <div style={{ textAlign: "center", padding: "16px", color: "var(--text-muted)" }}>
+        <div style={{
+          width: 24, height: 24, margin: "0 auto 8px",
+          border: "2px solid var(--border-primary)",
+          borderTopColor: "var(--cm-cyan)",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }} />
+        Generating AI performance report...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ textAlign: "center", padding: "8px" }}>
+      <button
+        className="btn btn-secondary btn-sm"
+        onClick={() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "request_analysis" }));
+            useMatchStore.getState().setMatchReportPending(true);
+          }
+        }}
+        style={{ gap: "6px", display: "inline-flex", alignItems: "center" }}
+      >
+        <span>📊</span> Get AI Performance Report
+      </button>
     </div>
   );
 }

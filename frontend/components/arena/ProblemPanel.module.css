@@ -74,6 +74,21 @@
   color: var(--cm-green);
 }
 
+.cfLink {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: #2196f3;
+  text-decoration: none;
+  display: inline-block;
+  padding: 4px 0;
+  transition: opacity 0.2s;
+}
+
+.cfLink:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
 /* Content */
 .content {
   line-height: 1.7;

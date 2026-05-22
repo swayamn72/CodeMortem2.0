@@ -225,6 +225,68 @@ func (r *Repository) SaveGeneratedMatchSet(ctx context.Context, questions [7]*ai
 	return qs, nil
 }
 
+// ────── Codeforces Questions ──────
+
+// UpsertCFQuestion creates a new CF question or returns the existing one if already stored.
+func (r *Repository) UpsertCFQuestion(ctx context.Context, contestID int, index, name, statement, inputFormat, outputFormat, constraints string, examples []byte, rating int, tags []string, cfURL string) (*models.Question, error) {
+	// Check if already exists
+	var existing models.Question
+	err := r.db.GetContext(ctx, &existing, `
+		SELECT * FROM questions WHERE cf_contest_id = $1 AND cf_index = $2
+	`, contestID, index)
+	if err == nil {
+		// Already exists — update statement if empty (might have been a stub)
+		if existing.Statement == "" || existing.Statement == "Problem statement could not be parsed. Please view on Codeforces." {
+			r.db.ExecContext(ctx, `
+				UPDATE questions SET statement = $1, input_format = $2, output_format = $3, constraints = $4, examples = $5 WHERE id = $6
+			`, statement, inputFormat, outputFormat, constraints, examples, existing.ID)
+			existing.Statement = statement
+			existing.InputFormat = inputFormat
+			existing.OutputFormat = outputFormat
+		}
+		return &existing, nil
+	}
+
+	// Create new
+	slug := fmt.Sprintf("cf-%d-%s-%d", contestID, strings.ToLower(index), time.Now().UnixMilli()%10000)
+
+	q := &models.Question{
+		Title:        name,
+		Slug:         slug,
+		Statement:    statement,
+		InputFormat:  inputFormat,
+		OutputFormat: outputFormat,
+		Constraints:  constraints,
+		Examples:     examples,
+		Difficulty:   rating,
+		Tags:         tags,
+		Source:       "codeforces",
+		CFContestID:  &contestID,
+		CFIndex:      &index,
+		CFURL:        &cfURL,
+		CFRating:     &rating,
+		GeneratedBy:  "codeforces",
+	}
+
+	err = r.db.QueryRowxContext(ctx, `
+		INSERT INTO questions (title, slug, statement, input_format, output_format, constraints,
+			examples, difficulty, tags, generated_by, source, cf_contest_id, cf_index, cf_url, cf_rating)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		ON CONFLICT (cf_contest_id, cf_index) WHERE cf_contest_id IS NOT NULL
+		DO UPDATE SET times_used = questions.times_used
+		RETURNING id, created_at
+	`, q.Title, q.Slug, q.Statement, q.InputFormat, q.OutputFormat, q.Constraints,
+		q.Examples, q.Difficulty, pq.Array(q.Tags), q.GeneratedBy, q.Source,
+		q.CFContestID, q.CFIndex, q.CFURL, q.CFRating,
+	).Scan(&q.ID, &q.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("upsert cf question: %w", err)
+	}
+
+	log.Printf("[question-repo] upserted CF question: %s (CF %d%s)", q.Title, contestID, index)
+	return q, nil
+}
+
 // ────── Helpers ──────
 
 func slugify(s string) string {

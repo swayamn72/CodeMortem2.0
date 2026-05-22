@@ -1,0 +1,185 @@
+/* ── Match Report ── */
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  animation: fadeIn 0.4s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reportHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reportIcon { font-size: 20px; }
+.reportTitle {
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+}
+/* ── Grade Section ── */
+.gradeSection {
+  text-align: center;
+  padding: 20px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+.gradeBig {
+  font-size: 64px;
+  font-weight: 900;
+  font-family: var(--font-mono);
+  line-height: 1;
+  text-shadow: 0 0 30px currentColor;
+}
+.gradeSummary {
+  margin: 12px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+/* ── Problem Grades ── */
+.subTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 10px 0;
+}
+.gradeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.gradeCard {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.gradeCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.qLabel {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+.qGrade {
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: var(--font-size-lg);
+}
+.solved { color: var(--cm-green); font-weight: 700; margin-left: auto; }
+.unsolved { color: var(--cm-red); font-weight: 700; margin-left: auto; }
+.gradeCommentary {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+/* ── Strengths & Weaknesses ── */
+.swGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.swCard {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.swTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+.swList {
+  margin: 0;
+  padding: 0 0 0 16px;
+  list-style: none;
+}
+.strength, .weakness {
+  position: relative;
+  padding: 3px 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.strength::before {
+  content: "✓";
+  position: absolute;
+  left: -14px;
+  color: var(--cm-green);
+  font-weight: 700;
+}
+.weakness::before {
+  content: "→";
+  position: absolute;
+  left: -14px;
+  color: var(--cm-orange);
+  font-weight: 700;
+}
+/* ── Recommendations ── */
+.recsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.recCard {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.recHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.recTopic {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.recPriority {
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.priorityhigh {
+  background: rgba(255, 45, 85, 0.15);
+  color: var(--cm-red);
+}
+.prioritymedium {
+  background: rgba(255, 215, 0, 0.15);
+  color: #ffd700;
+}
+.prioritylow {
+  background: rgba(0, 200, 255, 0.15);
+  color: var(--cm-cyan);
+}
+.recDesc {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}

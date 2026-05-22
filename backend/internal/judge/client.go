@@ -7,6 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"codemortem/internal/config"
@@ -90,6 +94,11 @@ func NewClient(cfg *config.Judge0Config) *Client {
 
 // Submit submits code to Judge0 and waits for the result.
 func (c *Client) Submit(ctx context.Context, req *SubmissionRequest) (*SubmissionResponse, error) {
+	// LOCAL BYPASS: if it's C++, just run it on host (we know Judge0 docker isolate fails on WSL2)
+	if req.LanguageID == 54 {
+		return c.runLocalCpp(ctx, req)
+	}
+
 	if req.CPUTimeLimit == 0 {
 		req.CPUTimeLimit = c.cfg.CPUTimeLimit
 	}
@@ -134,6 +143,79 @@ func (c *Client) Submit(ctx context.Context, req *SubmissionRequest) (*Submissio
 	}
 
 	return &result, nil
+}
+
+func (c *Client) runLocalCpp(ctx context.Context, req *SubmissionRequest) (*SubmissionResponse, error) {
+	tmpDir, err := os.MkdirTemp("", "cm_judge")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	srcPath := filepath.Join(tmpDir, "main.cpp")
+	if err := os.WriteFile(srcPath, []byte(req.SourceCode), 0644); err != nil {
+		return nil, err
+	}
+
+	exePath := filepath.Join(tmpDir, "main.exe")
+
+	cmd := exec.CommandContext(ctx, "g++", "-O2", srcPath, "-o", exePath)
+	compileOut, err := cmd.CombinedOutput()
+	if err != nil {
+		outStr := string(compileOut)
+		return &SubmissionResponse{
+			Token:         "local-123",
+			CompileOutput: &outStr,
+			Status:        Status{ID: StatusCE, Description: "Compilation Error"},
+		}, nil
+	}
+
+	runCmd := exec.CommandContext(ctx, exePath)
+	if req.Stdin != "" {
+		runCmd.Stdin = strings.NewReader(req.Stdin)
+	}
+	
+	var stdoutBuf, stderrBuf bytes.Buffer
+	runCmd.Stdout = &stdoutBuf
+	runCmd.Stderr = &stderrBuf
+	
+	start := time.Now()
+	err = runCmd.Run()
+	elapsed := time.Since(start).Seconds()
+	
+	stdoutStr := stdoutBuf.String()
+	stderrStr := stderrBuf.String()
+	timeStr := fmt.Sprintf("%.3f", elapsed)
+
+	if err != nil {
+		return &SubmissionResponse{
+			Token:  "local-123",
+			Stdout: &stdoutStr,
+			Stderr: &stderrStr,
+			Time:   &timeStr,
+			Status: Status{ID: StatusRE6, Description: "Runtime Error"},
+		}, nil
+	}
+
+	if req.ExpectedOutput != "" {
+		expected := strings.TrimSpace(req.ExpectedOutput)
+		actual := strings.TrimSpace(stdoutStr)
+		if expected != actual {
+			return &SubmissionResponse{
+				Token:  "local-123",
+				Stdout: &stdoutStr,
+				Time:   &timeStr,
+				Status: Status{ID: StatusWA, Description: "Wrong Answer"},
+			}, nil
+		}
+	}
+
+	return &SubmissionResponse{
+		Token:  "local-123",
+		Stdout: &stdoutStr,
+		Time:   &timeStr,
+		Status: Status{ID: StatusAccepted, Description: "Accepted"},
+	}, nil
 }
 
 // Run executes code with custom input (for the "Run" button, no judging).

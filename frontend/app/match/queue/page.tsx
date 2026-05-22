@@ -135,6 +135,43 @@ export default function QueuePage() {
 
   if (!mounted || !user) return null;
 
+  // Block entry if CF handle not verified
+  if (!user.cfVerified) {
+    return (
+      <div className={styles.queuePage}>
+        <div className={styles.rings}>
+          <div className={styles.ring} style={{ animationDelay: "0s" }} />
+          <div className={styles.ring} style={{ animationDelay: "1s" }} />
+          <div className={styles.ring} style={{ animationDelay: "2s" }} />
+        </div>
+        <div className={styles.queueContent}>
+          <Link href="/" className="navbar-brand" style={{ marginBottom: "var(--space-2xl)" }}>
+            <span className="logo-icon">☠</span>
+            Code<span className="brand-accent">Mortem</span>
+          </Link>
+          <div style={{ textAlign: "center", maxWidth: 480 }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔗</div>
+            <h1 className={styles.queueTitle} style={{ fontSize: "1.8rem", marginBottom: "0.75rem" }}>
+              Codeforces Required
+            </h1>
+            <p className={styles.queueSubtext} style={{ marginBottom: "2rem", lineHeight: 1.7 }}>
+              Matchmaking uses real Codeforces problems. You need to link and verify
+              your Codeforces account before you can join a match.
+            </p>
+            <Link href="/settings" className="btn btn-primary">
+              ⚙️ Link Codeforces Account
+            </Link>
+            <div style={{ marginTop: "1rem" }}>
+              <Link href="/dashboard" className="btn btn-secondary btn-sm">
+                ← Back to Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.queuePage}>
       {/* Animated background rings */}
