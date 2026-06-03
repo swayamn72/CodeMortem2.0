@@ -49,7 +49,7 @@ export default function LearnSegmentTreePage() {
         </Link>
         <ul className="navbar-nav">
           <li><Link href="/dashboard">Dashboard</Link></li>
-          <li><Link href="/learn/segment-tree" className="active">Learn Segment Trees</Link></li>
+          <li><Link href="/learn" className="active">Learn</Link></li>
           <li><Link href="/leaderboard">Leaderboard</Link></li>
           <li><Link href={`/profile/${user.username}`}>Profile</Link></li>
         </ul>
@@ -64,7 +64,7 @@ export default function LearnSegmentTreePage() {
       </nav>
 
       {/* Main Container */}
-      <main style={{ minHeight: "calc(100vh - 64px)", background: "var(--bg-primary)" }}>
+      <main style={{ height: "100vh", paddingTop: "64px", display: "flex", flexDirection: "column", background: "var(--bg-primary)", overflow: "hidden" }}>
         <SegmentTreePath />
       </main>
     </>

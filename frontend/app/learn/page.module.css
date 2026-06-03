@@ -1,0 +1,283 @@
+.main {
+  min-height: calc(100vh - 64px);
+  margin-top: 64px;
+  padding: 60px 40px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.headerEyebrow {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--cm-cyan);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.headerTitle {
+  font-size: var(--font-size-5xl);
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.highlight {
+  background: linear-gradient(135deg, var(--cm-cyan), var(--cm-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.headerSubtitle {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ── Module Grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+/* ── Module Card ── */
+.moduleCard {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(12px);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.moduleCard:hover:not(.moduleCardLocked) {
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.moduleCardLocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* subtle colour glow behind the card */
+.cardGlow {
+  position: absolute;
+  inset: 0;
+  background: var(--glow-color, transparent);
+  pointer-events: none;
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-base);
+}
+
+/* ── Card Header ── */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.moduleIcon {
+  font-size: 2rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.difficultyBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+/* ── Card Body ── */
+.moduleTitle {
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.moduleSubtitle {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--cm-cyan);
+  margin-top: -6px;
+}
+
+.moduleDescription {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  flex: 1;
+}
+
+/* ── Card Footer ── */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.lessonCount {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.startBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--cm-cyan), #00b8d4);
+  color: var(--bg-primary);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 14px var(--cm-cyan-glow);
+}
+
+.startBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px var(--cm-cyan-glow);
+  color: var(--bg-primary);
+}
+
+.comingSoonBadge {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* ── Completion States ── */
+
+/* Green glow border on completed cards */
+.moduleCardCompleted {
+  border-color: rgba(0, 255, 136, 0.35) !important;
+}
+
+.moduleCardCompleted:hover {
+  border-color: rgba(0, 255, 136, 0.6) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 24px rgba(0, 255, 136, 0.12);
+}
+
+/* Completed ribbon in top-right corner */
+.completedRibbon {
+  position: absolute;
+  top: 14px;
+  right: -1px;
+  background: linear-gradient(135deg, var(--cm-green), #00c853);
+  color: #000;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  padding: 4px 14px 4px 10px;
+  border-radius: 4px 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0, 255, 136, 0.4);
+  z-index: 2;
+}
+
+/* Progress bar container */
+.progressWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.progressBar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progressLabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+/* Resume / Continue button (same style as startBtn but cyan-to-purple) */
+.resumeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--cm-purple), #7c3aed);
+  color: #fff;
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  box-shadow: 0 4px 14px var(--cm-purple-glow);
+}
+
+.resumeBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px var(--cm-purple-glow);
+  color: #fff;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .main {
+    padding: 40px 20px;
+  }
+
+  .headerTitle {
+    font-size: var(--font-size-4xl);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

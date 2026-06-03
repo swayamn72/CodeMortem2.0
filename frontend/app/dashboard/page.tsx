@@ -54,7 +54,7 @@ export default function DashboardPage() {
         </Link>
         <ul className="navbar-nav">
           <li><Link href="/dashboard" className="active">Dashboard</Link></li>
-          <li><Link href="/learn/segment-tree">Learn</Link></li>
+          <li><Link href="/learn">Learn</Link></li>
           <li><Link href="/leaderboard">Leaderboard</Link></li>
           <li><Link href={`/profile/${user.username}`}>Profile</Link></li>
         </ul>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
               <p>Find an opponent and compete for rating</p>
             </Link>
 
-            <Link href="/learn/segment-tree" className={`card ${styles.actionCard}`}>
+            <Link href="/learn" className={`card ${styles.actionCard}`}>
               <span className={styles.actionIcon}>🌳</span>
               <h3>Learning Path</h3>
               <p>Learn Segment Trees interactively</p>

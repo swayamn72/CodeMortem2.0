@@ -12,6 +12,9 @@ import (
 
 	"codemortem/internal/ai"
 	"codemortem/internal/auth"
+	"codemortem/internal/challenges"
+	_ "codemortem/internal/challenges/segment_tree"    // registers all segment tree challenges
+	_ "codemortem/internal/challenges/bit_manipulation" // registers all bit manipulation challenges
 	"codemortem/internal/codeforces"
 	"codemortem/internal/config"
 	"codemortem/internal/database"
@@ -98,12 +101,15 @@ func main() {
 	go mmQueue.StartMatcher(matchCtx)
 
 	// Start question bank seeder if AI key is configured
-	if cfg.AI.APIKey != "" {
-		go qSeeder.Start(matchCtx)
-		log.Println("✅ AI question generation enabled")
-	} else {
-		log.Println("⚠️  AI_API_KEY not set — question generation disabled")
-	}
+	// NOTE: Auto-seeding is disabled — uncomment below when a valid AI key is available.
+	// if cfg.AI.APIKey != "" {
+	// 	go qSeeder.Start(matchCtx)
+	// 	log.Println("✅ AI question generation enabled")
+	// } else {
+	// 	log.Println("⚠️  AI_API_KEY not set — question generation disabled")
+	// }
+	_ = qSeeder // keep reference to avoid unused-variable error
+	log.Println("ℹ️  AI question bank seeder disabled (not needed yet)")
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
@@ -247,77 +253,31 @@ func main() {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unsupported language"})
 		}
 
-		var testCases []LPTestCase
-		if req.ChallengeID == "sum_segment_tree" {
-			testCases = sumSegmentTreeTestCases
-		} else if req.ChallengeID == "max_segment_tree" {
-			testCases = maxSegmentTreeTestCases
-		} else {
+		challenge, ok := challenges.Get(req.ChallengeID)
+		if !ok {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unknown challenge ID"})
 		}
 
-		inputs := make([]string, len(testCases))
-		expectedOutputs := make([]string, len(testCases))
-		for i, tc := range testCases {
-			inputs[i] = tc.Input
-			expectedOutputs[i] = tc.Expected
-		}
-
-		results, err := judgeClient.BatchJudge(c.Context(), langID, req.Code, inputs, expectedOutputs)
+		results, err := judgeClient.DynamicJudge(c.Context(), langID, req.Code, challenge)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "judge service error"})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "judge service error: " + err.Error()})
 		}
 
 		passed := 0
 		overallVerdict := "accepted"
-
-		type TestResultResponse struct {
-			TestIndex     int      `json:"testIndex"`
-			Verdict       string   `json:"verdict"`
-			ExecutionTime *string  `json:"executionTime,omitempty"`
-			Memory        *float64 `json:"memory,omitempty"`
-			Output        *string  `json:"output,omitempty"`
-			Expected      string   `json:"expected"`
-			Stderr        *string  `json:"stderr,omitempty"`
-			CompileOutput *string  `json:"compileOutput,omitempty"`
-		}
-
-		trResps := make([]TestResultResponse, len(results))
-		for i, r := range results {
-			if r == nil {
-				overallVerdict = "runtime_error"
-				trResps[i] = TestResultResponse{
-					TestIndex: i,
-					Verdict:   "runtime_error",
-					Expected:  expectedOutputs[i],
-				}
-				continue
-			}
-
-			v := judge.MapVerdict(r.Status.ID)
-			if v == "accepted" {
+		for _, r := range results {
+			if r.Verdict == "accepted" {
 				passed++
 			} else if overallVerdict == "accepted" {
-				overallVerdict = v
-			}
-
-			trResps[i] = TestResultResponse{
-				TestIndex:     i,
-				Verdict:       v,
-				ExecutionTime: r.Time,
-				Memory:        r.Memory,
-				Output:        r.Stdout,
-				Expected:      expectedOutputs[i],
-				Stderr:        r.Stderr,
-				CompileOutput: r.CompileOutput,
+				overallVerdict = r.Verdict
 			}
 		}
 
 		return c.JSON(fiber.Map{
 			"verdict":     overallVerdict,
 			"testsPassed": passed,
-			"testsTotal":  len(testCases),
-			"results":     trResps,
+			"testsTotal":  challenge.NumTests,
+			"results":     results,
 		})
 	})
 
@@ -608,8 +568,26 @@ func handleGameMessage(
 				solved1, _ = cfClient.GetUserSolvedProblems(*u.CFHandle)
 			}
 
-			// Select 5 CF problems
-			cfProblems, err := cfClient.SelectProblemsForRating(avgRating, solved1, nil)
+			// Parse custom configuration or use defaults
+			duration := msg.DurationSecs
+			if duration == 0 {
+				duration = 30 * 60 // 30 mins default
+			}
+			rMin := msg.RatingMin
+			if rMin == 0 {
+				rMin = avgRating - 200
+			}
+			rMax := msg.RatingMax
+			if rMax == 0 {
+				rMax = avgRating + 200
+			}
+			limit := msg.NumProblems
+			if limit == 0 {
+				limit = 5
+			}
+
+			// Select custom CF problems
+			cfProblems, err := cfClient.SelectProblemsForRange(rMin, rMax, limit, solved1)
 			if err != nil {
 				log.Printf("[solo] ❌ CF problem selection failed: %v", err)
 				hub.SendToUser(c.ID, &game.ServerMessage{
@@ -665,6 +643,19 @@ func handleGameMessage(
 					Data: map[string]string{"message": "failed to create solo session"},
 				})
 				return
+			}
+
+			// Record practice session
+			practiceSession := &models.PracticeSession{
+				UserID:       u.ID,
+				MatchID:      &session.Match.ID,
+				DurationSecs: duration,
+				RatingMin:    rMin,
+				RatingMax:    rMax,
+				NumProblems:  limit,
+			}
+			if err := userRepo.CreatePracticeSession(ctx2, practiceSession); err != nil {
+				log.Printf("[solo] warning: failed to create practice session record: %v", err)
 			}
 
 			hub.SendToUser(c.ID, &game.ServerMessage{
@@ -1215,39 +1206,4 @@ func handleExplanationRequest(
 			},
 		})
 	}()
-}
-
-type LPTestCase struct {
-	Input    string
-	Expected string
-}
-
-var sumSegmentTreeTestCases = []LPTestCase{
-	{
-		Input: "5 5\n1 2 3 4 5\n2 0 2\n1 1 10\n2 0 2\n2 1 4\n2 0 4\n",
-		Expected: "6\n14\n22\n23\n",
-	},
-	{
-		Input: "8 4\n3 1 2 5 8 7 6 4\n2 0 7\n1 3 0\n2 2 5\n2 0 3\n",
-		Expected: "36\n17\n6\n",
-	},
-	{
-		Input: "3 3\n10 20 30\n2 1 2\n1 2 5\n2 0 2\n",
-		Expected: "50\n35\n",
-	},
-}
-
-var maxSegmentTreeTestCases = []LPTestCase{
-	{
-		Input: "5 5\n1 2 3 4 5\n2 0 2\n1 1 10\n2 0 2\n2 1 4\n2 0 4\n",
-		Expected: "3\n10\n10\n10\n",
-	},
-	{
-		Input: "8 5\n3 9 2 5 8 7 6 4\n2 0 7\n1 1 0\n2 0 3\n1 4 15\n2 2 5\n",
-		Expected: "9\n5\n15\n",
-	},
-	{
-		Input: "4 4\n-5 -2 -8 -1\n2 0 3\n1 2 0\n2 1 3\n2 0 1\n",
-		Expected: "-1\n0\n-2\n",
-	},
 }

@@ -30,6 +30,16 @@ interface RatingEntry {
   recordedAt: string;
 }
 
+interface PracticeSession {
+  id: string;
+  durationSecs: number;
+  ratingMin: number;
+  ratingMax: number;
+  numProblems: number;
+  problemsSolved: number;
+  startedAt: string;
+}
+
 function getRankColor(rating: number): string {
   if (rating < 1200) return "#808080";
   if (rating < 1400) return "#00c853";
@@ -122,37 +132,31 @@ export default function ProfilePage() {
   const username = params.username as string;
   const [profile, setProfile] = useState<ProfileUser | null>(null);
   const [history, setHistory] = useState<RatingEntry[]>([]);
+  const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
       try {
-        const data = await api.get(`/users/${username}`);
+        const data = await api.get(`/users/profile/${username}`);
         setProfile(data.user || data);
 
         try {
           const histData = await api.get(`/users/${username}/history?limit=50`);
           setHistory(histData.history || []);
         } catch {
-          // demo rating history
           setHistory(generateDemoHistory());
         }
+
+        try {
+          const sessData = await api.get(`/users/${username}/practice-sessions?limit=20`);
+          setSessions(sessData.sessions || []);
+        } catch (err) {
+          console.error("Failed to load practice sessions", err);
+        }
       } catch {
-        // Demo profile
-        setProfile({
-          id: "demo",
-          username,
-          rating: 1847,
-          ratingDeviation: 120,
-          matchesPlayed: 42,
-          matchesWon: 28,
-          matchesDrawn: 3,
-          totalProblemsSolved: 187,
-          rankTitle: "Expert",
-          cfVerified: false,
-          createdAt: new Date().toISOString(),
-        });
-        setHistory(generateDemoHistory());
+        // Player not found or API error
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -308,6 +312,30 @@ export default function ProfilePage() {
             ))}
           </div>
         </div>
+
+        {/* Practice Sessions */}
+        {sessions.length > 0 && (
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>🎯 Solo Practice Sessions</h2>
+            <div className={styles.matchList}>
+              {sessions.map((session, i) => (
+                <div key={session.id} className={`card ${styles.matchItem}`}>
+                  <div className={styles.matchResult}>
+                    <span style={{ fontSize: "1.5rem" }}>🏋️</span>
+                  </div>
+                  <div className={styles.matchInfo}>
+                    <span className={styles.matchRating}>
+                      {session.problemsSolved} / {session.numProblems} Solved
+                    </span>
+                    <span className={styles.matchDate}>
+                      {new Date(session.startedAt).toLocaleDateString()} • {session.durationSecs / 60}m • ({session.ratingMin}-{session.ratingMax})
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </>
   );

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"codemortem/internal/models"
@@ -151,4 +152,88 @@ func (r *Repository) SearchUsers(ctx context.Context, query string, limit int) (
 		LIMIT $2
 	`, query+"%", limit)
 	return users, err
+}
+
+// GetUserProgress fetches all module progress for a user.
+func (r *Repository) GetUserProgress(ctx context.Context, userID string) ([]*models.UserModuleProgress, error) {
+	type progressRow struct {
+		UserID           string `db:"user_id"`
+		ModuleID         string `db:"module_id"`
+		CompletedLessons []byte `db:"completed_lessons"`
+		UpdatedAt        string `db:"updated_at"`
+	}
+	
+	var rows []progressRow
+	err := r.db.SelectContext(ctx, &rows, `SELECT user_id, module_id, completed_lessons, updated_at FROM user_module_progress WHERE user_id = $1`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user progress: %w", err)
+	}
+
+	var results []*models.UserModuleProgress
+	for _, row := range rows {
+		var lessons []string
+		if err := json.Unmarshal(row.CompletedLessons, &lessons); err != nil {
+			lessons = []string{}
+		}
+		results = append(results, &models.UserModuleProgress{
+			UserID:           row.UserID,
+			ModuleID:         row.ModuleID,
+			CompletedLessons: lessons,
+		})
+	}
+	return results, nil
+}
+
+// SaveUserProgress upserts progress for a user's module.
+func (r *Repository) SaveUserProgress(ctx context.Context, userID string, moduleID string, completedLessons []string) error {
+	jsonData, err := json.Marshal(completedLessons)
+	if err != nil {
+		return fmt.Errorf("marshal completed lessons: %w", err)
+	}
+
+	_, err = r.db.ExecContext(ctx, `
+		INSERT INTO user_module_progress (user_id, module_id, completed_lessons, updated_at)
+		VALUES ($1, $2, $3, NOW())
+		ON CONFLICT (user_id, module_id) 
+		DO UPDATE SET completed_lessons = EXCLUDED.completed_lessons, updated_at = NOW()
+	`, userID, moduleID, jsonData)
+	
+	if err != nil {
+		return fmt.Errorf("upsert user progress: %w", err)
+	}
+	return nil
+}
+
+// CreatePracticeSession creates a new solo practice session record.
+func (r *Repository) CreatePracticeSession(ctx context.Context, session *models.PracticeSession) error {
+	err := r.db.QueryRowContext(ctx, `
+		INSERT INTO practice_sessions (user_id, match_id, duration_secs, rating_min, rating_max, num_problems)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, started_at, problems_solved
+	`, session.UserID, session.MatchID, session.DurationSecs, session.RatingMin, session.RatingMax, session.NumProblems).Scan(&session.ID, &session.StartedAt, &session.ProblemsSolved)
+	if err != nil {
+		return fmt.Errorf("create practice session: %w", err)
+	}
+	return nil
+}
+
+// GetPracticeSessions fetches the practice history of a user.
+func (r *Repository) GetPracticeSessions(ctx context.Context, userID string, limit int) ([]*models.PracticeSession, error) {
+	var sessions []*models.PracticeSession
+	err := r.db.SelectContext(ctx, &sessions, `
+		SELECT * FROM practice_sessions 
+		WHERE user_id = $1 
+		ORDER BY started_at DESC 
+		LIMIT $2
+	`, userID, limit)
+	return sessions, err
+}
+
+// EndPracticeSession marks a session as ended and updates the problems solved.
+func (r *Repository) EndPracticeSession(ctx context.Context, sessionID string, problemsSolved int) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE practice_sessions SET ended_at = NOW(), problems_solved = $1
+		WHERE id = $2
+	`, problemsSolved, sessionID)
+	return err
 }

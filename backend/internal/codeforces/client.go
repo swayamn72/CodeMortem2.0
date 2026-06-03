@@ -247,6 +247,79 @@ func (c *Client) SelectProblemsForRating(avgRating int, excludeSolved1, excludeS
 	return selected, nil
 }
 
+// SelectProblemsForRange selects a requested number of problems within the given rating range.
+func (c *Client) SelectProblemsForRange(minRating, maxRating, count int, excludeSolved map[ProblemKey]bool) ([]*SelectedProblem, error) {
+	if err := c.ensureCache(); err != nil {
+		return nil, fmt.Errorf("ensure cache: %w", err)
+	}
+
+	c.cacheMu.RLock()
+	defer c.cacheMu.RUnlock()
+
+	minRating = roundToNearest100(minRating)
+	maxRating = roundToNearest100(maxRating)
+	if minRating > maxRating {
+		minRating, maxRating = maxRating, minRating
+	}
+
+	// Gather all candidate problems within the rating range
+	var candidates []CFProblem
+	for r := minRating; r <= maxRating; r += 100 {
+		candidates = append(candidates, c.ratedProblems[r]...)
+	}
+
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("no problems found in rating range %d-%d", minRating, maxRating)
+	}
+
+	// Shuffle candidates
+	shuffled := make([]CFProblem, len(candidates))
+	copy(shuffled, candidates)
+	rand.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
+
+	selected := make([]*SelectedProblem, 0, count)
+	usedKeys := make(map[ProblemKey]bool)
+
+	for _, p := range shuffled {
+		if len(selected) >= count {
+			break
+		}
+		
+		key := p.Key()
+		if usedKeys[key] {
+			continue
+		}
+		if excludeSolved != nil && excludeSolved[key] {
+			continue
+		}
+
+		usedKeys[key] = true
+		sp := &SelectedProblem{
+			ContestID: p.ContestID,
+			Index:     p.Index,
+			Name:      p.Name,
+			Rating:    p.Rating,
+			Tags:      p.Tags,
+			URL:       fmt.Sprintf("https://codeforces.com/problemset/problem/%d/%s", p.ContestID, p.Index),
+		}
+		if sc, ok := c.problemStats[key]; ok {
+			sp.SolvedCount = sc
+		}
+		selected = append(selected, sp)
+	}
+
+	if len(selected) == 0 {
+		return nil, fmt.Errorf("no unsolved problems found in range")
+	}
+
+	// Sort by rating ascending
+	sort.Slice(selected, func(i, j int) bool {
+		return selected[i].Rating < selected[j].Rating
+	})
+
+	return selected, nil
+}
+
 // pickProblem picks a random problem at the exact rating, excluding used and solved problems.
 func (c *Client) pickProblem(rating int, used, solved1, solved2 map[ProblemKey]bool) *CFProblem {
 	candidates := c.ratedProblems[rating]

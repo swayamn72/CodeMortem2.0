@@ -94,9 +94,13 @@ func NewClient(cfg *config.Judge0Config) *Client {
 
 // Submit submits code to Judge0 and waits for the result.
 func (c *Client) Submit(ctx context.Context, req *SubmissionRequest) (*SubmissionResponse, error) {
-	// LOCAL BYPASS: if it's C++, just run it on host (we know Judge0 docker isolate fails on WSL2)
+	// LOCAL BYPASS: run C++ and Python directly on the API container
+	// (Judge0 docker isolate fails on WSL2 due to cgroup v2 issues)
 	if req.LanguageID == 54 {
 		return c.runLocalCpp(ctx, req)
+	}
+	if req.LanguageID == 71 {
+		return c.runLocalPython(ctx, req)
 	}
 
 	if req.CPUTimeLimit == 0 {
@@ -188,10 +192,11 @@ func (c *Client) runLocalCpp(ctx context.Context, req *SubmissionRequest) (*Subm
 	timeStr := fmt.Sprintf("%.3f", elapsed)
 
 	if err != nil {
+		errStr := "Execution failed: " + err.Error() + "\n" + stderrStr
 		return &SubmissionResponse{
 			Token:  "local-123",
 			Stdout: &stdoutStr,
-			Stderr: &stderrStr,
+			Stderr: &errStr,
 			Time:   &timeStr,
 			Status: Status{ID: StatusRE6, Description: "Runtime Error"},
 		}, nil
@@ -212,6 +217,67 @@ func (c *Client) runLocalCpp(ctx context.Context, req *SubmissionRequest) (*Subm
 
 	return &SubmissionResponse{
 		Token:  "local-123",
+		Stdout: &stdoutStr,
+		Time:   &timeStr,
+		Status: Status{ID: StatusAccepted, Description: "Accepted"},
+	}, nil
+}
+
+func (c *Client) runLocalPython(ctx context.Context, req *SubmissionRequest) (*SubmissionResponse, error) {
+	tmpDir, err := os.MkdirTemp("", "cm_py_judge")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	srcPath := filepath.Join(tmpDir, "main.py")
+	if err := os.WriteFile(srcPath, []byte(req.SourceCode), 0644); err != nil {
+		return nil, err
+	}
+
+	runCmd := exec.CommandContext(ctx, "python3", srcPath)
+	if req.Stdin != "" {
+		runCmd.Stdin = strings.NewReader(req.Stdin)
+	}
+
+	var stdoutBuf, stderrBuf bytes.Buffer
+	runCmd.Stdout = &stdoutBuf
+	runCmd.Stderr = &stderrBuf
+
+	start := time.Now()
+	err = runCmd.Run()
+	elapsed := time.Since(start).Seconds()
+
+	stdoutStr := stdoutBuf.String()
+	stderrStr := stderrBuf.String()
+	timeStr := fmt.Sprintf("%.3f", elapsed)
+
+	if err != nil {
+		// Python errors go to stderr, not compile_output
+		return &SubmissionResponse{
+			Token:  "local-py-123",
+			Stdout: &stdoutStr,
+			Stderr: &stderrStr,
+			Time:   &timeStr,
+			Status: Status{ID: StatusRE6, Description: "Runtime Error"},
+		}, nil
+	}
+
+	if req.ExpectedOutput != "" {
+		expected := strings.TrimSpace(req.ExpectedOutput)
+		actual := strings.TrimSpace(stdoutStr)
+		if expected != actual {
+			return &SubmissionResponse{
+				Token:  "local-py-123",
+				Stdout: &stdoutStr,
+				Time:   &timeStr,
+				Status: Status{ID: StatusWA, Description: "Wrong Answer"},
+			}, nil
+		}
+	}
+
+	return &SubmissionResponse{
+		Token:  "local-py-123",
 		Stdout: &stdoutStr,
 		Time:   &timeStr,
 		Status: Status{ID: StatusAccepted, Description: "Accepted"},

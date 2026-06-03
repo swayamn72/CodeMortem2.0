@@ -18,6 +18,12 @@ type ClientMessage struct {
 	Code          string `json:"code,omitempty"`
 	CustomInput   string `json:"customInput,omitempty"`
 	HintLevel     int    `json:"hintLevel,omitempty"`     // 1-3 for hint requests
+
+	// Solo Match Config
+	DurationSecs  int `json:"durationSecs,omitempty"`
+	RatingMin     int `json:"ratingMin,omitempty"`
+	RatingMax     int `json:"ratingMax,omitempty"`
+	NumProblems   int `json:"numProblems,omitempty"`
 }
 
 // ServerMessage represents a message to the client.

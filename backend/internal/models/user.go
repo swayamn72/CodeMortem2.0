@@ -131,3 +131,25 @@ func GetRankColor(rating float64) string {
 		return "#aa0000" // Dark Red
 	}
 }
+
+// UserModuleProgress tracks which lessons a user has completed in a specific module.
+type UserModuleProgress struct {
+	UserID           string    `json:"userId" db:"user_id"`
+	ModuleID         string    `json:"moduleId" db:"module_id"`
+	CompletedLessons []string  `json:"completedLessons" db:"completed_lessons"`
+	UpdatedAt        time.Time `json:"updatedAt" db:"updated_at"`
+}
+
+// PracticeSession represents a logged Play Solo practice session.
+type PracticeSession struct {
+	ID             string     `json:"id" db:"id"`
+	UserID         string     `json:"userId" db:"user_id"`
+	MatchID        *string    `json:"matchId" db:"match_id"`
+	DurationSecs   int        `json:"durationSecs" db:"duration_secs"`
+	RatingMin      int        `json:"ratingMin" db:"rating_min"`
+	RatingMax      int        `json:"ratingMax" db:"rating_max"`
+	NumProblems    int        `json:"numProblems" db:"num_problems"`
+	ProblemsSolved int        `json:"problemsSolved" db:"problems_solved"`
+	StartedAt      time.Time  `json:"startedAt" db:"started_at"`
+	EndedAt        *time.Time `json:"endedAt" db:"ended_at"`
+}

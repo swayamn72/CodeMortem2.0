@@ -327,7 +327,7 @@ export default function MatchPage() {
 
       {/* Main Arena Content */}
       <div className={styles.arenaBody}>
-        <Group direction="horizontal" id="arena-main-group">
+        <Group orientation="horizontal" id="arena-main-group">
           {/* Question Sidebar */}
           <Panel id="sidebar-panel" defaultSize={12} minSize={8} maxSize={25}>
             <aside className={styles.sidebar}>
@@ -390,7 +390,7 @@ export default function MatchPage() {
 
           {/* Editor + Console Panel */}
           <Panel id="editor-console-panel" defaultSize={50} minSize={30}>
-            <Group direction="vertical" id="editor-console-group">
+            <Group orientation="vertical" id="editor-console-group">
               <Panel id="editor-panel" defaultSize={70} minSize={20}>
                 <div className={styles.editorPanel}>
           {/* Editor Toolbar */}

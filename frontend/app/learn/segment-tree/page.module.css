@@ -127,6 +127,21 @@
   position: relative;
 }
 
+/* When in challenge mode, the section fills full height with no padding */
+.contentPane:has(> div > .challengeWrapper) {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Challenge wrapper: fills the flex parent fully */
+.challengeWrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .contentContainer {
   max-width: 900px;
   margin: 0 auto;
@@ -821,8 +836,9 @@
 
 .consoleBody {
   flex: 1;
-  padding: var(--space-md);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 1.5;

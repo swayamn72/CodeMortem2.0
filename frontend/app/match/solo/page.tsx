@@ -14,8 +14,13 @@ export default function SoloPage() {
   const wsRef = useRef<WebSocket | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [status, setStatus] = useState("preparing"); // preparing, countdown
+  const [status, setStatus] = useState("config"); // config, preparing, countdown
   const [countdown, setCountdown] = useState(3);
+  
+  const [duration, setDuration] = useState(30 * 60);
+  const [ratingMin, setRatingMin] = useState(Math.max(800, Math.floor((user?.rating || 1200) - 200)));
+  const [ratingMax, setRatingMax] = useState(Math.floor((user?.rating || 1200) + 200));
+  const [numProblems, setNumProblems] = useState(5);
 
   useEffect(() => {
     setMounted(true);
@@ -38,8 +43,14 @@ export default function SoloPage() {
 
     ws.onopen = () => {
       console.log("[ws] connected for solo match");
-      // Request solo match
-      ws.send(JSON.stringify({ type: "start_solo" }));
+      // Request solo match with config
+      ws.send(JSON.stringify({ 
+        type: "start_solo",
+        durationSecs: duration,
+        ratingMin: ratingMin,
+        ratingMax: ratingMax,
+        numProblems: numProblems
+      }));
     };
 
     ws.onmessage = (event) => {
@@ -83,16 +94,14 @@ export default function SoloPage() {
   }, [tokens, router]);
 
   useEffect(() => {
-    if (mounted && isAuthenticated) {
-      connectWs();
-    }
+    // We no longer auto-connect. User clicks Start.
 
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [mounted, isAuthenticated, connectWs]);
+  }, []);
 
   if (!mounted || !user) return null;
 
@@ -147,6 +156,74 @@ export default function SoloPage() {
           <span className="logo-icon">☠</span>
           Code<span className="brand-accent">Mortem</span>
         </Link>
+
+        {status === "config" && (
+          <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "left", background: "var(--surface-color)", padding: "2rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border-color)" }}>
+            <h1 style={{ fontSize: "1.5rem", marginBottom: "1.5rem", textAlign: "center" }}>Practice Setup</h1>
+            
+            <div style={{ marginBottom: "1.5rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Duration (Minutes)</label>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {[15, 30, 45, 60].map(mins => (
+                  <button 
+                    key={mins}
+                    onClick={() => setDuration(mins * 60)}
+                    className={`btn ${duration === mins * 60 ? "btn-primary" : "btn-secondary"}`}
+                    style={{ flex: 1, padding: "0.5rem" }}
+                  >
+                    {mins}m
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem" }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Min Rating</label>
+                <input 
+                  type="number" 
+                  className="input" 
+                  value={ratingMin} 
+                  onChange={e => setRatingMin(parseInt(e.target.value) || 800)}
+                  min={800} max={3500} step={100}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Max Rating</label>
+                <input 
+                  type="number" 
+                  className="input" 
+                  value={ratingMax} 
+                  onChange={e => setRatingMax(parseInt(e.target.value) || 3500)}
+                  min={800} max={3500} step={100}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "2rem" }}>
+              <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Number of Problems</label>
+              <input 
+                type="range" 
+                min="1" max="7" 
+                value={numProblems} 
+                onChange={e => setNumProblems(parseInt(e.target.value))}
+                style={{ width: "100%", accentColor: "var(--cm-cyan)" }}
+              />
+              <div style={{ textAlign: "center", marginTop: "0.5rem", fontWeight: "bold" }}>{numProblems} Problems</div>
+            </div>
+
+            <button 
+              className="btn btn-primary" 
+              style={{ width: "100%", padding: "1rem", fontSize: "1.1rem" }}
+              onClick={() => {
+                setStatus("preparing");
+                connectWs();
+              }}
+            >
+              🚀 Start Practice
+            </button>
+          </div>
+        )}
 
         {status === "preparing" && (
           <>

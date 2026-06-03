@@ -1,0 +1,7 @@
+bin/
+.git
+.env
+.env.local
+.DS_Store
+tmp/
+vendor/

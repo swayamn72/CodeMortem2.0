@@ -34,8 +34,12 @@ func (h *Handler) RegisterRoutes(r fiber.Router, authMw fiber.Handler) {
 	users.Get("/search", h.SearchUsers)
 	users.Get("/me/history", authMw, h.GetMatchHistory)
 	users.Get("/me/rating-history", authMw, h.GetRatingHistory)
+	users.Get("/me/progress", authMw, h.GetProgress)
+	users.Post("/me/progress", authMw, h.SaveProgress)
 	users.Post("/me/cf-link", authMw, h.StartCFLink)
 	users.Post("/me/cf-verify", authMw, h.VerifyCFLink)
+	users.Get("/:username/practice-sessions", h.GetPracticeSessions)
+	users.Post("/practice-sessions/:id/end", authMw, h.EndPracticeSession)
 }
 
 // GetMe returns the authenticated user's full profile.
@@ -139,6 +143,94 @@ func (h *Handler) GetRatingHistory(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"history": history})
+}
+
+// GetProgress returns the authenticated user's module progress.
+func (h *Handler) GetProgress(c *fiber.Ctx) error {
+	userID := auth.GetUserID(c)
+	progress, err := h.repo.GetUserProgress(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch progress"})
+	}
+
+	// Format into a map for easier frontend consumption: { moduleId: ["lesson1", "lesson2"] }
+	progressMap := make(map[string][]string)
+	for _, p := range progress {
+		progressMap[p.ModuleID] = p.CompletedLessons
+	}
+
+	return c.JSON(progressMap)
+}
+
+// SaveProgress updates the authenticated user's progress for a specific module.
+func (h *Handler) SaveProgress(c *fiber.Ctx) error {
+	userID := auth.GetUserID(c)
+	var body struct {
+		ModuleID         string   `json:"moduleId"`
+		CompletedLessons []string `json:"completedLessons"`
+	}
+
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	if body.ModuleID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "moduleId is required"})
+	}
+
+	if body.CompletedLessons == nil {
+		body.CompletedLessons = []string{}
+	}
+
+	err := h.repo.SaveUserProgress(c.Context(), userID, body.ModuleID, body.CompletedLessons)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to save progress"})
+	}
+
+	return c.JSON(fiber.Map{"success": true})
+}
+
+// GetPracticeSessions returns the practice sessions of a user by username.
+func (h *Handler) GetPracticeSessions(c *fiber.Ctx) error {
+	username := c.Params("username")
+	user, err := h.repo.GetByUsername(c.Context(), username)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+	}
+
+	limit := c.QueryInt("limit", 20)
+	if limit > 50 {
+		limit = 50
+	}
+
+	sessions, err := h.repo.GetPracticeSessions(c.Context(), user.ID, limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to fetch practice sessions"})
+	}
+
+	return c.JSON(fiber.Map{"sessions": sessions})
+}
+
+// EndPracticeSession ends an ongoing practice session.
+func (h *Handler) EndPracticeSession(c *fiber.Ctx) error {
+	sessionID := c.Params("id")
+	if sessionID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "session ID required"})
+	}
+
+	var body struct {
+		ProblemsSolved int `json:"problemsSolved"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request body"})
+	}
+
+	err := h.repo.EndPracticeSession(c.Context(), sessionID, body.ProblemsSolved)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to end session"})
+	}
+
+	return c.JSON(fiber.Map{"success": true})
 }
 
 // GetPublicRatingHistory returns a user's rating history by username (public).

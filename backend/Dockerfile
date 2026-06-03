@@ -3,8 +3,8 @@ FROM golang:1.26-alpine
 
 WORKDIR /app
 
-# Install git for dependencies
-RUN apk add --no-cache git
+# Install git, g++ (for local C++ execution bypass), and python3
+RUN apk add --no-cache git build-base python3
 
 # Copy dependency files
 COPY go.mod go.sum ./

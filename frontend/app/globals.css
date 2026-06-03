@@ -96,7 +96,9 @@
 }
 
 /* ── Reset & Base ── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -122,13 +124,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-secondary);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-full);
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -145,6 +150,7 @@ a {
   text-decoration: none;
   transition: color var(--transition-fast);
 }
+
 a:hover {
   color: var(--text-primary);
 }
@@ -304,9 +310,12 @@ a:hover {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 4px 15px var(--cm-red-glow);
   }
+
   50% {
     box-shadow: 0 4px 30px var(--cm-red-glow), 0 0 60px rgba(255, 45, 85, 0.15);
   }
@@ -390,8 +399,27 @@ a:hover {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes pulse-line {
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(255, 45, 85, 0.6), 0 0 20px rgba(255, 45, 85, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 16px rgba(255, 45, 85, 0.9), 0 0 40px rgba(255, 45, 85, 0.5);
+  }
 }
 
 .badge-rating {
@@ -626,13 +654,25 @@ a:hover {
 }
 
 @keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+  from {
+    width: 0
+  }
+
+  to {
+    width: 100%
+  }
 }
 
 @keyframes cursor-blink {
-  from, to { border-color: transparent }
-  50% { border-color: var(--cm-green) }
+
+  from,
+  to {
+    border-color: transparent
+  }
+
+  50% {
+    border-color: var(--cm-green)
+  }
 }
 
 /* ── Skeleton Loading ── */
@@ -644,8 +684,13 @@ a:hover {
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Input ── */
@@ -985,14 +1030,46 @@ a:hover {
     transform: translateY(100vh) rotate(0deg);
     opacity: 0;
   }
+
   10% {
     opacity: 0.4;
   }
+
   90% {
     opacity: 0.4;
   }
+
   100% {
     transform: translateY(-10vh) rotate(720deg);
     opacity: 0;
   }
+}
+
+
+/* ── react-resizable-panels resize handle glow ── */
+[data-panel-resize-handle-enabled]:hover {
+  background: var(--cm-cyan) !important;
+  opacity: 0.65;
+}
+
+[data-panel-resize-handle-enabled][data-state="drag"] {
+  background: var(--cm-cyan) !important;
+  opacity: 0.9;
+}
+
+/* ★ Success Modal Keyframes ★ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(32px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes ping {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  80%  { transform: scale(1.9); opacity: 0;   }
+  100% { transform: scale(1.9); opacity: 0;   }
 }
