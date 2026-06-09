@@ -144,12 +144,14 @@ export default function SoloPage() {
 
   return (
     <div className={styles.queuePage}>
-      {/* Animated background rings */}
-      <div className={styles.rings}>
-        <div className={styles.ring} style={{ animationDelay: "0s", borderColor: "var(--cm-cyan)30" }} />
-        <div className={styles.ring} style={{ animationDelay: "1s", borderColor: "var(--cm-cyan)20" }} />
-        <div className={styles.ring} style={{ animationDelay: "2s", borderColor: "var(--cm-cyan)10" }} />
-      </div>
+      {/* Animated background rings (only show when preparing or in countdown) */}
+      {status !== "config" && (
+        <div className={styles.rings}>
+          <div className={styles.ring} style={{ animationDelay: "0s", borderColor: "var(--cm-cyan)30" }} />
+          <div className={styles.ring} style={{ animationDelay: "1s", borderColor: "var(--cm-cyan)20" }} />
+          <div className={styles.ring} style={{ animationDelay: "2s", borderColor: "var(--cm-cyan)10" }} />
+        </div>
+      )}
 
       <div className={styles.queueContent}>
         <Link href="/" className="navbar-brand" style={{ marginBottom: "var(--space-2xl)" }}>
@@ -158,63 +160,104 @@ export default function SoloPage() {
         </Link>
 
         {status === "config" && (
-          <div style={{ maxWidth: 480, margin: "0 auto", textAlign: "left", background: "var(--surface-color)", padding: "2rem", borderRadius: "var(--radius-lg)", border: "1px solid var(--border-color)" }}>
-            <h1 style={{ fontSize: "1.5rem", marginBottom: "1.5rem", textAlign: "center" }}>Practice Setup</h1>
+          <div style={{
+            maxWidth: 500, margin: "0 auto", textAlign: "left",
+            background: "linear-gradient(135deg, rgba(13,13,24,0.8), rgba(20,20,35,0.8))",
+            backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+            padding: "2.5rem", borderRadius: "20px",
+            border: "1px solid rgba(0, 240, 255, 0.2)",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,240,255,0.05)"
+          }}>
+            <h1 style={{
+              fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)",
+              textAlign: "center", marginBottom: "2rem", letterSpacing: "-0.5px"
+            }}>Practice Setup</h1>
             
-            <div style={{ marginBottom: "1.5rem" }}>
-              <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Duration (Minutes)</label>
+            <div style={{ marginBottom: "1.75rem" }}>
+              <label style={{ display: "block", marginBottom: "0.75rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Duration</label>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {[15, 30, 45, 60].map(mins => (
-                  <button 
-                    key={mins}
-                    onClick={() => setDuration(mins * 60)}
-                    className={`btn ${duration === mins * 60 ? "btn-primary" : "btn-secondary"}`}
-                    style={{ flex: 1, padding: "0.5rem" }}
-                  >
-                    {mins}m
-                  </button>
-                ))}
+                {[15, 30, 45, 60].map(mins => {
+                  const isActive = duration === mins * 60;
+                  return (
+                    <button 
+                      key={mins}
+                      onClick={() => setDuration(mins * 60)}
+                      style={{
+                        flex: 1, padding: "0.6rem", borderRadius: "8px",
+                        fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        background: isActive ? "rgba(0,240,255,0.15)" : "rgba(255,255,255,0.03)",
+                        border: isActive ? "1px solid var(--cm-cyan)" : "1px solid rgba(255,255,255,0.08)",
+                        color: isActive ? "var(--cm-cyan)" : "var(--text-secondary)",
+                      }}
+                      onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.color = "var(--text-primary)"; } }}
+                      onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "var(--text-secondary)"; } }}
+                    >
+                      {mins}m
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem" }}>
+            <div style={{ marginBottom: "1.75rem", display: "flex", gap: "1rem" }}>
               <div style={{ flex: 1 }}>
-                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Min Rating</label>
+                <label style={{ display: "block", marginBottom: "0.75rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Min Rating</label>
                 <input 
                   type="number" 
-                  className="input" 
                   value={ratingMin} 
                   onChange={e => setRatingMin(parseInt(e.target.value) || 800)}
                   min={800} max={3500} step={100}
+                  style={{
+                    width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
+                    color: "var(--text-primary)", padding: "12px 16px", borderRadius: "8px", fontSize: "1.05rem",
+                    outline: "none", transition: "border-color 0.2s", fontFamily: "var(--font-mono)"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "var(--cm-cyan)"}
+                  onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Max Rating</label>
+                <label style={{ display: "block", marginBottom: "0.75rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Max Rating</label>
                 <input 
                   type="number" 
-                  className="input" 
                   value={ratingMax} 
                   onChange={e => setRatingMax(parseInt(e.target.value) || 3500)}
                   min={800} max={3500} step={100}
+                  style={{
+                    width: "100%", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
+                    color: "var(--text-primary)", padding: "12px 16px", borderRadius: "8px", fontSize: "1.05rem",
+                    outline: "none", transition: "border-color 0.2s", fontFamily: "var(--font-mono)"
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = "var(--cm-cyan)"}
+                  onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
                 />
               </div>
             </div>
 
-            <div style={{ marginBottom: "2rem" }}>
-              <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--text-secondary)" }}>Number of Problems</label>
+            <div style={{ marginBottom: "2.5rem" }}>
+              <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Number of Problems</span>
+                <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "var(--cm-cyan)" }}>{numProblems}</span>
+              </label>
               <input 
                 type="range" 
                 min="1" max="7" 
                 value={numProblems} 
                 onChange={e => setNumProblems(parseInt(e.target.value))}
-                style={{ width: "100%", accentColor: "var(--cm-cyan)" }}
+                style={{ width: "100%", accentColor: "var(--cm-cyan)", cursor: "pointer" }}
               />
-              <div style={{ textAlign: "center", marginTop: "0.5rem", fontWeight: "bold" }}>{numProblems} Problems</div>
             </div>
 
             <button 
-              className="btn btn-primary" 
-              style={{ width: "100%", padding: "1rem", fontSize: "1.1rem" }}
+              style={{
+                width: "100%", padding: "14px", borderRadius: "10px", border: "none",
+                background: "linear-gradient(135deg, var(--cm-cyan), #00b3cc)",
+                color: "#000", fontSize: "1.1rem", fontWeight: 800, cursor: "pointer",
+                boxShadow: "0 6px 20px rgba(0,240,255,0.3)", transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,240,255,0.4)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,240,255,0.3)"; }}
               onClick={() => {
                 setStatus("preparing");
                 connectWs();

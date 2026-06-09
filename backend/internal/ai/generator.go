@@ -123,7 +123,7 @@ func (g *QuestionGenerator) GenerateQuestion(ctx context.Context, tier Difficult
 	}
 
 	question.Difficulty = tier.Difficulty
-	log.Printf("[ai-gen] ✅ generated: %s (Q%d, %d test cases)", question.Title, tier.Index, len(question.TestCases))
+	log.Printf("[ai-gen] ✓ generated: %s (Q%d, %d test cases)", question.Title, tier.Index, len(question.TestCases))
 
 	return &question, nil
 }

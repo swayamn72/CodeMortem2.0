@@ -128,7 +128,7 @@ export default function MatchPage() {
         if (d.solvedBy === "you") {
           store.recordMySolve(d.questionIndex as number, d.points as number);
           store.setCFVerificationStatus(d.questionIndex as number, 'verified');
-          store.setConsole(`✅ Codeforces submission verified! +${d.points} points!`, "success");
+          store.setConsole(`✓ Codeforces submission verified! +${d.points} points!`, "success");
         } else if (d.solvedBy === "opponent") {
           store.recordOpponentSolve(d.questionIndex as number, d.opponentScore as number);
           store.setConsole(`⚠️ Opponent solved Q${d.questionIndex} on Codeforces! Their score: ${d.opponentScore}`, "error");

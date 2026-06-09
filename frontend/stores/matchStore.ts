@@ -308,7 +308,7 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     lastSubmissionResult: result, 
     isSubmitting: false,
     consoleOutput: result.verdict === "accepted" 
-      ? `✅ Accepted! ${result.isFirstSolve ? `+${result.points} points!` : "(already solved)"}` 
+      ? `✓ Accepted! ${result.isFirstSolve ? `+${result.points} points!` : "(already solved)"}` 
       : `❌ ${result.verdict.replace(/_/g, " ").toUpperCase()}${result.stderr ? "\n" + result.stderr : ""}${result.compileOutput ? "\n" + result.compileOutput : ""}`,
     consoleType: result.verdict === "accepted" ? "success" : "error",
   }),

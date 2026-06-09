@@ -142,7 +142,7 @@ func (s *BankSeeder) generateAndSave(ctx context.Context, bracket RatingBracket)
 		return err
 	}
 
-	log.Printf("[bank-seeder] ✅ set generated and saved for bracket %d-%d", bracket.Min, bracket.Max)
+	log.Printf("[bank-seeder] ✓ set generated and saved for bracket %d-%d", bracket.Min, bracket.Max)
 	return nil
 }
 

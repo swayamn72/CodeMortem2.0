@@ -14,6 +14,7 @@ export interface SampleCase {
   input: string;
   expected: string;
   label?: string;
+  explanation?: string;
 }
 
 export interface ChallengeConfig {

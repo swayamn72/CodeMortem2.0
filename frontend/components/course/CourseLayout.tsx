@@ -115,11 +115,16 @@ export default function CourseLayout({
             {config.lessons.map(l => {
               const done = isLessonComplete(config.moduleId, l.id);
               const active = activeLesson === l.id;
+              const isBadge = l.id === "badge";
+              // Badge is locked until every non-badge lesson is complete
+              const nonBadgeLessons = config.lessons.filter(x => x.id !== "badge");
+              const badgeLocked = isBadge && !nonBadgeLessons.every(x => isLessonComplete(config.moduleId, x.id));
               return (
                 <button
                   key={l.id}
-                  title={l.title}
-                  onClick={() => setActiveLesson(l.id)}
+                  title={badgeLocked ? "Complete all lessons to unlock the badge" : l.title}
+                  onClick={() => !badgeLocked && setActiveLesson(l.id)}
+                  disabled={badgeLocked}
                   style={{
                     width: 36, height: 36,
                     display: "flex", alignItems: "center", justifyContent: "center",
@@ -130,13 +135,14 @@ export default function CourseLayout({
                       : "transparent",
                     border: active ? "1px solid var(--cm-cyan)" : "1px solid transparent",
                     borderRadius: 8,
-                    cursor: "pointer",
+                    cursor: badgeLocked ? "not-allowed" : "pointer",
                     fontSize: done ? 11 : 14,
-                    color: done ? "var(--cm-green)" : active ? "var(--cm-cyan)" : "var(--text-muted)",
+                    color: badgeLocked ? "var(--text-muted)" : done ? "var(--cm-green)" : active ? "var(--cm-cyan)" : "var(--text-muted)",
+                    opacity: badgeLocked ? 0.4 : 1,
                     transition: "all 0.15s",
                   }}
                 >
-                  {lessonIcon(l.id, done)}
+                  {badgeLocked ? "🔒" : lessonIcon(l.id, done)}
                 </button>
               );
             })}
@@ -168,20 +174,29 @@ export default function CourseLayout({
                     .map(l => {
                       const isDone = isLessonComplete(config.moduleId, l.id);
                       const isActive = activeLesson === l.id;
+                      const isBadge = l.id === "badge";
+                      const nonBadgeLessons = config.lessons.filter(x => x.id !== "badge");
+                      const badgeLocked = isBadge && !nonBadgeLessons.every(x => isLessonComplete(config.moduleId, x.id));
                       return (
                         <button
                           key={l.id}
                           className={`${styles.lessonBtn} ${isActive ? styles.lessonActive : ""}`}
-                          onClick={() => setActiveLesson(l.id)}
+                          onClick={() => !badgeLocked && setActiveLesson(l.id)}
+                          disabled={badgeLocked}
+                          title={badgeLocked ? "Complete all lessons to unlock" : undefined}
+                          style={badgeLocked ? { cursor: "not-allowed", opacity: 0.45 } : undefined}
                         >
                           <span
                             className={styles.iconWrap}
-                            style={{ color: isDone ? "var(--cm-green)" : undefined, fontSize: 13 }}
+                            style={{ color: badgeLocked ? "var(--text-muted)" : isDone ? "var(--cm-green)" : undefined, fontSize: 13 }}
                           >
-                            {lessonIcon(l.id, isDone)}
+                            {badgeLocked ? "🔒" : lessonIcon(l.id, isDone)}
                           </span>
-                          <span style={{ flex: 1, textAlign: "left" }}>{l.title}</span>
-                          {isDone && !isActive && (
+                          <span style={{ flex: 1, textAlign: "left" }}>
+                            {l.title}
+                            {badgeLocked && <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>locked</span>}
+                          </span>
+                          {isDone && !isActive && !badgeLocked && (
                             <span
                               style={{
                                 width: 6, height: 6, borderRadius: "50%",

@@ -926,7 +926,7 @@ export default function SegmentTreePath() {
 
               <div className={styles.animationCard}>
                 <div className={styles.animationHeader}>
-                  <span className={styles.animationTitle}>✅ Operations that work with Segment Trees</span>
+                  <span className={styles.animationTitle}>✓ Operations that work with Segment Trees</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
                   {[

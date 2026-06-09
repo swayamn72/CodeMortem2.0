@@ -85,7 +85,7 @@ func (h *HintGenerator) GenerateHint(ctx context.Context, req *HintRequest) (*Hi
 	}
 
 	hintText := strings.TrimSpace(response)
-	log.Printf("[ai-hint] ✅ generated level %d hint for '%s' (%d chars)", req.HintLevel, req.ProblemTitle, len(hintText))
+	log.Printf("[ai-hint] ✓ generated level %d hint for '%s' (%d chars)", req.HintLevel, req.ProblemTitle, len(hintText))
 
 	return &HintResponse{
 		HintText:  hintText,

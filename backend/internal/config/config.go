@@ -16,6 +16,9 @@ type Config struct {
 	Judge0   Judge0Config
 	AI       AIConfig
 	Match    MatchConfig
+	OAuth    OAuthConfig
+	Email    EmailConfig
+	Razorpay RazorpayConfig
 }
 
 type ServerConfig struct {
@@ -64,6 +67,10 @@ type AIConfig struct {
 	Model    string
 }
 
+type OAuthConfig struct {
+	GoogleClientID string
+}
+
 type MatchConfig struct {
 	Duration         time.Duration
 	QuestionCount    int
@@ -72,6 +79,17 @@ type MatchConfig struct {
 	RatingExpand     int // expand range by this every interval
 	ExpandInterval   time.Duration
 	MaxRatingRange   int
+}
+
+type EmailConfig struct {
+	ResendAPIKey string
+	FromAddress  string
+}
+
+type RazorpayConfig struct {
+	KeyID         string
+	KeySecret     string
+	WebhookSecret string
 }
 
 // Load reads configuration from environment variables.
@@ -125,6 +143,18 @@ func Load() *Config {
 			RatingExpand:     50,
 			ExpandInterval:   10 * time.Second,
 			MaxRatingRange:   500,
+		},
+		OAuth: OAuthConfig{
+			GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),
+		},
+		Email: EmailConfig{
+			ResendAPIKey: getEnv("RESEND_API_KEY", ""),
+			FromAddress:  getEnv("EMAIL_FROM", "CodeMortem <onboarding@resend.dev>"),
+		},
+		Razorpay: RazorpayConfig{
+			KeyID:         getEnv("RAZORPAY_KEY_ID", ""),
+			KeySecret:     getEnv("RAZORPAY_KEY_SECRET", ""),
+			WebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
 		},
 	}
 }

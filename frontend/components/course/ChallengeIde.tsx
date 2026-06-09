@@ -169,12 +169,17 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
 
         const compileErr = res.compileOutput?.trim();
         const runtimeErr = res.stderr?.trim();
+        const backendStatus: string = (res.status ?? "").toLowerCase();
         let verdict: string;
         let actualOutput = "";
 
         if (compileErr) {
           verdict = "compile_error";
-        } else if (runtimeErr) {
+        } else if (backendStatus.includes("time limit")) {
+          verdict = "time_limit_exceeded";
+        } else if (backendStatus.includes("memory limit")) {
+          verdict = "memory_limit_exceeded";
+        } else if (runtimeErr || backendStatus.includes("runtime")) {
           verdict = "runtime_error";
         } else {
           actualOutput = (res.output ?? "").trim();
@@ -282,16 +287,6 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
           {challenge.difficulty}
         </span>
         <span style={{ fontWeight: 700, fontSize: 14 }}>{challenge.title}</span>
-        <span
-          style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: "0.8px",
-            color: "var(--text-muted)", padding: "1px 8px",
-            borderRadius: 4, border: "1px solid var(--border-primary)",
-            textTransform: "uppercase",
-          }}
-        >
-          FROM SCRATCH
-        </span>
       </div>
 
       <div style={{ display: "flex", flex: 1, minHeight: 0, marginTop: 44, overflow: "hidden" }}>
@@ -427,9 +422,33 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
             {leftTab === "editorial" && hasSubmitted && (
               <div>
                 <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--cm-cyan)" }}>Editorial</h3>
-                <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.75 }}>
-                  {challenge.editorial}
-                </p>
+                {challenge.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
+                  // Every 3rd chunk starting at index 1 is the language, index 2 is the code
+                  if (i % 3 === 0) {
+                    // Plain text segment — split on \n\n for paragraphs, **bold**
+                    part.split("\n\n").forEach((para, j) => {
+                      if (!para.trim()) return;
+                      const isBold = para.startsWith("**") && para.includes("**");
+                      acc.push(
+                        <p key={`p-${i}-${j}`} style={{ fontSize: 14, color: isBold ? "var(--text-primary)" : "var(--text-secondary)", lineHeight: 1.75, marginBottom: "0.75rem", fontWeight: isBold ? 700 : 400 }}>
+                          {para.replace(/\*\*/g, "")}
+                        </p>
+                      );
+                    });
+                  } else if (i % 3 === 2) {
+                    // Code segment
+                    const lang = arr[i - 1] || "cpp";
+                    acc.push(
+                      <div key={`code-${i}`} style={{ marginBottom: "1rem" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cm-cyan)", letterSpacing: "0.5px", marginBottom: 4, textTransform: "uppercase" }}>{lang === "python" ? "Python" : "C++"}</div>
+                        <pre style={{ background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-cyan)", borderRadius: "0 8px 8px 0", padding: "0.9rem 1rem", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#cdd3de", lineHeight: 1.7, overflowX: "auto", margin: 0 }}>
+                          <code>{part}</code>
+                        </pre>
+                      </div>
+                    );
+                  }
+                  return acc;
+                }, [])}
               </div>
             )}
           </div>
@@ -560,43 +579,71 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
               {consoleTab === "cases" && (
                 <>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                    {testResults.map((r, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setActiveCaseIdx(i)}
+                    {testResults.map((r, i) => {
+                      const isHidden = hasSubmitted && i >= challenge.sampleCases.length;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => setActiveCaseIdx(i)}
+                          style={{
+                            padding: "4px 12px", borderRadius: 6,
+                            cursor: "pointer", fontSize: 12, fontWeight: 700,
+                            background: i === activeCaseIdx ? `${verdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${i === activeCaseIdx ? verdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`,
+                            color: verdictColor(r.verdict),
+                          }}
+                        >
+                          {isHidden ? "🔒" : ""}{verdictLabel(r.verdict)} {i + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {activeResult && (() => {
+                    const isHidden = hasSubmitted && activeCaseIdx >= challenge.sampleCases.length;
+                    if (isHidden) {
+                      return (
+                        <div
+                          style={{
+                            background: "rgba(255,255,255,0.03)",
+                            borderRadius: 8, padding: "16px 14px",
+                            fontFamily: "monospace", fontSize: 12,
+                            display: "flex", flexDirection: "column", alignItems: "center",
+                            gap: 8, textAlign: "center",
+                          }}
+                        >
+                          <span style={{ fontSize: 22 }}>🔒</span>
+                          <div style={{ color: verdictColor(activeResult.verdict), fontWeight: 700, fontSize: 13 }}>
+                            {verdictLabel(activeResult.verdict)}
+                          </div>
+                          <div style={{ color: "var(--text-muted)", fontSize: 11, lineHeight: 1.6 }}>
+                            Failed on hidden test case #{activeCaseIdx + 1}.<br />
+                            Hidden test inputs and expected outputs are not shown.
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
                         style={{
-                          padding: "4px 12px", borderRadius: 6,
-                          cursor: "pointer", fontSize: 12, fontWeight: 700,
-                          background: i === activeCaseIdx ? `${verdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)",
-                          border: `1px solid ${i === activeCaseIdx ? verdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`,
-                          color: verdictColor(r.verdict),
+                          background: "rgba(255,255,255,0.03)",
+                          borderRadius: 8, padding: "10px 14px",
+                          fontFamily: "monospace", fontSize: 12,
                         }}
                       >
-                        {verdictLabel(r.verdict)} {i + 1}
-                      </button>
-                    ))}
-                  </div>
-                  {activeResult && (
-                    <div
-                      style={{
-                        background: "rgba(255,255,255,0.03)",
-                        borderRadius: 8, padding: "10px 14px",
-                        fontFamily: "monospace", fontSize: 12,
-                      }}
-                    >
-                      <div style={{ color: "var(--text-secondary)", marginBottom: 4 }}>
-                        Input: {activeResult.input}
-                      </div>
-                      <div style={{ color: "var(--cm-green)", marginBottom: 4 }}>
-                        Expected: {activeResult.expected}
-                      </div>
-                      {activeResult.verdict !== "pending" && (
-                        <div style={{ color: verdictColor(activeResult.verdict) }}>
-                          Got: {activeResult.output || activeResult.compileOutput || activeResult.stderr}
+                        <div style={{ color: "var(--text-secondary)", marginBottom: 4 }}>
+                          Input: {activeResult.input}
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <div style={{ color: "var(--cm-green)", marginBottom: 4 }}>
+                          Expected: {activeResult.expected}
+                        </div>
+                        {activeResult.verdict !== "pending" && (
+                          <div style={{ color: verdictColor(activeResult.verdict) }}>
+                            Got: {activeResult.output || activeResult.compileOutput || activeResult.stderr}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
               {consoleTab === "stdout" && (

@@ -67,7 +67,7 @@ func (e *SolutionExplainer) Explain(ctx context.Context, req *ExplainRequest) (*
 		return nil, fmt.Errorf("failed to parse explanation: %w (raw: %.200s)", err, response)
 	}
 
-	log.Printf("[ai-explain] ✅ generated explanation for '%s'", req.ProblemTitle)
+	log.Printf("[ai-explain] ✓ generated explanation for '%s'", req.ProblemTitle)
 	return &explanation, nil
 }
 
@@ -158,7 +158,7 @@ func (a *PerformanceAnalyzer) Analyze(ctx context.Context, summary *MatchSummary
 		return nil, fmt.Errorf("failed to parse report: %w (raw: %.200s)", err, response)
 	}
 
-	log.Printf("[ai-analysis] ✅ generated report for %s (grade: %s)", summary.PlayerUsername, report.OverallGrade)
+	log.Printf("[ai-analysis] ✓ generated report for %s (grade: %s)", summary.PlayerUsername, report.OverallGrade)
 	return &report, nil
 }
 
@@ -254,7 +254,7 @@ func buildAnalysisPrompt(summary *MatchSummary) string {
 	for _, p := range summary.Problems {
 		status := "❌ Not Solved"
 		if p.Solved {
-			status = "✅ Solved"
+			status = "✓ Solved"
 		}
 		sb.WriteString(fmt.Sprintf("  Q%d: %s (Difficulty: %d, Tags: %s)\n",
 			p.Index, p.Title, p.Difficulty, strings.Join(p.Tags, ", ")))

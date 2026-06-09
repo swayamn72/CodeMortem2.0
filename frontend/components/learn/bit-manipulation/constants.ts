@@ -143,14 +143,18 @@ export const SAMPLE_TEST_CASES: Record<string, SampleCase[]> = {
     { input: "3\n1000000000 1 1000000000", expected: "1", label: "Large values" },
   ],
   challenge5: [
-    { input: "6\n3 10 5 25 2 8",    expected: "28", label: "25 XOR 5 = 28" },
-    { input: "2\n0 0",               expected: "0",  label: "All zeros" },
-    { input: "2\n1 2",               expected: "3",  label: "1 XOR 2 = 3" },
-    { input: "3\n7 7 7",             expected: "0",  label: "All same" },
-    { input: "4\n14 70 53 9",        expected: "79", label: "14 XOR 70 isn't max" },
-    { input: "2\n255 0",             expected: "255", label: "255 XOR 0 = 255" },
+    { input: "4\n1 2 4",                   expected: "3",  label: "Missing 3 from [1..4]" },
+    { input: "5\n2 3 4 5",                 expected: "1",  label: "Missing 1 from [1..5]" },
+    { input: "3\n1 3",                     expected: "2",  label: "Missing 2 from [1..3]" },
+    { input: "10\n1 2 3 4 5 7 8 9 10",    expected: "6",  label: "Missing 6 from [1..10]" },
+  ],
+  challenge6: [
+    { input: "3 2", expected: "3", label: "Exact match available" },
+    { input: "12 1", expected: "8", label: "Fewer bits allowed" },
+    { input: "1 2", expected: "3", label: "More bits required" },
   ],
 };
+
 
 // ─── Challenge Definitions ────────────────────────────────────────────────────
 
@@ -186,7 +190,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
       "If (N & 1) equals 1, the number is odd. If it equals 0, it's even.",
     ],
     editorial:
-      "The least significant bit of any integer is 1 if the number is odd and 0 if even. This follows directly from binary place values: 2^0 = 1, and all higher powers of 2 are even. So (N & 1) gives the parity in a single CPU instruction — no division or modulo needed.",
+      "The least significant bit of any integer is 1 if the number is odd and 0 if even. This follows directly from binary place values: 2^0 = 1, and all higher powers of 2 are even. So (N & 1) gives the parity in a single CPU instruction — no division or modulo needed.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long n; cin >> n;\n    cout << ((n & 1) ? \"odd\" : \"even\") << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\nn = int(input())\nprint(\"odd\" if n & 1 else \"even\")\n```",
   },
   {
     id: "challenge2",
@@ -205,7 +209,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
       "If N > 0 and (N & (N-1)) == 0, then N is a power of two. Subtracting 1 from a power-of-two flips that single bit and sets all lower bits, so AND gives zero.",
     ],
     editorial:
-      "Powers of two have exactly one bit set in their binary representation. Subtracting 1 from such a number flips that bit to 0 and sets all lower bits to 1, so ANDing the original with (N-1) gives zero. The N > 0 guard is necessary because 0 satisfies the expression but is not a power of two.",
+      "Powers of two have exactly one bit set in their binary representation. Subtracting 1 from such a number flips that bit to 0 and sets all lower bits to 1, so ANDing the original with (N-1) gives zero. The N > 0 guard is necessary because 0 satisfies the expression but is not a power of two.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long n; cin >> n;\n    cout << (n > 0 && (n & (n - 1)) == 0 ? \"yes\" : \"no\") << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\nn = int(input())\nprint(\"yes\" if n > 0 and (n & (n - 1)) == 0 else \"no\")\n```",
   },
   {
     id: "challenge3",
@@ -224,7 +228,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
       "XOR N with the mask: N ^ mask. XOR with 1 toggles a bit; XOR with 0 leaves it unchanged.",
     ],
     editorial:
-      "Construct a mask with 1s in positions L through R using ((1LL << (R-L+1)) - 1) << L. The inner expression ((1<<(R-L+1))-1) creates a number with R-L+1 consecutive 1s starting at bit 0. Shifting left by L positions them at bits L through R. XORing N with this mask flips exactly those bits. Use long long to avoid overflow for large L and R values.",
+      "Construct a mask with 1s in positions L through R using ((1LL << (R-L+1)) - 1) << L. The inner expression ((1<<(R-L+1))-1) creates a number with R-L+1 consecutive 1s starting at bit 0. Shifting left by L positions them at bits L through R. XORing N with this mask flips exactly those bits. Use long long to avoid overflow for large L and R values.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long n, l, r;\n    cin >> n >> l >> r;\n    long long mask = ((1LL << (r - l + 1)) - 1) << l;\n    cout << (n ^ mask) << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\nn, l, r = map(int, input().split())\nmask = ((1 << (r - l + 1)) - 1) << l\nprint(n ^ mask)\n```",
   },
   {
     id: "challenge4",
@@ -247,22 +251,39 @@ export const BIT_CHALLENGES: ChallengeData[] = [
   },
   {
     id: "challenge5",
-    backendId: "max_xor_pair",
-    title: "Maximum XOR Pair",
-    difficulty: "Medium",
-    diffColor: "var(--cm-yellow)",
+    backendId: "missing_number",
+    title: "Missing Number",
+    difficulty: "Easy",
+    diffColor: "var(--cm-green)",
     statement:
-      "Given an array of N integers, find the maximum XOR value obtainable from any two elements in the array. (You may use the same element twice only if N = 1.)",
-    constraints: "1 ≤ N ≤ 10^5, 0 ≤ values < 2^31",
-    inputFormat: "First line: N. Second line: N space-separated integers.",
-    outputFormat: "Print the maximum XOR value.",
+      "Given an array of N-1 integers, where each element is a distinct integer from the range [1, N], find the one missing number.",
+    constraints: "2 ≤ N ≤ 10^5\nAll values are distinct and in the range [1, N]",
+    inputFormat: "First line: N. Second line: N-1 space-separated integers.",
+    outputFormat: "Print the missing integer.",
     hints: [
-      "A brute force O(N^2) check of all pairs is correct but too slow for N = 10^5. Think about building the answer one bit at a time, from the most significant bit down.",
-      "At each bit position, ask: can this bit be 1 in the final answer? To check, look at the prefixes of all numbers up to this bit.",
-      "Use a set of prefixes. For each prefix p in the set, check if p XOR candidate also exists in the set. If any such pair exists, this bit can be set in the answer. Commit the bit and move to the next.",
+      "XOR has the property x ^ x = 0 and x ^ 0 = x. What happens if you XOR all numbers from 1 to N together with all elements in the array?",
+      "Compute X = 1 ^ 2 ^ 3 ^ ... ^ N. This is the XOR of the complete set. Now XOR X with every element in the array. What cancels out?",
+      "X ^ (all array elements) = (1 ^ 2 ^ ... ^ N) ^ (all array elements). Every number 1..N appears exactly twice in this expression except the missing number. Since x ^ x = 0, all pairs cancel, and the missing number is what remains.",
     ],
     editorial:
-      "Build the answer greedily from bit 30 down to bit 0. At each step, tentatively set this bit in the answer (candidate = ans | (1 << bit)). Extract the prefix of every number at the current bit width using a mask, store them in a set, and check whether any two prefixes XOR to the candidate. If yes, commit this bit. This greedy works because if high bits can be 1, there is no reason to leave them as 0. Time complexity is O(N · 31) with O(N) space.",
+      "XOR every number from 1 to N together, then XOR in every element of the array. Each number from 1 to N appears exactly twice in the combined sequence (once from the [1..N] XOR, once from the array) except the missing number, which appears only once. Since x ^ x = 0 for any x, all pairs cancel and the missing number is left. Time: O(N). Space: O(1). This is a clean demonstration of XOR cancellation — the same technique as Single Number, but you must construct the expected XOR yourself.",
+  },
+  {
+    id: "challenge6",
+    backendId: "signal_calibration",
+    title: "Signal Calibration",
+    difficulty: "Hard",
+    diffColor: "var(--cm-red)",
+    statement: "You are a network engineer configuring a transmission tower. You need to broadcast a calibrated signal X to sync with a master server's signal S. Due to strict power regulations, your calibrated signal X must use exactly K units of power. A signal's power usage is equal to the number of set bits (1s) in its binary representation. To minimize network interference, you must choose X such that the bitwise XOR difference between your signal and the master signal (X \u2295 S) is as small as possible. Find and print the integer X.",
+    constraints: "1 ≤ S ≤ 10^9\n1 ≤ K ≤ 30",
+    inputFormat: "A single line containing two space-separated integers: S and K.",
+    outputFormat: "Print a single integer: the optimal calibrated signal X.",
+    hints: [
+      "To minimize (X \u2295 S), you want X to share as many 1s with S as possible. Which bits are the most important to match first? The most significant (leftmost) or least significant (rightmost)?",
+      "Phase 1: Read the bits of S from MSB (bit 30) down to LSB (bit 0). If a bit is 1 in S, and you still have power (K > 0), set that bit in X and decrease K.",
+      "Phase 2: What if you matched all the 1s in S, but you still have extra power (K > 0) left over? You must turn on more bits in X. To keep the XOR penalty minimal, start turning on the 0s starting from the LSB (bit 0) going up."
+    ],
+    editorial: "This is a classic Greedy problem. The goal is to construct X to be as close to S as possible. In binary, higher bit positions carry exponentially more weight (2^30 > 2^29 + ... + 2^0). Therefore, canceling out the highest bits of S via XOR is our absolute priority.\n\nWe can solve this in two simple greedy passes over the 30 bits:\n\n**Phase 1: Greedily Match 1s (MSB to LSB)**\nWe iterate from bit 30 down to 0. If S has a 1 at the current position, we also place a 1 in X at this position, provided we still have bits left to place (K > 0). This ensures the largest values in S become 0 in our XOR result.\n\n**Phase 2: Greedily Fill 0s (LSB to MSB)**\nIf we finish Phase 1 and still need to place more 1s (because K was larger than the number of set bits in S), we have to introduce \"bad\" bits that will increase our XOR penalty. To minimize this penalty, we place these leftover 1s in the lowest possible unset positions of X, starting from bit 0 going upwards.\n\n**Time Complexity**: O(log S) — specifically, exactly 60 constant-time bit operations, which is O(1).\n**Space Complexity**: O(1).\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long s, k;\n    cin >> s >> k;\n    long long x = 0;\n    // Phase 1: match set bits of s from MSB to LSB\n    for (int bit = 30; bit >= 0 && k > 0; bit--) {\n        if ((s >> bit) & 1) {\n            x |= (1LL << bit);\n            k--;\n        }\n    }\n    // Phase 2: fill remaining 1s from LSB upwards\n    for (int bit = 0; bit <= 30 && k > 0; bit++) {\n        if (!((x >> bit) & 1)) {\n            x |= (1LL << bit);\n            k--;\n        }\n    }\n    cout << x << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\ns, k = map(int, input().split())\nx = 0\n# Phase 1: match set bits from MSB to LSB\nfor bit in range(30, -1, -1):\n    if k > 0 and (s >> bit) & 1:\n        x |= (1 << bit)\n        k -= 1\n# Phase 2: fill remaining 1s from LSB\nfor bit in range(31):\n    if k > 0 and not ((x >> bit) & 1):\n        x |= (1 << bit)\n        k -= 1\nprint(x)\n```"
   },
 ];
 
@@ -281,14 +302,14 @@ export const BIT_PATTERNS: BitPattern[] = [
     title: "Isolate lowest set bit",
     expression: "n & (-n)",
     example: "n=12 (1100): -12 in two's complement = 0100. 1100 & 0100 = 0100 (value 4).",
-    explanation: "-n in two's complement flips all bits and adds 1, which propagates carry up to the lowest set bit. ANDing isolates just that bit.",
+    explanation: "-n in two's complement flips all bits and adds 1, which propagates carry up to the lowest set bit. ANDing isolates just that bit. Foundation of the Fenwick Tree.",
   },
   {
     id: "clear_lowest",
     title: "Clear lowest set bit",
     expression: "n & (n - 1)",
     example: "n=12 (1100): n-1 = 1011. 1100 & 1011 = 1000.",
-    explanation: "Subtracting 1 flips the lowest set bit and all bits below it. ANDing with the original clears those positions.",
+    explanation: "Subtracting 1 flips the lowest set bit and all bits below it. ANDing with the original clears those positions. Kernighan's popcount uses this repeatedly.",
   },
   {
     id: "round_up_pow2",
@@ -298,46 +319,11 @@ export const BIT_PATTERNS: BitPattern[] = [
     explanation: "First handle the exact power-of-2 case. Otherwise, OR with right-shifted versions sets all bits below the highest, giving 2^k - 1. Adding 1 carries all the way to give 2^k.",
   },
   {
-    id: "sign_extract",
-    title: "Extract sign bit",
-    expression: "(n >> 31) & 1",
-    example: "n = -5: binary starts with 1 (MSB). Shift right 31 → all 1s (arithmetic shift). AND with 1 → 1.",
-    explanation: "Arithmetic right-shift replicates the sign bit. Shifting by 31 fills all positions with the sign bit; ANDing with 1 extracts just the sign.",
-  },
-  {
-    id: "branchless_abs",
-    title: "Branchless absolute value",
-    expression: "int mask = n >> 31; (n + mask) ^ mask",
-    example: "n=-5: mask=0xFFFFFFFF (-1). (-5 + -1) ^ -1 = -6 ^ -1 = 5.",
-    explanation: "For negative n, mask = -1 (all 1s). (n - 1) XOR -1 flips all bits of (n-1), which equals -n. For positive n, mask = 0, so the expression returns n unchanged.",
-  },
-  {
-    id: "branchless_min",
-    title: "Branchless min",
-    expression: "b ^ ((a ^ b) & -(a < b))",
-    example: "a=3, b=7: a<b is 1, -(1)=0xFF...FF. (3^7) & 0xFF...FF = 4. 7 ^ 4 = 3.",
-    explanation: "-(a < b) evaluates to all-1s if a < b, else all-0s. ANDing with (a^b) either keeps or zeroes the XOR. XORing with b then gives either a or b.",
-  },
-  {
     id: "count_set_bits",
     title: "Count set bits (Kernighan)",
     expression: "int cnt = 0; while(n) { n &= (n-1); cnt++; }",
     example: "n=12 (1100): step 1 → 1000, step 2 → 0000. cnt = 2.",
-    explanation: "Each iteration removes exactly the lowest set bit using n & (n-1). Counting iterations gives the total number of set bits. Time complexity is O(set bits).",
-  },
-  {
-    id: "swap_no_temp",
-    title: "Swap without a temp variable",
-    expression: "a ^= b; b ^= a; a ^= b;",
-    example: "a=5 (101), b=3 (011): a=110(6), b=011^110=101(5), a=110^101=011(3). Swapped.",
-    explanation: "Uses the XOR property a ^ b ^ b = a. After three steps a and b hold each other's original values. Note: this fails if a and b alias the same memory location.",
-  },
-  {
-    id: "toggle_case",
-    title: "Toggle ASCII letter case",
-    expression: "c ^= 32",
-    example: "'A' (65) ^ 32 = 97 ('a'). 'a' (97) ^ 32 = 65 ('A').",
-    explanation: "Bit 5 (value 32) is the only difference between uppercase and lowercase ASCII letters. XORing with 32 flips exactly that bit, toggling the case.",
+    explanation: "Each iteration removes exactly the lowest set bit using n & (n-1). Counting iterations gives the total number of set bits. Time complexity is O(set bits), not O(32).",
   },
   {
     id: "check_bit",
@@ -345,13 +331,6 @@ export const BIT_PATTERNS: BitPattern[] = [
     expression: "(n >> k) & 1",
     example: "n=12 (1100), k=3: 1100 >> 3 = 0001. 0001 & 1 = 1 (set).",
     explanation: "Shifting n right by k moves bit k into position 0. ANDing with 1 extracts just that bit. Result is 1 if set, 0 if cleared.",
-  },
-  {
-    id: "bit_reversal",
-    title: "Reverse bits (32-bit)",
-    expression: "uint32_t rev(uint32_t n) { uint32_t r=0; for(int i=0;i<32;i++) { r=(r<<1)|(n&1); n>>=1; } return r; }",
-    example: "n=0b...00000001 → r = 0b10000000...0 (MSB becomes LSB).",
-    explanation: "Each iteration extracts the LSB of n and appends it to r. After 32 iterations, r holds the fully reversed bit pattern.",
   },
 ];
 

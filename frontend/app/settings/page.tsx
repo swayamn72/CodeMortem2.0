@@ -66,7 +66,7 @@ export default function SettingsPage() {
     try {
       const data = await api.post("/users/me/cf-verify", { cfHandle: cfHandle.trim() });
       setCfStep("linked");
-      setCfSuccess(`✅ Successfully linked to ${cfHandle}! CF Rating: ${data.cfRating || "N/A"}`);
+      setCfSuccess(`✓ Successfully linked to ${cfHandle}! CF Rating: ${data.cfRating || "N/A"}`);
 
       // Update user state
       if (user) {
@@ -114,7 +114,7 @@ export default function SettingsPage() {
           <div className="card" style={{ padding: "var(--space-xl)" }}>
             {cfStep === "linked" && (
               <div className={styles.linkedState}>
-                <div className={styles.linkedIcon}>✅</div>
+                <div className={styles.linkedIcon}>✓</div>
                 <div>
                   <h3 className={styles.linkedTitle}>Account Linked</h3>
                   <p className={styles.linkedHandle}>

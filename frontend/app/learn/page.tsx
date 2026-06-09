@@ -112,6 +112,10 @@ export default function LearnPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
+  const isPremiumActive = user?.isPremium && (
+    !user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date()
+  );
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -176,6 +180,7 @@ export default function LearnPage() {
                 fontWeight: 600,
               }}
             >
+              {isPremiumActive && <span style={{ color: "#ffd700", marginRight: 4 }}>👑</span>}
               {user.username}
             </span>
           </span>
@@ -289,12 +294,45 @@ export default function LearnPage() {
                   </span>
 
                   {mod.available ? (
-                    <Link
-                      href={mod.href}
-                      className={isCompleted ? styles.resumeBtn : inProgress ? styles.resumeBtn : styles.startBtn}
-                    >
-                      {isCompleted ? "Review →" : inProgress ? "Continue →" : "Start Learning →"}
-                    </Link>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <Link
+                        href={mod.href}
+                        className={isCompleted ? styles.resumeBtn : inProgress ? styles.resumeBtn : styles.startBtn}
+                      >
+                        {isCompleted ? "Review →" : inProgress ? "Continue →" : "Start Learning →"}
+                      </Link>
+                      {/* Practice Bank button */}
+                      {mod.allLessonIds && (
+                        isPremiumActive ? (
+                          <Link
+                            href={`/learn/${mod.id}/practice`}
+                            style={{
+                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
+                              background: "rgba(0,240,255,0.08)",
+                              border: "1px solid rgba(0,240,255,0.25)",
+                              borderRadius: 8, color: "var(--cm-cyan)",
+                              textDecoration: "none", whiteSpace: "nowrap",
+                              transition: "background 0.15s",
+                            }}
+                          >
+                            Practice Bank →
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/premium"
+                            style={{
+                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
+                              background: "rgba(255,215,0,0.06)",
+                              border: "1px solid rgba(255,215,0,0.2)",
+                              borderRadius: 8, color: "#ffd700",
+                              textDecoration: "none", whiteSpace: "nowrap",
+                            }}
+                          >
+                            👑 Practice Bank
+                          </Link>
+                        )
+                      )}
+                    </div>
                   ) : (
                     <span className={styles.comingSoonBadge}>🔒 Coming Soon</span>
                   )}

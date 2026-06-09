@@ -18,11 +18,13 @@ import (
 	"codemortem/internal/codeforces"
 	"codemortem/internal/config"
 	"codemortem/internal/database"
+	"codemortem/internal/email"
 	"codemortem/internal/game"
 	"codemortem/internal/judge"
 	"codemortem/internal/matchmaking"
 	"codemortem/internal/models"
 	"codemortem/internal/question"
+	"codemortem/internal/subscription"
 	"codemortem/internal/user"
 
 	"github.com/gofiber/contrib/websocket"
@@ -48,18 +50,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to PostgreSQL: %v", err)
 	}
-	log.Println("✅ PostgreSQL connected")
+	log.Println("✓ PostgreSQL connected")
 
 	// Connect to Redis
 	rdb, err := database.NewRedis(&cfg.Redis)
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to Redis: %v", err)
 	}
-	log.Println("✅ Redis connected")
+	log.Println("✓ Redis connected")
 
 	// Initialize services
 	jwtMgr := auth.NewJWTManager(&cfg.JWT)
-	authSvc := auth.NewService(db, jwtMgr)
+	emailSender := email.NewSender(cfg.Email.ResendAPIKey, cfg.Email.FromAddress)
+	authSvc := auth.NewService(db, rdb, jwtMgr, cfg.OAuth.GoogleClientID, emailSender)
 	authHandler := auth.NewHandler(authSvc)
 	authMw := auth.Middleware(jwtMgr)
 
@@ -76,7 +79,7 @@ func main() {
 	if err := cfClient.Init(); err != nil {
 		log.Printf("⚠️  Codeforces API init failed (will retry): %v", err)
 	} else {
-		log.Println("✅ Codeforces problem cache loaded")
+		log.Println("✓ Codeforces problem cache loaded")
 	}
 
 	sessionMgr := game.NewSessionManager(db, hub, cfClient)
@@ -104,7 +107,7 @@ func main() {
 	// NOTE: Auto-seeding is disabled — uncomment below when a valid AI key is available.
 	// if cfg.AI.APIKey != "" {
 	// 	go qSeeder.Start(matchCtx)
-	// 	log.Println("✅ AI question generation enabled")
+	// 	log.Println("✓ AI question generation enabled")
 	// } else {
 	// 	log.Println("⚠️  AI_API_KEY not set — question generation disabled")
 	// }
@@ -135,9 +138,9 @@ func main() {
 		URL: "redis://" + cfg.Redis.Host + ":" + fmt.Sprint(cfg.Redis.Port) + "/1",
 	})
 
-	// Auth rate limiter - strict (5 requests per minute per IP)
+	// Auth rate limiter - relaxed for development (100 requests per minute per IP)
 	authLimiter := limiter.New(limiter.Config{
-		Max:        5,
+		Max:        100,
 		Expiration: 1 * time.Minute,
 		KeyGenerator: func(c *fiber.Ctx) string {
 			return c.IP() // Rate limit by IP
@@ -150,9 +153,9 @@ func main() {
 		Storage: redisStore,
 	})
 
-	// General API rate limiter - moderate (100 requests per minute per IP/user)
+	// General API rate limiter - generous (500 requests per minute per IP/user)
 	apiLimiter := limiter.New(limiter.Config{
-		Max:        100,
+		Max:        500,
 		Expiration: 1 * time.Minute,
 		KeyGenerator: func(c *fiber.Ctx) string {
 			if userID, ok := c.Locals("userId").(string); ok {
@@ -192,6 +195,11 @@ func main() {
 
 	// Question routes
 	qHandler.RegisterRoutes(api, authMw)
+
+	// Subscription routes
+	subRepo := subscription.NewRepository(db)
+	subHandler := subscription.NewHandler(subRepo, &cfg.Razorpay)
+	subHandler.RegisterRoutes(api, authMw)
 
 	// Custom judge routes for learning path (authenticated)
 	lp := api.Group("/learning-path", authMw)
@@ -522,7 +530,7 @@ func handleGameMessage(
 							},
 						})
 
-						log.Printf("[match] ✅ CF session created: %s (%s vs %s)", matchID, u1.Username, u2.Username)
+						log.Printf("[match] ✓ CF session created: %s (%s vs %s)", matchID, u1.Username, u2.Username)
 					}()
 				} else {
 					// Player2 just got the notification; P1 handles session creation

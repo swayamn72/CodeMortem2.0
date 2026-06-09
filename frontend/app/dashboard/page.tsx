@@ -21,6 +21,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
+  const isPremiumActive = user?.isPremium && (
+    !user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date()
+  );
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -60,6 +64,7 @@ export default function DashboardPage() {
         </ul>
         <div className="navbar-actions">
           <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
+            {isPremiumActive && <span style={{ color: "#ffd700", marginRight: 4 }}>👑</span>}
             {user.username}
           </span>
           <button className="btn btn-secondary btn-sm" onClick={logout}>
@@ -159,7 +164,7 @@ export default function DashboardPage() {
           </div>
           <div className="card stat-card">
             <div className="stat-value">
-              {user.cfVerified ? "✅" : "—"}
+              {user.cfVerified ? "✓" : "—"}
             </div>
             <div className="stat-label">CF Linked</div>
           </div>
@@ -194,10 +199,29 @@ export default function DashboardPage() {
             </Link>
 
             <Link href="/settings" className={`card ${styles.actionCard}`}>
-              <span className={styles.actionIcon}>{user.cfVerified ? '✅' : '🔗'}</span>
+              <span className={styles.actionIcon}>{user.cfVerified ? '✓' : '🔗'}</span>
               <h3>{user.cfVerified ? `CF: ${user.cfHandle}` : 'Link Codeforces'}</h3>
               <p>{user.cfVerified ? `Rating: ${user.cfRating ?? 'N/A'}` : 'Required for matchmaking — link now'}</p>
             </Link>
+
+            {isPremiumActive ? (
+              <Link href="/premium" className={`card ${styles.actionCard}`} style={{ borderColor: "rgba(255,215,0,0.25)", background: "rgba(255,215,0,0.04)" }}>
+                <span className={styles.actionIcon}>👑</span>
+                <h3 style={{ color: "#ffd700" }}>Premium Active</h3>
+                <p>
+                  {user.premiumPlan ?? "Premium"} ·{" "}
+                  {user.premiumExpiresAt
+                    ? `Expires ${new Date(user.premiumExpiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+                    : "Active"}
+                </p>
+              </Link>
+            ) : (
+              <Link href="/premium" className={`card ${styles.actionCard}`} style={{ borderColor: "rgba(0,240,255,0.15)", background: "rgba(0,240,255,0.03)" }}>
+                <span className={styles.actionIcon}>👑</span>
+                <h3>Go Premium</h3>
+                <p>Unlock Practice Bank, editorials & contests — from ₹500/month</p>
+              </Link>
+            )}
           </div>
         </div>
       </main>

@@ -134,7 +134,7 @@ func (h *Handler) GenerateSet(c *fiber.Ctx) error {
 		if err != nil {
 			log.Printf("[handler] async set generation failed: %v", err)
 		} else {
-			log.Printf("[handler] ✅ set generated: %s", setID)
+			log.Printf("[handler] ✓ set generated: %s", setID)
 		}
 	}()
 

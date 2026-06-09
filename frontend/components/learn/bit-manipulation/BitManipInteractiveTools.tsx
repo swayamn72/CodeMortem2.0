@@ -735,7 +735,7 @@ export function BuiltinExplorer() {
         </table>
       </div>
       <div style={{ marginTop: "0.75rem", fontSize: 12, color: "var(--text-secondary)", padding: "0.5rem 1rem", background: "rgba(255,200,0,0.06)", borderRadius: 8, borderLeft: "3px solid var(--cm-yellow)" }}>
-        <strong>Note:</strong> Always add <code>#pragma GCC target("popcnt")</code> at the top of competitive programming submissions to enable the hardware popcount instruction. Without it, the compiler may emit a slow software loop.
+        <strong>Note:</strong> Some competitive programmers add <code>#pragma GCC target("popcnt")</code> to hint the compiler to use the hardware POPCNT instruction. It is <em>not required</em> — modern GCC already uses it in optimized builds. Some online judges also reject pragmas. Only add it if you understand what it does.
       </div>
     </div>
   );

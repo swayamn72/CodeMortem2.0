@@ -409,7 +409,7 @@ export default function BitManipChallengeIde({
       {showSuccess && (
         <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
           <div style={{ background: "var(--surface-color)", border: "1px solid var(--cm-green)", borderRadius: 16, padding: "2rem", textAlign: "center", maxWidth: 400 }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✅</div>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✓</div>
             <h2 style={{ color: "var(--cm-green)", marginBottom: "0.5rem" }}>Accepted!</h2>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>All test cases passed.</p>
             <button className="btn btn-primary" onClick={() => { setShowSuccess(false); setActiveLesson(NEXT_LESSON[activeLesson]); }}>

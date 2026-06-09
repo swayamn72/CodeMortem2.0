@@ -3,11 +3,12 @@
 // to activate all challenges.
 //
 // Test breakdown for each challenge (20 tests):
-//   Tests 0-4:   Small  — basic correctness
-//   Tests 5-14:  Medium — logic & edge cases
-//   Tests 15-19: Large  — performance / TLE detection (where applicable)
+//   Tests 0-4:   Small  — basic correctness, sample-case equivalents
+//   Tests 5-14:  Medium — edge cases, logic stress
+//   Tests 15-19: Large  — N up to constraint max, TLE detection
 //
-// Time limit is 2000ms for all challenges except max_xor_pair (3000ms).
+// Time limits are tight enough that O(N²) or O(N log N) solutions TLE on
+// the large tests while O(N) / O(log N) solutions pass comfortably.
 package bit_manipulation
 
 import "codemortem/internal/challenges"
@@ -17,7 +18,8 @@ func init() {
 	registerPowerOfTwo()
 	registerFlipBitsRange()
 	registerSingleNumber()
-	registerMaxXorPair()
+	registerMissingNumber()
+	registerSignalCalibration()
 }
 
 // Standard whitespace-insensitive token checker.
@@ -42,11 +44,11 @@ sys.exit(0)
 
 func registerOddEven() {
 	challenges.Register(&challenges.Challenge{
-		ID:         "odd_even",
-		Name:       "Odd or Even",
-		CourseSlug: "bit-manipulation",
-		NumTests:   20,
-		TimeLimitMs: 2000,
+		ID:          "odd_even",
+		Name:        "Odd or Even",
+		CourseSlug:  "bit-manipulation",
+		NumTests:    20,
+		TimeLimitMs: 1000,
 
 		GeneratorPy: `
 import sys, random
@@ -69,7 +71,6 @@ print(n)
 using namespace std;
 int main(){
     long long n; cin >> n;
-    // Use bitwise AND — no modulo or division
     if((n & 1) == 1) cout << "odd\n";
     else             cout << "even\n";
 }
@@ -83,11 +84,11 @@ int main(){
 
 func registerPowerOfTwo() {
 	challenges.Register(&challenges.Challenge{
-		ID:         "power_of_two",
-		Name:       "Power of Two",
-		CourseSlug: "bit-manipulation",
-		NumTests:   20,
-		TimeLimitMs: 2000,
+		ID:          "power_of_two",
+		Name:        "Power of Two",
+		CourseSlug:  "bit-manipulation",
+		NumTests:    20,
+		TimeLimitMs: 1000,
 
 		GeneratorPy: `
 import sys, random
@@ -95,18 +96,14 @@ import sys, random
 seed = int(sys.argv[1])
 rng = random.Random(seed)
 
-# Mix of powers of 2, edge cases, and random numbers
 special = [0, 1, 2, 4, 8, 16, 32, 64, 128, 1073741824]
 if seed < 5:
     n = rng.choice(special)
 elif seed < 10:
-    # Definitely a power of two
     exp = rng.randint(0, 30)
     n = 1 << exp
 elif seed < 15:
-    # Definitely NOT a power of two
     n = rng.randint(3, 10**6)
-    # Remove if happens to be power of 2
     while n > 0 and (n & (n - 1)) == 0:
         n = rng.randint(3, 10**6)
 else:
@@ -133,11 +130,11 @@ int main(){
 
 func registerFlipBitsRange() {
 	challenges.Register(&challenges.Challenge{
-		ID:         "flip_bits_range",
-		Name:       "Flip Bits in a Range",
-		CourseSlug: "bit-manipulation",
-		NumTests:   20,
-		TimeLimitMs: 2000,
+		ID:          "flip_bits_range",
+		Name:        "Flip Bits in a Range",
+		CourseSlug:  "bit-manipulation",
+		NumTests:    20,
+		TimeLimitMs: 1000,
 
 		GeneratorPy: `
 import sys, random
@@ -177,14 +174,16 @@ int main(){
 }
 
 // ── Challenge 4: Single Number ────────────────────────────────────────────────
+// O(N) XOR solution expected. O(N²) brute force (search for non-duplicate by
+// comparing each element to all others) will TLE on the large tests (N~100000).
 
 func registerSingleNumber() {
 	challenges.Register(&challenges.Challenge{
-		ID:         "single_number",
-		Name:       "Single Number",
-		CourseSlug: "bit-manipulation",
-		NumTests:   20,
-		TimeLimitMs: 2000,
+		ID:          "single_number",
+		Name:        "Single Number",
+		CourseSlug:  "bit-manipulation",
+		NumTests:    20,
+		TimeLimitMs: 1000, // tight: O(N²) at N=100000 ≈ 10^10 ops → TLE
 
 		GeneratorPy: `
 import sys, random
@@ -193,33 +192,23 @@ seed = int(sys.argv[1])
 rng = random.Random(seed)
 
 if seed < 5:
-    k = rng.randint(1, 5)   # k pairs + 1 unique
-    vals = rng.randint(1, 100)
+    k = rng.randint(1, 5)
+    max_val = 100
 elif seed < 15:
-    k = rng.randint(100, 1000)
-    vals = rng.randint(1, 10**6)
+    k = rng.randint(100, 5000)
+    max_val = 10**6
 else:
-    k = rng.randint(40000, 50000)
-    vals = rng.randint(1, 10**9)
+    # Large: N = 2*k+1 ≈ 100001; O(N²) will TLE at 1000ms
+    k = rng.randint(49000, 50000)
+    max_val = 10**9
 
-unique = rng.randint(1, 10**9)
-arr = []
-pool = list(range(1, vals + 1))
-rng.shuffle(pool)
-pairs = pool[:k]
-for p in pairs:
-    arr.append(p)
-    arr.append(p)
-arr.append(unique)
-# Ensure unique is not in pairs
-while unique in pairs:
-    unique = rng.randint(1, 10**9)
-# Rebuild with correct unique
-arr[-1] = unique
+pool = random.sample(range(1, max_val + 1), k + 1)
+unique = pool[-1]
+pairs  = pool[:-1]
+arr = pairs * 2 + [unique]
 rng.shuffle(arr)
 
-n = len(arr)
-print(n)
+print(len(arr))
 print(*arr)
 `,
 
@@ -241,15 +230,17 @@ int main(){
 	})
 }
 
-// ── Challenge 5: Maximum XOR Pair ────────────────────────────────────────────
+// ── Challenge 5: Missing Number ───────────────────────────────────────────────
+// O(N) XOR solution expected. O(N²) approaches (nested loop search) TLE on
+// the large tests (N up to 100000).
 
-func registerMaxXorPair() {
+func registerMissingNumber() {
 	challenges.Register(&challenges.Challenge{
-		ID:         "max_xor_pair",
-		Name:       "Maximum XOR Pair",
-		CourseSlug: "bit-manipulation",
-		NumTests:   20,
-		TimeLimitMs: 3000,
+		ID:          "missing_number",
+		Name:        "Missing Number",
+		CourseSlug:  "bit-manipulation",
+		NumTests:    20,
+		TimeLimitMs: 1000, // tight: O(N²) at N=100000 TLEs easily
 
 		GeneratorPy: `
 import sys, random
@@ -258,17 +249,25 @@ seed = int(sys.argv[1])
 rng = random.Random(seed)
 
 if seed < 5:
+    # Small: easy correctness
     n = rng.randint(2, 10)
-    vals = [rng.randint(0, 15) for _ in range(n)]
+elif seed < 10:
+    # Edge cases: missing = 1, missing = N
+    n = rng.randint(10, 200)
 elif seed < 15:
-    n = rng.randint(100, 1000)
-    vals = [rng.randint(0, 2**31 - 1) for _ in range(n)]
+    # Medium
+    n = rng.randint(200, 5000)
 else:
-    n = rng.randint(50000, 100000)
-    vals = [rng.randint(0, 2**31 - 1) for _ in range(n)]
+    # Large: N up to 100000 — O(N²) will TLE
+    n = rng.randint(80000, 100000)
+
+arr = list(range(1, n + 1))
+missing = rng.choice(arr)
+arr.remove(missing)
+rng.shuffle(arr)
 
 print(n)
-print(*vals)
+print(*arr)
 `,
 
 		ReferenceCpp: `
@@ -277,25 +276,94 @@ using namespace std;
 int main(){
     ios_base::sync_with_stdio(false); cin.tie(NULL);
     int n; cin >> n;
-    vector<long long> a(n);
-    for(auto& x : a) cin >> x;
-
-    long long ans = 0;
-    for(int bit = 30; bit >= 0; bit--){
-        long long candidate = ans | (1LL << bit);
-        long long mask = (1LL << (bit + 1)) - 1;
-        set<long long> prefixes;
-        for(long long x : a) prefixes.insert(x & mask);
-        bool found = false;
-        for(long long p : prefixes){
-            if(prefixes.count(p ^ candidate)){
-                found = true;
-                break;
-            }
-        }
-        if(found) ans = candidate;
+    long long xorAll = 0;
+    for(int i = 1; i <= n; i++) xorAll ^= i;
+    for(int i = 0; i < n - 1; i++){
+        long long x; cin >> x;
+        xorAll ^= x;
     }
-    cout << ans << "\n";
+    cout << xorAll << "\n";
+}
+`,
+
+		CheckerPy: tokenCheckerPy,
+	})
+}
+
+// ── Challenge 6: Signal Calibration ──────────────────────────────────────────
+// O(log S) greedy expected (two passes over 31 bits = 62 ops, effectively O(1)).
+// No brute-force approach is meaningful here given the constraints (K ≤ 30,
+// S ≤ 10^9), but the time limit is still tight to reject solutions with
+// unnecessary O(2^K) enumeration.
+
+func registerSignalCalibration() {
+	challenges.Register(&challenges.Challenge{
+		ID:          "signal_calibration",
+		Name:        "Signal Calibration",
+		CourseSlug:  "bit-manipulation",
+		NumTests:    20,
+		TimeLimitMs: 1000,
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    # Small S, edge cases
+    pairs = [
+        (3, 2),   # exact match
+        (12, 1),  # fewer bits
+        (1, 2),   # more bits
+        (7, 3),   # exact match (all 3 bits)
+        (15, 1),  # only one bit allowed
+    ]
+    S, K = pairs[seed]
+elif seed < 10:
+    # S with popcount < K (extra bits needed)
+    S = rng.randint(1, 1000)
+    pop = bin(S).count('1')
+    K = rng.randint(pop + 1, min(pop + 10, 30))
+elif seed < 15:
+    # S with popcount > K (must drop bits)
+    S = rng.randint(100, 10**6)
+    pop = bin(S).count('1')
+    K = rng.randint(1, max(1, pop - 1))
+else:
+    # Large S, varied K
+    S = rng.randint(10**8, 10**9)
+    K = rng.randint(1, 30)
+
+print(S, K)
+`,
+
+		ReferenceCpp: `
+#include <bits/stdc++.h>
+using namespace std;
+int main(){
+    long long S, K;
+    cin >> S >> K;
+
+    long long X = 0;
+
+    // Phase 1: Match set bits of S from MSB to LSB
+    for(int bit = 30; bit >= 0 && K > 0; bit--){
+        if((S >> bit) & 1){
+            X |= (1LL << bit);
+            K--;
+        }
+    }
+
+    // Phase 2: Fill remaining budget into lowest unset bits
+    for(int bit = 0; bit <= 30 && K > 0; bit++){
+        if(!((X >> bit) & 1)){
+            X |= (1LL << bit);
+            K--;
+        }
+    }
+
+    cout << X << "\n";
 }
 `,
 

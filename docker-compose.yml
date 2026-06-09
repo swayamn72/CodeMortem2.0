@@ -143,6 +143,12 @@ services:
       - JWT_REFRESH_SECRET=4d9a1c7e3b6f0a2d8c5e1f9b7a4c6d3e0f2a8b1c7e5d9f4a6b3c0e2d8f1a7c5
       - AI_PROVIDER=openai
       - AI_API_KEY=sk-proj-YOUR_API_KEY_HERE
+      - GOOGLE_CLIENT_ID=805563877612-rqdpav2gskes49s37jjej3cbhrund7c1.apps.googleusercontent.com
+      - RESEND_API_KEY=re_2kS1JWvo_CdwV6K3grMqRdG47ftYk8vDY
+      - EMAIL_FROM=CodeMortem <onboarding@resend.dev>
+      - RAZORPAY_KEY_ID=
+      - RAZORPAY_KEY_SECRET=
+      - RAZORPAY_WEBHOOK_SECRET=
     depends_on:
       postgres:
         condition: service_healthy

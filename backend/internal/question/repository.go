@@ -221,7 +221,7 @@ func (r *Repository) SaveGeneratedMatchSet(ctx context.Context, questions [7]*ai
 		return nil, fmt.Errorf("create question set: %w", err)
 	}
 
-	log.Printf("[question-repo] ✅ saved question set %s (rating %d-%d)", qs.ID, ratingMin, ratingMax)
+	log.Printf("[question-repo] ✓ saved question set %s (rating %d-%d)", qs.ID, ratingMin, ratingMax)
 	return qs, nil
 }
 

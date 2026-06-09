@@ -10,6 +10,7 @@ type User struct {
 	Username  string  `json:"username" db:"username"`
 	Email     string  `json:"email" db:"email"`
 	PassHash  string  `json:"-" db:"password_hash"`
+	GoogleID  *string `json:"-" db:"google_id"`
 	AvatarURL *string `json:"avatarUrl" db:"avatar_url"`
 
 	// Glicko-2 Rating
@@ -31,30 +32,51 @@ type User struct {
 	SoloMatchesPlayed   int `json:"soloMatchesPlayed" db:"solo_matches_played"`
 	SoloProblemsSolved  int `json:"soloProblemsSolved" db:"solo_problems_solved"`
 
+	// Premium
+	IsPremium         bool       `json:"isPremium" db:"is_premium"`
+	PremiumExpiresAt  *time.Time `json:"premiumExpiresAt" db:"premium_expires_at"`
+	PremiumPlan       *string    `json:"premiumPlan" db:"premium_plan"`
+	EmailVerified     bool       `json:"emailVerified" db:"email_verified"`
+
 	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt    time.Time `json:"updatedAt" db:"updated_at"`
 	LastActiveAt time.Time `json:"lastActiveAt" db:"last_active_at"`
 }
 
+// HasActivePremium returns true if the user has an active (non-expired) premium subscription.
+func (u *User) HasActivePremium() bool {
+	if !u.IsPremium {
+		return false
+	}
+	if u.PremiumExpiresAt == nil {
+		return true // No expiry = lifetime (institutional, etc.)
+	}
+	return u.PremiumExpiresAt.After(time.Now())
+}
+
 // UserPublic is the public-facing user profile (no sensitive fields).
 type UserPublic struct {
-	ID                  string  `json:"id"`
-	Username            string  `json:"username"`
-	AvatarURL           *string `json:"avatarUrl"`
-	Rating              float64 `json:"rating"`
-	RatingDeviation     float64 `json:"ratingDeviation"`
-	CFHandle            *string `json:"cfHandle"`
-	CFRating            *int    `json:"cfRating"`
-	CFVerified          bool    `json:"cfVerified"`
-	MatchesPlayed       int     `json:"matchesPlayed"`
-	MatchesWon          int     `json:"matchesWon"`
-	MatchesDrawn        int     `json:"matchesDrawn"`
-	TotalProblemsSolved int     `json:"totalProblemsSolved"`
-	SoloMatchesPlayed   int     `json:"soloMatchesPlayed"`
-	SoloProblemsSolved  int     `json:"soloProblemsSolved"`
-	RankTitle           string  `json:"rankTitle"`
-	Email               string  `json:"email"`
-	CreatedAt           time.Time `json:"createdAt"`
+	ID                  string     `json:"id"`
+	Username            string     `json:"username"`
+	AvatarURL           *string    `json:"avatarUrl"`
+	Rating              float64    `json:"rating"`
+	RatingDeviation     float64    `json:"ratingDeviation"`
+	CFHandle            *string    `json:"cfHandle"`
+	CFRating            *int       `json:"cfRating"`
+	CFVerified          bool       `json:"cfVerified"`
+	MatchesPlayed       int        `json:"matchesPlayed"`
+	MatchesWon          int        `json:"matchesWon"`
+	MatchesDrawn        int        `json:"matchesDrawn"`
+	TotalProblemsSolved int        `json:"totalProblemsSolved"`
+	SoloMatchesPlayed   int        `json:"soloMatchesPlayed"`
+	SoloProblemsSolved  int        `json:"soloProblemsSolved"`
+	RankTitle           string     `json:"rankTitle"`
+	Email               string     `json:"email"`
+	IsPremium           bool       `json:"isPremium"`
+	PremiumExpiresAt    *time.Time `json:"premiumExpiresAt"`
+	PremiumPlan         *string    `json:"premiumPlan"`
+	EmailVerified       bool       `json:"emailVerified"`
+	CreatedAt           time.Time  `json:"createdAt"`
 }
 
 // ToPublic converts a User to a public profile.
@@ -76,6 +98,10 @@ func (u *User) ToPublic() *UserPublic {
 		SoloProblemsSolved:  u.SoloProblemsSolved,
 		RankTitle:           GetRankTitle(u.Rating),
 		Email:               u.Email,
+		IsPremium:           u.HasActivePremium(),
+		PremiumExpiresAt:    u.PremiumExpiresAt,
+		PremiumPlan:         u.PremiumPlan,
+		EmailVerified:       u.EmailVerified,
 		CreatedAt:           u.CreatedAt,
 	}
 }

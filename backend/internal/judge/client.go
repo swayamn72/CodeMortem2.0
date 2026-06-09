@@ -174,22 +174,40 @@ func (c *Client) runLocalCpp(ctx context.Context, req *SubmissionRequest) (*Subm
 		}, nil
 	}
 
-	runCmd := exec.CommandContext(ctx, exePath)
+	// Determine wall-clock limit: use CPUTimeLimit from request, fall back to 5 s
+	walllimit := req.CPUTimeLimit
+	if walllimit <= 0 {
+		walllimit = 5.0
+	}
+	runCtx, cancel := context.WithTimeout(ctx, time.Duration(walllimit*float64(time.Second)))
+	defer cancel()
+
+	runCmd := exec.CommandContext(runCtx, exePath)
 	if req.Stdin != "" {
 		runCmd.Stdin = strings.NewReader(req.Stdin)
 	}
-	
+
 	var stdoutBuf, stderrBuf bytes.Buffer
 	runCmd.Stdout = &stdoutBuf
 	runCmd.Stderr = &stderrBuf
-	
+
 	start := time.Now()
 	err = runCmd.Run()
 	elapsed := time.Since(start).Seconds()
-	
+
 	stdoutStr := stdoutBuf.String()
 	stderrStr := stderrBuf.String()
 	timeStr := fmt.Sprintf("%.3f", elapsed)
+
+	// Timed out?
+	if runCtx.Err() == context.DeadlineExceeded {
+		return &SubmissionResponse{
+			Token:  "local-123",
+			Stdout: &stdoutStr,
+			Time:   &timeStr,
+			Status: Status{ID: StatusTLE, Description: "Time Limit Exceeded"},
+		}, nil
+	}
 
 	if err != nil {
 		errStr := "Execution failed: " + err.Error() + "\n" + stderrStr
@@ -235,7 +253,15 @@ func (c *Client) runLocalPython(ctx context.Context, req *SubmissionRequest) (*S
 		return nil, err
 	}
 
-	runCmd := exec.CommandContext(ctx, "python3", srcPath)
+	// Determine wall-clock limit: use CPUTimeLimit from request, fall back to 5 s
+	walllimit := req.CPUTimeLimit
+	if walllimit <= 0 {
+		walllimit = 5.0
+	}
+	runCtx, cancel := context.WithTimeout(ctx, time.Duration(walllimit*float64(time.Second)))
+	defer cancel()
+
+	runCmd := exec.CommandContext(runCtx, "python3", srcPath)
 	if req.Stdin != "" {
 		runCmd.Stdin = strings.NewReader(req.Stdin)
 	}
@@ -251,6 +277,16 @@ func (c *Client) runLocalPython(ctx context.Context, req *SubmissionRequest) (*S
 	stdoutStr := stdoutBuf.String()
 	stderrStr := stderrBuf.String()
 	timeStr := fmt.Sprintf("%.3f", elapsed)
+
+	// Timed out?
+	if runCtx.Err() == context.DeadlineExceeded {
+		return &SubmissionResponse{
+			Token:  "local-py-123",
+			Stdout: &stdoutStr,
+			Time:   &timeStr,
+			Status: Status{ID: StatusTLE, Description: "Time Limit Exceeded"},
+		}, nil
+	}
 
 	if err != nil {
 		// Python errors go to stderr, not compile_output
@@ -285,11 +321,13 @@ func (c *Client) runLocalPython(ctx context.Context, req *SubmissionRequest) (*S
 }
 
 // Run executes code with custom input (for the "Run" button, no judging).
+// Uses a 5-second wall-clock timeout so infinite loops don't hang the frontend.
 func (c *Client) Run(ctx context.Context, languageID int, sourceCode, stdin string) (*SubmissionResponse, error) {
 	return c.Submit(ctx, &SubmissionRequest{
-		SourceCode: sourceCode,
-		LanguageID: languageID,
-		Stdin:      stdin,
+		SourceCode:   sourceCode,
+		LanguageID:   languageID,
+		Stdin:        stdin,
+		CPUTimeLimit: 5.0, // 5 s hard limit for Run; Submit uses challenge.TimeLimitMs
 	})
 }
 
