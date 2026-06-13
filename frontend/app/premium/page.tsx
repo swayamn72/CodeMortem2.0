@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -100,26 +101,7 @@ export default function PremiumPage() {
 
   return (
     <>
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li><Link href="/dashboard">Dashboard</Link></li>
-          <li><Link href="/learn">Learn</Link></li>
-          <li><Link href="/leaderboard">Leaderboard</Link></li>
-          {user && <li><Link href={`/profile/${user.username}`}>Profile</Link></li>}
-        </ul>
-        {user && (
-          <div className="navbar-actions">
-            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
-              {user.isPremium && <span style={{ color: "#ffd700", marginRight: 4 }}>👑</span>}
-              {user.username}
-            </span>
-          </div>
-        )}
-      </nav>
+      <Navbar activeTab="premium" />
 
       <div className="grid-bg" />
 

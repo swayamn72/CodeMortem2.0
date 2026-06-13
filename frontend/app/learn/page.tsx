@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useProgressStore } from "@/stores/progressStore";
+import Navbar from "@/components/Navbar";
 import styles from "./page.module.css";
 
 interface Module {
@@ -144,51 +145,7 @@ export default function LearnPage() {
 
   return (
     <>
-      {/* Navbar */}
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li>
-            <Link href="/dashboard">Dashboard</Link>
-          </li>
-          <li>
-            <Link href="/learn" className="active">
-              Learn
-            </Link>
-          </li>
-          <li>
-            <Link href="/leaderboard">Leaderboard</Link>
-          </li>
-          <li>
-            <Link href={`/profile/${user.username}`}>Profile</Link>
-          </li>
-        </ul>
-        <div className="navbar-actions">
-          <span
-            style={{
-              fontSize: "var(--font-size-sm)",
-              color: "var(--text-secondary)",
-              marginRight: "8px",
-            }}
-          >
-            <span
-              style={{
-                color: getRankColor(user.rating),
-                fontWeight: 600,
-              }}
-            >
-              {isPremiumActive && <span style={{ color: "#ffd700", marginRight: 4 }}>👑</span>}
-              {user.username}
-            </span>
-          </span>
-          <button className="btn btn-secondary btn-sm" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar activeTab="learn" />
 
       {/* Grid background */}
       <div className="grid-bg" />

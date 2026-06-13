@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
+import Navbar from "@/components/Navbar";
 import SegmentTreePath from "@/components/SegmentTreePath";
 
 export default function LearnSegmentTreePage() {
@@ -41,27 +42,7 @@ export default function LearnSegmentTreePage() {
 
   return (
     <>
-      {/* Navbar */}
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li><Link href="/dashboard">Dashboard</Link></li>
-          <li><Link href="/learn" className="active">Learn</Link></li>
-          <li><Link href="/leaderboard">Leaderboard</Link></li>
-          <li><Link href={`/profile/${user.username}`}>Profile</Link></li>
-        </ul>
-        <div className="navbar-actions">
-          <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)", marginRight: "8px" }}>
-            <span style={{ color: getRankColor(user.rating), fontWeight: 600 }}>{user.username}</span>
-          </span>
-          <button className="btn btn-secondary btn-sm" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar activeTab="learn" />
 
       {/* Main Container */}
       <main style={{ height: "100vh", paddingTop: "64px", display: "flex", flexDirection: "column", background: "var(--bg-primary)", overflow: "hidden" }}>

@@ -1,10 +1,14 @@
+/* ── Google Fonts ── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@500;700;800&display=swap');
+
 /* ── Match Arena Layout ── */
 .arena {
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--bg-primary);
+  background: #0a0a0f;
+  font-family: 'Syne', sans-serif;
 }
 
 /* ── Arena Header ── */
@@ -12,24 +16,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 52px;
-  min-height: 52px;
-  padding: 0 var(--space-md);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  height: 54px;
+  min-height: 54px;
+  padding: 0 20px;
+  background: #0d0d18;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   z-index: 10;
+  position: relative;
+}
+
+.arenaHeader::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 220, 180, 0.25) 40%, rgba(0, 220, 180, 0.25) 60%, transparent 100%);
+  pointer-events: none;
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: 14px;
 }
 
 .brand {
+  font-family: 'Syne', sans-serif;
   font-weight: 800;
-  font-size: var(--font-size-base);
-  color: var(--text-primary);
+  font-size: 15px;
+  color: #e8e8f0;
+  letter-spacing: -0.3px;
 }
 
 .headerCenter {
@@ -45,39 +63,51 @@
 .scoreBoard {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 5px 14px;
 }
 
 .scoreItem {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .scoreLabel {
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.3);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 .scoreNum {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-lg);
-  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .myScore {
-  color: var(--cm-cyan);
+  color: #00dcb4;
+  text-shadow: 0 0 18px rgba(0, 220, 180, 0.35);
 }
 
 .oppScore {
-  color: var(--cm-red);
+  color: #ff4d6a;
+  text-shadow: 0 0 18px rgba(255, 77, 106, 0.35);
 }
 
 .scoreSep {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.12);
   font-weight: 300;
-  font-size: var(--font-size-lg);
+  font-size: 16px;
+  font-family: 'JetBrains Mono', monospace;
+  margin: 0 4px;
 }
 
 /* ── Arena Body ── */
@@ -85,151 +115,181 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  background: #0a0a0f;
 }
 
 /* ── Resize Handles ── */
 .resizeHandle {
-  width: 6px;
-  background-color: var(--bg-primary);
+  width: 4px;
+  background: #0a0a0f;
   cursor: col-resize;
-  transition: background-color 0.2s;
+  transition: background 0.15s;
   position: relative;
+  flex-shrink: 0;
 }
+
 .resizeHandle::after {
-  content: "";
+  content: '';
   position: absolute;
-  top: 0; bottom: 0; left: 2px; right: 2px;
-  background-color: var(--border-primary);
+  top: 20%;
+  bottom: 20%;
+  left: 1px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 2px;
+  transition: all 0.15s;
 }
-.resizeHandle:hover::after, .resizeHandle:active::after {
-  background-color: var(--cm-cyan);
+
+.resizeHandle:hover::after,
+.resizeHandle:active::after {
+  background: rgba(0, 220, 180, 0.6);
+  top: 0;
+  bottom: 0;
 }
 
 .resizeHandleHorizontal {
-  height: 6px;
-  background-color: var(--bg-primary);
+  height: 4px;
+  background: #0a0a0f;
   cursor: row-resize;
-  transition: background-color 0.2s;
+  transition: background 0.15s;
   position: relative;
-  z-index: 10;
+  flex-shrink: 0;
 }
+
 .resizeHandleHorizontal::after {
-  content: "";
+  content: '';
   position: absolute;
-  left: 0; right: 0; top: 2px; bottom: 2px;
-  background-color: var(--border-primary);
+  left: 20%;
+  right: 20%;
+  top: 1px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 2px;
+  transition: all 0.15s;
 }
-.resizeHandleHorizontal:hover::after, .resizeHandleHorizontal:active::after {
-  background-color: var(--cm-cyan);
+
+.resizeHandleHorizontal:hover::after,
+.resizeHandleHorizontal:active::after {
+  background: rgba(0, 220, 180, 0.6);
+  left: 0;
+  right: 0;
 }
 
 /* ── Sidebar ── */
 .sidebar {
-  background: var(--bg-secondary);
-  padding: var(--space-md);
+  background: #0d0d18;
+  padding: 14px 8px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   height: 100%;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sidebarTitle {
-  font-size: var(--font-size-xs);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
   font-weight: 700;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.2);
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: var(--space-md);
+  letter-spacing: 1.8px;
+  margin-bottom: 10px;
+  padding: 0 7px;
 }
 
 .qTab {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
+  gap: 5px;
+  padding: 8px 10px;
+  border-radius: 7px;
   border: 1px solid transparent;
-  background: none;
+  background: transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: var(--font-sans);
+  transition: all 0.12s ease;
+  font-family: 'JetBrains Mono', monospace;
   width: 100%;
   text-align: left;
-  color: var(--text-secondary);
-  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 2px;
 }
 
 .qTab:hover {
-  background: var(--bg-glass-hover);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.07);
 }
 
 .qTabActive {
-  background: var(--bg-glass);
-  border-color: var(--border-accent);
-  color: var(--cm-cyan);
+  background: rgba(0, 220, 180, 0.08) !important;
+  border-color: rgba(0, 220, 180, 0.22) !important;
+  color: #00dcb4 !important;
 }
 
 .qTabMySolved {
-  border-color: rgba(0, 255, 136, 0.3);
-  color: var(--cm-green);
-  background: rgba(0, 255, 136, 0.05);
+  background: rgba(0, 232, 122, 0.06);
+  border-color: rgba(0, 232, 122, 0.18);
+  color: #00e87a;
 }
 
 .qTabOppSolved {
-  border-color: rgba(255, 45, 85, 0.3);
-  color: var(--cm-red);
-  background: rgba(255, 45, 85, 0.05);
+  background: rgba(255, 77, 106, 0.06);
+  border-color: rgba(255, 77, 106, 0.18);
+  color: #ff4d6a;
 }
 
 .qTabIdx {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: var(--font-size-sm);
-  min-width: 28px;
+  font-size: 11px;
+  min-width: 20px;
 }
 
 .qTabPts {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.18);
   margin-left: auto;
 }
 
 .qTabIcon {
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .sidebarDivider {
   height: 1px;
-  background: var(--border-primary);
-  margin: var(--space-md) 0;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 14px 0;
 }
 
 .sidebarStats {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 7px;
+  padding: 0 4px;
 }
 
 .sidebarStat {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: var(--font-size-xs);
 }
 
 .sidebarStatLabel {
-  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.22);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 .sidebarStatValue {
-  font-family: var(--font-mono);
+  font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  color: var(--text-primary);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 /* ── Problem Panel ── */
@@ -238,6 +298,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: #0d0d18;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ── Editor Panel ── */
@@ -246,22 +308,25 @@
   flex-direction: column;
   overflow: hidden;
   height: 100%;
+  background: #09090e;
 }
 
 .editorToolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 44px;
-  min-height: 44px;
-  padding: 0 var(--space-md);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  height: 46px;
+  min-height: 46px;
+  padding: 0 14px;
+  background: #0d0d18;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  gap: 10px;
 }
 
 .toolbarActions {
   display: flex;
-  gap: var(--space-sm);
+  gap: 7px;
+  align-items: center;
 }
 
 .editorArea {
@@ -274,10 +339,11 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
-  background: var(--bg-primary);
+  color: rgba(255, 255, 255, 0.2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: #09090e;
+  letter-spacing: 0.5px;
 }
 
 /* ── Console ── */
@@ -285,63 +351,72 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: #09090e;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .consoleTabs {
   display: flex;
-  height: 32px;
-  min-height: 32px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-primary);
+  height: 34px;
+  min-height: 34px;
+  background: #0d0d18;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0 8px;
+  gap: 2px;
+  align-items: flex-end;
 }
 
 .consoleTab {
-  padding: 0 var(--space-md);
-  font-size: var(--font-size-xs);
+  padding: 0 13px;
+  height: 28px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
   font-weight: 600;
-  color: var(--text-muted);
-  background: none;
+  color: rgba(255, 255, 255, 0.28);
+  background: transparent;
   border: none;
+  border-radius: 6px 6px 0 0;
   cursor: pointer;
-  font-family: var(--font-sans);
-  border-bottom: 2px solid transparent;
-  transition: all var(--transition-fast);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  transition: all 0.12s;
 }
 
 .consoleTab:hover {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .consoleTabActive {
-  color: var(--cm-cyan);
-  border-bottom-color: var(--cm-cyan);
+  color: #00dcb4 !important;
+  background: rgba(0, 220, 180, 0.06) !important;
 }
 
 .consoleBody {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-sm) var(--space-md);
+  padding: 10px 14px;
 }
 
 .consoleBody pre {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
+  line-height: 1.7;
 }
 
 .consoleInfo {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .consoleSuccess {
-  color: var(--cm-green);
+  color: #00e87a;
 }
 
 .consoleError {
-  color: var(--cm-red);
+  color: #ff4d6a;
 }
 
 .customInput {
@@ -349,15 +424,38 @@
   height: 100%;
   background: transparent;
   border: none;
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.72);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
   resize: none;
   outline: none;
+  line-height: 1.7;
 }
 
 .customInput::placeholder {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Scrollbars ── */
+.sidebar::-webkit-scrollbar,
+.consoleBody::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar::-webkit-scrollbar-track,
+.consoleBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.consoleBody::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover,
+.consoleBody::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 /* ── Responsive ── */
@@ -371,17 +469,17 @@
     flex-direction: row;
     overflow-x: auto;
     border-right: none;
-    border-bottom: 1px solid var(--border-primary);
-    padding: var(--space-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 8px;
   }
 
   .qTab {
-    min-width: 80px;
+    min-width: 70px;
     margin-bottom: 0;
-    margin-right: 4px;
+    margin-right: 3px;
     flex-direction: column;
     text-align: center;
-    padding: 6px 10px;
+    padding: 6px 8px;
   }
 
   .problemPanel {

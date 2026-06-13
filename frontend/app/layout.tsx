@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "CodeMortem — Code or be Coded",
     description:
-      "Real-time 1v1 competitive programming battles with AI-generated problems and ranked matchmaking.",
+      "Real-time 1v1 competitive programming battles and interactive learning modules with ranked matchmaking.",
     type: "website",
   },
 };

@@ -18,8 +18,8 @@ export default function SoloPage() {
   const [countdown, setCountdown] = useState(3);
   
   const [duration, setDuration] = useState(30 * 60);
-  const [ratingMin, setRatingMin] = useState(Math.max(800, Math.floor((user?.rating || 1200) - 200)));
-  const [ratingMax, setRatingMax] = useState(Math.floor((user?.rating || 1200) + 200));
+  const [ratingMin, setRatingMin] = useState(Math.max(800, Math.floor((user?.rating || 1000) - 200)));
+  const [ratingMax, setRatingMax] = useState(Math.floor((user?.rating || 1000) + 200));
   const [numProblems, setNumProblems] = useState(5);
 
   useEffect(() => {
@@ -176,7 +176,7 @@ export default function SoloPage() {
             <div style={{ marginBottom: "1.75rem" }}>
               <label style={{ display: "block", marginBottom: "0.75rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Duration</label>
               <div style={{ display: "flex", gap: "0.5rem" }}>
-                {[15, 30, 45, 60].map(mins => {
+                {[30, 45, 60].map(mins => {
                   const isActive = duration === mins * 60;
                   return (
                     <button 
@@ -242,7 +242,7 @@ export default function SoloPage() {
               </label>
               <input 
                 type="range" 
-                min="1" max="7" 
+                min="4" max="7" 
                 value={numProblems} 
                 onChange={e => setNumProblems(parseInt(e.target.value))}
                 style={{ width: "100%", accentColor: "var(--cm-cyan)", cursor: "pointer" }}

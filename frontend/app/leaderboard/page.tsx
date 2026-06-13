@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/stores/authStore";
+import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -33,6 +35,7 @@ function getMedal(rank: number): string {
 }
 
 export default function LeaderboardPage() {
+  const { user, isAuthenticated } = useAuthStore();
   const [users, setUsers] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -64,21 +67,7 @@ export default function LeaderboardPage() {
 
   return (
     <>
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li><Link href="/dashboard">Dashboard</Link></li>
-          <li><Link href="/leaderboard" className="active">Leaderboard</Link></li>
-        </ul>
-        <div className="navbar-actions">
-          <Link href="/match/queue" className="btn btn-primary btn-sm">
-            ⚡ Find Match
-          </Link>
-        </div>
-      </nav>
+      <Navbar activeTab="leaderboard" showFindMatch={true} />
 
       <main className={styles.leaderboard}>
         <div className={styles.header}>

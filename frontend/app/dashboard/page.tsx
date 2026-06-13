@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import Navbar from "@/components/Navbar";
 import styles from "./page.module.css";
 
 function getRankColor(rating: number): string {
@@ -43,35 +44,10 @@ export default function DashboardPage() {
     );
   }
 
-  const winRate =
-    user.matchesPlayed > 0
-      ? ((user.matchesWon / user.matchesPlayed) * 100).toFixed(1)
-      : "0.0";
 
   return (
     <>
-      {/* Navbar */}
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li><Link href="/dashboard" className="active">Dashboard</Link></li>
-          <li><Link href="/learn">Learn</Link></li>
-          <li><Link href="/leaderboard">Leaderboard</Link></li>
-          <li><Link href={`/profile/${user.username}`}>Profile</Link></li>
-        </ul>
-        <div className="navbar-actions">
-          <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-secondary)" }}>
-            {isPremiumActive && <span style={{ color: "#ffd700", marginRight: 4 }}>👑</span>}
-            {user.username}
-          </span>
-          <button className="btn btn-secondary btn-sm" onClick={logout}>
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar activeTab="dashboard" />
 
       <main className={styles.dashboard}>
         {/* Welcome Header */}
@@ -154,10 +130,7 @@ export default function DashboardPage() {
             <div className="stat-value">{user.matchesWon}</div>
             <div className="stat-label">Wins</div>
           </div>
-          <div className="card stat-card">
-            <div className="stat-value">{winRate}%</div>
-            <div className="stat-label">Win Rate</div>
-          </div>
+
           <div className="card stat-card">
             <div className="stat-value">{user.totalProblemsSolved}</div>
             <div className="stat-label">Problems Solved</div>

@@ -6,7 +6,7 @@ import (
 
 // Glicko-2 system constants
 const (
-	DefaultRating    = 1500.0
+	DefaultRating    = 1000.0
 	DefaultDeviation = 350.0
 	DefaultVolatility = 0.06
 	SystemTau         = 0.5 // constrains volatility change
@@ -204,18 +204,18 @@ func InitialRatingFromCF(cfRating int) float64 {
 	case cfRating <= 0:
 		return DefaultRating
 	case cfRating < 1200:
-		return 1200
+		return 800
 	case cfRating < 1400:
-		return 1400
+		return 900
 	case cfRating < 1600:
-		return 1500
+		return 1000
 	case cfRating < 1900:
-		return 1600
+		return 1100
 	case cfRating < 2100:
-		return 1800
+		return 1300
 	case cfRating < 2400:
-		return 2000
+		return 1500
 	default:
-		return 2200 // capped
+		return 1800 // capped
 	}
 }

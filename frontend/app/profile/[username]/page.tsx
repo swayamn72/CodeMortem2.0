@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useAuthStore } from "@/stores/authStore";
+import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -128,6 +130,7 @@ function RatingChart({ history }: { history: RatingEntry[] }) {
 }
 
 export default function ProfilePage() {
+  const { user: currentUser, isAuthenticated } = useAuthStore();
   const params = useParams();
   const username = params.username as string;
   const [profile, setProfile] = useState<ProfileUser | null>(null);
@@ -180,30 +183,13 @@ export default function ProfilePage() {
     );
   }
 
-  const winRate =
-    profile.matchesPlayed > 0
-      ? ((profile.matchesWon / profile.matchesPlayed) * 100).toFixed(1)
-      : "0.0";
 
   const lossCount = profile.matchesPlayed - profile.matchesWon - profile.matchesDrawn;
 
+
   return (
     <>
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li><Link href="/dashboard">Dashboard</Link></li>
-          <li><Link href="/leaderboard">Leaderboard</Link></li>
-        </ul>
-        <div className="navbar-actions">
-          <Link href="/match/queue" className="btn btn-primary btn-sm">
-            ⚡ Find Match
-          </Link>
-        </div>
-      </nav>
+      <Navbar showFindMatch={true} />
 
       <main className={styles.profile}>
         {/* Hero Card */}
@@ -264,10 +250,7 @@ export default function ProfilePage() {
             <div className="stat-value" style={{ color: "var(--cm-red)" }}>{lossCount}</div>
             <div className="stat-label">Losses</div>
           </div>
-          <div className="card stat-card">
-            <div className="stat-value">{winRate}%</div>
-            <div className="stat-label">Win Rate</div>
-          </div>
+
           <div className="card stat-card">
             <div className="stat-value">{profile.totalProblemsSolved}</div>
             <div className="stat-label">Problems Solved</div>

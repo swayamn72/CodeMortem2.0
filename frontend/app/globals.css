@@ -1073,3 +1073,17 @@ a:hover {
   80%  { transform: scale(1.9); opacity: 0;   }
   100% { transform: scale(1.9); opacity: 0;   }
 }
+
+/* ── Navbar Dropdown ── */
+.navbar-user-btn:hover {
+  background: var(--bg-glass-hover);
+}
+
+.dropdown-item {
+  display: block;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-glass-hover) !important;
+  color: var(--text-primary) !important;
+}

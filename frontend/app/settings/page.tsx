@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -89,21 +90,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <nav className="navbar">
-        <Link href="/" className="navbar-brand">
-          <span className="logo-icon">☠</span>
-          Code<span className="brand-accent">Mortem</span>
-        </Link>
-        <ul className="navbar-nav">
-          <li><Link href="/dashboard">Dashboard</Link></li>
-          <li><Link href="/leaderboard">Leaderboard</Link></li>
-        </ul>
-        <div className="navbar-actions">
-          <Link href="/match/queue" className="btn btn-primary btn-sm">
-            ⚡ Find Match
-          </Link>
-        </div>
-      </nav>
+      <Navbar activeTab="settings" showFindMatch={true} />
 
       <main className={styles.settings}>
         <h1 className={styles.title}>⚙️ Settings</h1>
