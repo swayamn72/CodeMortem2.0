@@ -151,6 +151,17 @@ func isSomaiyaEmail(email string) bool {
 	return strings.HasSuffix(strings.ToLower(email), "@somaiya.edu")
 }
 
+// somaiyaPremiumDetails returns the premium fields for Somaiya users.
+func somaiyaPremiumDetails(email string) (bool, *time.Time, *string) {
+	if !isSomaiyaEmail(email) {
+		return false, nil, nil
+	}
+
+	exp := time.Now().AddDate(0, 3, 0)
+	plan := "institutional_free"
+	return true, &exp, &plan
+}
+
 // Register creates a new user account after OTP verification.
 func (s *Service) Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error) {
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
@@ -184,17 +195,8 @@ func (s *Service) Register(ctx context.Context, req *RegisterRequest) (*AuthResp
 	}
 
 	// Determine if Somaiya student
-	somaiya := isSomaiyaEmail(req.Email)
-	var premiumExpiresAt *time.Time
-	var premiumPlan *string
-	isPremium := somaiya
-
-	if somaiya {
-		exp := time.Now().AddDate(0, 3, 0)
-		premiumExpiresAt = &exp
-		plan := "institutional_free"
-		premiumPlan = &plan
-	}
+	isPremium, premiumExpiresAt, premiumPlan := somaiyaPremiumDetails(req.Email)
+	somaiya := isPremium
 
 	// Insert user
 	var user models.User

@@ -68,10 +68,14 @@ func (s *Service) GoogleLogin(ctx context.Context, req *GoogleAuthRequest) (*Aut
 
 	if err == nil {
 		// Existing email account — link google_id and mark email verified
+		isPremium, premiumExpiresAt, premiumPlan := somaiyaPremiumDetails(email)
 		_, _ = s.db.ExecContext(ctx,
-			"UPDATE users SET google_id = $1, avatar_url = COALESCE(NULLIF(avatar_url,''), $2), email_verified = TRUE, last_active_at = $3 WHERE id = $4",
-			info.Sub, info.Picture, time.Now(), user.ID)
+			"UPDATE users SET google_id = $1, avatar_url = COALESCE(NULLIF(avatar_url,''), $2), email_verified = TRUE, is_premium = $3, premium_expires_at = $4, premium_plan = $5, last_active_at = $6 WHERE id = $7",
+			info.Sub, info.Picture, isPremium, premiumExpiresAt, premiumPlan, time.Now(), user.ID)
 		user.GoogleID = &info.Sub
+		user.IsPremium = isPremium
+		user.PremiumExpiresAt = premiumExpiresAt
+		user.PremiumPlan = premiumPlan
 		tokens, err := s.jwtMgr.GenerateTokenPair(user.ID, user.Username)
 		if err != nil {
 			return nil, fmt.Errorf("generate tokens: %w", err)
