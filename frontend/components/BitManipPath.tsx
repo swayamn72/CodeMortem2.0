@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useProgressStore } from "@/stores/progressStore";
+import { useAuthStore } from "@/stores/authStore";
+import BadgeCard from "@/components/BadgeCard";
+import { getBadgeDef } from "@/lib/badges";
 
 import CourseLayout from "@/components/course/CourseLayout";
 import ChallengeIde from "@/components/course/ChallengeIde";
@@ -118,7 +122,8 @@ export default function BitManipPath() {
   const [activeLesson, setActiveLesson] = useState("lesson1");
   const isChallenge = activeLesson.startsWith("challenge");
 
-  const { markLessonComplete, isLessonComplete } = useProgressStore();
+  const { markLessonComplete, isLessonComplete, earnedBadges } = useProgressStore();
+  const { user } = useAuthStore();
 
   // All non-badge lesson IDs
   const nonBadgeLessonIds = BIT_MANIP_COURSE.lessons
@@ -128,6 +133,11 @@ export default function BitManipPath() {
   const allLessonsComplete = nonBadgeLessonIds.every(id =>
     isLessonComplete(BIT_MANIP_COURSE.moduleId, id)
   );
+
+  // Badge data (available at component level for the badge screen)
+  const badgeDef = getBadgeDef(BIT_MANIP_COURSE.moduleId);
+  const badgeEarnedAt = earnedBadges[BIT_MANIP_COURSE.moduleId];
+  const profileHref = user?.username ? `/profile/${user.username}` : "/profile";
 
   useEffect(() => {
     if (activeLesson === "badge" && allLessonsComplete) {
@@ -705,61 +715,94 @@ int count = bs1.count(); // Total number of set bits`} />
       </>);
 
       // ═══ BADGE ══════════════════════════════════════════════════════════════
-      case "badge": return !allLessonsComplete ? (
-        // ── Locked state ───────────────────────────────────────────────────────
-        <div style={{ textAlign: "center", padding: "4rem 2rem" }}>
-          <div style={{ fontSize: "5rem", marginBottom: "1.5rem", filter: "grayscale(1)", opacity: 0.5 }}>🔢</div>
-          <h1 style={{ fontSize: "2rem", fontWeight: 800, color: "var(--text-secondary)", marginBottom: "0.5rem", letterSpacing: "-0.5px" }}>
-            Badge Locked
-          </h1>
-          <p style={{ color: "var(--text-muted)", maxWidth: 420, margin: "0 auto 2rem", lineHeight: 1.8, fontSize: "0.95rem" }}>
-            Complete all lessons and challenges to claim your badge.
-          </p>
-          {/* Progress bar */}
-          <div style={{ maxWidth: 340, margin: "0 auto 2rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: "var(--text-secondary)" }}>
-              <span>Progress</span>
-              <span style={{ fontWeight: 700 }}>
-                {nonBadgeLessonIds.filter(id => isLessonComplete(BIT_MANIP_COURSE.moduleId, id)).length} / {nonBadgeLessonIds.length}
-              </span>
+      case "badge": {
+        const completedCount = nonBadgeLessonIds.filter(id => isLessonComplete(BIT_MANIP_COURSE.moduleId, id)).length;
+        const progressPct = Math.round((completedCount / nonBadgeLessonIds.length) * 100);
+
+        return !allLessonsComplete ? (
+          // ── Locked state ─────────────────────────────────────────────────────
+          <div style={{ textAlign: "center", padding: "4rem 2rem" }}>
+            <h1 style={{ fontSize: "1.9rem", fontWeight: 800, color: "var(--text-secondary)", marginBottom: "0.5rem", letterSpacing: "-0.5px" }}>
+              Badge Locked
+            </h1>
+            <p style={{ color: "var(--text-muted)", maxWidth: 420, margin: "0 auto 2rem", lineHeight: 1.8, fontSize: "0.95rem" }}>
+              Complete all lessons and challenges to claim your badge.
+            </p>
+
+            {/* Progress bar */}
+            <div style={{ maxWidth: 340, margin: "0 auto 2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8, fontSize: 13, color: "var(--text-secondary)" }}>
+                <span>Progress</span>
+                <span style={{ fontWeight: 700 }}>{completedCount} / {nonBadgeLessonIds.length}</span>
+              </div>
+              <div style={{ height: 8, background: "rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", width: `${progressPct}%`,
+                  background: "linear-gradient(90deg, var(--cm-cyan), #00b3cc)",
+                  borderRadius: 8, transition: "width 0.4s ease",
+                  boxShadow: "0 0 8px rgba(0,240,255,0.4)",
+                }} />
+              </div>
             </div>
-            <div style={{ height: 8, background: "rgba(255,255,255,0.07)", borderRadius: 8, overflow: "hidden" }}>
-              <div style={{
-                height: "100%",
-                width: `${Math.round((nonBadgeLessonIds.filter(id => isLessonComplete(BIT_MANIP_COURSE.moduleId, id)).length / nonBadgeLessonIds.length) * 100)}%`,
-                background: "linear-gradient(90deg, var(--cm-cyan), #00b3cc)",
-                borderRadius: 8,
-                transition: "width 0.4s ease",
-                boxShadow: "0 0 8px rgba(0,240,255,0.4)",
-              }} />
+
+            {/* Locked badge preview */}
+            {badgeDef && (
+              <div style={{ display: "flex", justifyContent: "center", marginTop: "2rem" }}>
+                <BadgeCard badge={badgeDef} earned={false} size="lg" />
+              </div>
+            )}
+          </div>
+        ) : (
+          // ── Unlocked state ────────────────────────────────────────────────
+          <div style={{ textAlign: "center", padding: "4rem 2rem" }}>
+            {/* Celebration header */}
+            <div style={{ marginBottom: "0.5rem", fontSize: 13, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "var(--cm-green)", opacity: 0.9 }}>
+              ✦ COURSE COMPLETE ✦
             </div>
+            <h1 style={{ fontSize: "2.1rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.75rem", letterSpacing: "-0.5px" }}>
+              Bit Manipulation — Easy
+            </h1>
+            <p style={{ color: "var(--text-secondary)", maxWidth: 520, margin: "0 auto 2.5rem", lineHeight: 1.85, fontSize: "0.93rem" }}>
+              You&apos;ve mastered binary representation, all six bitwise operators, shifts, masking idioms, XOR tricks,
+              Kernighan&apos;s popcount, subset enumeration, pattern recognition, masks-as-sets, common CP bugs, builtins,
+              and solved 6 coding challenges.
+            </p>
+
+            {/* Animated badge */}
+            {badgeDef && (
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "2.5rem" }}>
+                <BadgeCard badge={badgeDef} earned earnedAt={badgeEarnedAt} size="lg" animate />
+              </div>
+            )}
+
+            {/* Stats row */}
+            <div style={{ display: "flex", justifyContent: "center", gap: 32, marginBottom: "2.5rem", flexWrap: "wrap" }}>
+              {[
+                ["11", "Lessons"],
+                ["6", "Challenges"],
+                ["2", "Checkpoints"],
+              ].map(([val, label]) => (
+                <div key={label} style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--cm-cyan)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>{val}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginTop: 4 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA */}
+            <Link
+              href={profileHref}
+              className="btn btn-primary"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
+            >
+              🏅 View on Profile
+            </Link>
+            <Link href="/learn" className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              ← Back to Learn
+            </Link>
           </div>
-          <div style={{ display: "inline-block", background: "rgba(255,255,255,0.03)", border: "2px dashed rgba(255,255,255,0.1)", borderRadius: 20, padding: "2.5rem 3.5rem" }}>
-            <div style={{ fontSize: "3.5rem", marginBottom: "0.75rem", filter: "grayscale(1)", opacity: 0.3 }}>🏆</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "0.5rem" }}>Achievement Badge</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--text-muted)", marginBottom: "0.4rem" }}>Bit Wizard — Level 1</div>
-            <div style={{ fontSize: 13, color: "var(--text-muted)" }}>🔒 Finish all sections to unlock</div>
-          </div>
-        </div>
-      ) : (
-        // ── Unlocked state ────────────────────────────────────────────────────
-        <div style={{ textAlign: "center", padding: "4rem 2rem" }}>
-          <div style={{ fontSize: "5rem", marginBottom: "1.5rem" }}>🔢</div>
-          <h1 style={{ fontSize: "2.1rem", fontWeight: 800, color: "var(--cm-cyan)", marginBottom: "0.5rem", letterSpacing: "-0.5px" }}>
-            Bit Manipulation — Easy
-          </h1>
-          <p style={{ fontSize: "1.2rem", color: "var(--cm-green)", fontWeight: 700, marginBottom: "1.5rem" }}>Course Complete!</p>
-          <p style={{ color: "var(--text-secondary)", maxWidth: 540, margin: "0 auto 2.5rem", lineHeight: 1.85, fontSize: "0.95rem" }}>
-            You&apos;ve mastered binary representation, all six bitwise operators, shifts, masking idioms, XOR tricks, Kernighan&apos;s popcount, subset enumeration, pattern recognition, masks-as-sets, common CP bugs, builtins, and solved 6 coding challenges — from Easy to Hard.
-          </p>
-          <div style={{ display: "inline-block", background: "linear-gradient(135deg, rgba(0,240,255,0.08), rgba(0,255,136,0.05))", border: "2px solid var(--cm-cyan)", borderRadius: 20, padding: "2.5rem 3.5rem", boxShadow: "0 0 40px rgba(0,240,255,0.12)" }}>
-            <div style={{ fontSize: "3.5rem", marginBottom: "0.75rem" }}>🏆</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cm-cyan)", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "0.5rem" }}>Achievement Badge</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.4rem" }}>Bit Wizard — Level 1</div>
-            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>11 lessons · 6 challenges · 2 checkpoints</div>
-          </div>
-        </div>
-      );
+        );
+      }
 
       default: return null;
     }

@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import { useProgressStore } from "@/stores/progressStore";
+import { useAuthStore } from "@/stores/authStore";
+import BadgeCard from "@/components/BadgeCard";
+import { getBadgeDef } from "@/lib/badges";
 
 // ── Subcomponents ──
 import McqCheckpoint from "./learn/segment-tree/McqCheckpoint";
@@ -81,7 +85,13 @@ export default function SegmentTreePath() {
 
 
   // ── Progress store ──
-  const { markLessonComplete, isLessonComplete } = useProgressStore();
+  const { markLessonComplete, isLessonComplete, earnedBadges } = useProgressStore();
+  const { user } = useAuthStore();
+
+  // Badge data for the completion screen
+  const badgeDef = getBadgeDef(MODULE_ID);
+  const badgeEarnedAt = earnedBadges[MODULE_ID];
+  const profileHref = user?.username ? `/profile/${user.username}` : "/profile";
 
   // Derive part completion from persisted progress
   const part1Complete = PART_LESSONS[1].every((id) => isLessonComplete(MODULE_ID, id));
@@ -1046,37 +1056,66 @@ export default function SegmentTreePath() {
 
           {/* ==================== COMPLETION BADGE ==================== */}
           {activeLesson === "badge" && (
-            <div className={styles.badgeContainer}>
-              <div className={styles.floatingBadge} style={{ background: "transparent", border: "none", boxShadow: "none" }}>
-                <img src="/assets/segment tree easy.png" alt="Segment Tree Badge" style={{ width: "100%", height: "100%", objectFit: "contain", filter: "drop-shadow(0 0 20px rgba(0, 240, 255, 0.4))" }} />
+            <div style={{ textAlign: "center", padding: "4rem 2rem" }}>
+              {/* Celebration header */}
+              <div style={{ marginBottom: "0.5rem", fontSize: 13, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "var(--cm-green)", opacity: 0.9 }}>
+                ✦ COURSE COMPLETE ✦
               </div>
-              <h1 className={styles.congratsTitle}>Segment Tree Badge Unlocked!</h1>
-              <p className={styles.congratsDesc}>
-                Congratulations! You have earned the Segment Tree Badge. You constructed trees bottom-up,
-                answered range queries in O(log N), performed point updates, and resolved code templates for Range Sum,
-                Range Minimum, and Range Maximum constraints.
+              <h1 style={{ fontSize: "2.1rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.75rem", letterSpacing: "-0.5px" }}>
+                Segment Tree — Easy
+              </h1>
+              <p style={{ color: "var(--text-secondary)", maxWidth: 540, margin: "0 auto 2.5rem", lineHeight: 1.85, fontSize: "0.93rem" }}>
+                You&apos;ve mastered range queries and point updates with Segment Trees. You constructed trees bottom-up,
+                answered range queries in O(log N), performed point updates, and completed 4 coding challenges.
               </p>
-              <div className={styles.summaryCard}>
-                <h4>Learning Path Summary</h4>
+
+              {/* Animated badge */}
+              {badgeDef && (
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "2.5rem" }}>
+                  <BadgeCard badge={badgeDef} earned earnedAt={badgeEarnedAt} size="lg" animate />
+                </div>
+              )}
+
+              {/* Stats row */}
+              <div style={{ display: "flex", justifyContent: "center", gap: 32, marginBottom: "2.5rem", flexWrap: "wrap" }}>
+                {[
+                  ["8", "Lessons"],
+                  ["4", "Challenges"],
+                  ["2", "Checkpoints"],
+                ].map(([val, label]) => (
+                  <div key={label} style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: "1.8rem", fontWeight: 900, color: "var(--cm-green)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>{val}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px", marginTop: 4 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Summary card */}
+              <div className={styles.summaryCard} style={{ marginBottom: "2rem" }}>
+                <h4>Key Complexities Mastered</h4>
                 <div className={styles.summaryGrid}>
                   <div>
                     <div className={styles.summaryItemTitle}>Naive Complexity</div>
                     <div className={styles.summaryItemValue} style={{ color: "var(--cm-red)" }}>O(N) Query / O(1) Update</div>
                   </div>
                   <div>
-                    <div className={styles.summaryItemTitle}>Segment Tree Complexity</div>
+                    <div className={styles.summaryItemTitle}>Segment Tree</div>
                     <div className={styles.summaryItemValue} style={{ color: "var(--cm-green)" }}>O(log N) Query / O(log N) Update</div>
-                  </div>
-                  <div>
-                    <div className={styles.summaryItemTitle}>Common Use Cases</div>
-                    <div className={styles.summaryItemValue}>Range Min/Max, Range Sum, Lazy Propagation</div>
-                  </div>
-                  <div>
-                    <div className={styles.summaryItemTitle}>Difficulty Level</div>
-                    <div className={styles.summaryItemValue}>Expert / Master</div>
                   </div>
                 </div>
               </div>
+
+              {/* CTAs */}
+              <Link
+                href={profileHref}
+                className="btn btn-primary"
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
+              >
+                🏅 View on Profile
+              </Link>
+              <Link href="/learn" className="btn btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                ← Back to Learn
+              </Link>
             </div>
           )}
 

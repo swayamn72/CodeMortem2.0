@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
+import { useProgressStore } from "@/stores/progressStore";
 import Navbar from "@/components/Navbar";
+import BadgeCard from "@/components/BadgeCard";
+import { BADGE_REGISTRY } from "@/lib/badges";
 import { api } from "@/lib/api";
 import styles from "./page.module.css";
 
@@ -131,12 +134,24 @@ function RatingChart({ history }: { history: RatingEntry[] }) {
 
 export default function ProfilePage() {
   const { user: currentUser, isAuthenticated } = useAuthStore();
+  const { earnedBadges, migrateBadges } = useProgressStore();
   const params = useParams();
   const username = params.username as string;
   const [profile, setProfile] = useState<ProfileUser | null>(null);
   const [history, setHistory] = useState<RatingEntry[]>([]);
   const [sessions, setSessions] = useState<PracticeSession[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Only show locally-earned badges when viewing own profile
+  const isOwnProfile = currentUser?.username === username;
+
+  // Safety net: whenever we view our own profile, ensure any completed-but-not-awarded badges are granted.
+  // This catches the case where syncWithBackend ran before the badge system existed.
+  useEffect(() => {
+    if (isOwnProfile) {
+      migrateBadges();
+    }
+  }, [isOwnProfile, migrateBadges]);
 
   useEffect(() => {
     async function load() {
@@ -230,9 +245,7 @@ export default function ProfilePage() {
               {Math.round(profile.rating)}
             </span>
             <span className={styles.ratingLabel}>Rating</span>
-            <span className={styles.rdLabel}>
-              ±{Math.round(profile.ratingDeviation)} RD
-            </span>
+
           </div>
         </div>
 
@@ -260,6 +273,34 @@ export default function ProfilePage() {
             <div className="stat-label">Draws</div>
           </div>
         </div>
+
+        {/* Badges Section */}
+        {isOwnProfile && (
+          <div className={styles.section}>
+            <h2 className={styles.sectionTitle}>🏅 Badges</h2>
+            <div className={`card ${styles.badgesCard}`}>
+              {BADGE_REGISTRY.length === 0 ? (
+                <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "2rem" }}>No badges available yet.</p>
+              ) : (
+                <div className={styles.badgesGrid}>
+                  {BADGE_REGISTRY.map((badge) => {
+                    const earned = !!earnedBadges[badge.moduleId];
+                    const earnedAt = earnedBadges[badge.moduleId];
+                    return (
+                      <BadgeCard
+                        key={badge.id}
+                        badge={badge}
+                        earned={earned}
+                        earnedAt={earnedAt}
+                        size="md"
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Rating Chart */}
         <div className={styles.section}>

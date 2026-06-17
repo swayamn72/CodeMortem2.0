@@ -208,3 +208,15 @@
   color: var(--cm-red);
   font-size: var(--font-size-sm);
 }
+
+/* Badges Section */
+.badgesCard {
+  padding: var(--space-xl);
+}
+
+.badgesGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xl);
+  justify-content: flex-start;
+}

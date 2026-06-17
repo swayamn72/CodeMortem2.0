@@ -14,6 +14,12 @@ interface ProgressState {
   /** completedLessons["segment-tree-easy"] = ["lesson1", "mcq1", "challenge1", ...] */
   completedLessons: Record<string, string[]>;
 
+  /**
+   * earnedBadges["bit-manipulation-easy"] = "2026-06-16T14:00:00.000Z"
+   * Maps badgeId (= moduleId) to ISO timestamp of when it was earned.
+   */
+  earnedBadges: Record<string, string>;
+
   /** Mark a single lesson as complete */
   markLessonComplete: (moduleId: string, lessonId: string) => void;
 
@@ -25,6 +31,15 @@ interface ProgressState {
 
   /** Get the count of completed lessons for a module */
   getCompletedCount: (moduleId: string) => number;
+
+  /** Award a badge for a completed module (idempotent) */
+  awardBadge: (moduleId: string) => void;
+
+  /** Check if a badge has been earned */
+  hasBadge: (moduleId: string) => boolean;
+
+  /** Scan completedLessons and award any missing badges (migration / sync fix) */
+  migrateBadges: () => void;
 
   /** Reset progress for a module (for testing/dev) */
   resetModule: (moduleId: string) => void;
@@ -40,6 +55,7 @@ export const useProgressStore = create<ProgressState>()(
   persist(
     (set, get) => ({
       completedLessons: {},
+      earnedBadges: {},
 
       markLessonComplete: (moduleId, lessonId) => {
         const current = get().completedLessons[moduleId] ?? [];
@@ -52,6 +68,11 @@ export const useProgressStore = create<ProgressState>()(
             [moduleId]: newLessons,
           },
         }));
+
+        // Auto-award badge when the "badge" lesson is marked complete
+        if (lessonId === "badge") {
+          get().awardBadge(moduleId);
+        }
 
         // If authenticated, persist to backend
         if (useAuthStore.getState().isAuthenticated) {
@@ -75,6 +96,38 @@ export const useProgressStore = create<ProgressState>()(
         return (get().completedLessons[moduleId] ?? []).length;
       },
 
+      awardBadge: (moduleId) => {
+        const existing = get().earnedBadges[moduleId];
+        if (existing) return; // already awarded — idempotent
+        set((state) => ({
+          earnedBadges: {
+            ...state.earnedBadges,
+            [moduleId]: new Date().toISOString(),
+          },
+        }));
+      },
+
+      hasBadge: (moduleId) => {
+        return !!get().earnedBadges[moduleId];
+      },
+
+      migrateBadges: () => {
+        // Award badges for any module where the "badge" lesson is complete
+        // but earnedBadges doesn't yet have an entry. This handles:
+        //  1. Users who completed a course before the badge system existed
+        //  2. Progress synced from the backend (which doesn't track earnedBadges)
+        const { completedLessons, earnedBadges } = get();
+        const missing: Record<string, string> = {};
+        Object.entries(completedLessons).forEach(([moduleId, lessons]) => {
+          if (lessons.includes("badge") && !earnedBadges[moduleId]) {
+            missing[moduleId] = new Date().toISOString();
+          }
+        });
+        if (Object.keys(missing).length > 0) {
+          set((s) => ({ earnedBadges: { ...s.earnedBadges, ...missing } }));
+        }
+      },
+
       resetModule: (moduleId) => {
         set((state) => ({
           completedLessons: { ...state.completedLessons, [moduleId]: [] },
@@ -86,18 +139,25 @@ export const useProgressStore = create<ProgressState>()(
         try {
           const res = await api.get("/users/me/progress");
           set({ completedLessons: res });
+          // After syncing from backend, award any badges whose lesson is already complete
+          get().migrateBadges();
         } catch (err) {
           console.error("Failed to fetch progress from backend:", err);
         }
       },
 
       clearProgress: () => {
-        set({ completedLessons: {} });
+        set({ completedLessons: {}, earnedBadges: {} });
       },
     }),
     {
       name: "codemortem-progress",
+      onRehydrateStorage: () => (state) => {
+        // After localStorage is loaded, award any badges whose lesson is already complete
+        if (state) state.migrateBadges();
+      },
     }
+
   )
 );
 
