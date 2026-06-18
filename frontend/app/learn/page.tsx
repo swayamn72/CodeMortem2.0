@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuthStore } from "@/stores/authStore";
 import { useProgressStore } from "@/stores/progressStore";
 import Navbar from "@/components/Navbar";
+import { getModuleAssignment } from "@/components/learn/moduleAssignments";
 import styles from "./page.module.css";
 
 interface Module {
@@ -286,6 +287,35 @@ export default function LearnPage() {
                             }}
                           >
                             👑 Practice Bank
+                          </Link>
+                        )
+                      )}
+                      {isCompleted && getModuleAssignment(mod.id) && (
+                        isPremiumActive ? (
+                          <Link
+                            href={`/learn/${mod.id}/assignment`}
+                            style={{
+                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
+                              background: "rgba(255,215,0,0.06)",
+                              border: "1px solid rgba(255,215,0,0.22)",
+                              borderRadius: 8, color: "#ffd700",
+                              textDecoration: "none", whiteSpace: "nowrap",
+                            }}
+                          >
+                            1h Assignment →
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/premium"
+                            style={{
+                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
+                              background: "rgba(255,215,0,0.06)",
+                              border: "1px solid rgba(255,215,0,0.22)",
+                              borderRadius: 8, color: "#ffd700",
+                              textDecoration: "none", whiteSpace: "nowrap",
+                            }}
+                          >
+                            👑 1h Assignment
                           </Link>
                         )
                       )}

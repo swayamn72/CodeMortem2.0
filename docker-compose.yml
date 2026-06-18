@@ -1,5 +1,4 @@
 # CodeMortem Docker Compose - Development
-version: "3.9"
 
 services:
   # PostgreSQL Database

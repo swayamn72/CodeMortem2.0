@@ -87,6 +87,9 @@ export default function SegmentTreePath() {
   // ── Progress store ──
   const { markLessonComplete, isLessonComplete, earnedBadges } = useProgressStore();
   const { user } = useAuthStore();
+  const isPremiumActive = user?.isPremium && (
+    !user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date()
+  );
 
   // Badge data for the completion screen
   const badgeDef = getBadgeDef(MODULE_ID);
@@ -1106,6 +1109,23 @@ export default function SegmentTreePath() {
               </div>
 
               {/* CTAs */}
+              {isPremiumActive ? (
+                <Link
+                  href="/learn/segment-tree/assignment"
+                  className="btn btn-accent"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
+                >
+                  📝 Start 1h Assignment
+                </Link>
+              ) : (
+                <Link
+                  href="/premium"
+                  className="btn btn-accent"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
+                >
+                  👑 Unlock Assignment
+                </Link>
+              )}
               <Link
                 href={profileHref}
                 className="btn btn-primary"

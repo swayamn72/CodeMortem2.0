@@ -124,6 +124,9 @@ export default function BitManipPath() {
 
   const { markLessonComplete, isLessonComplete, earnedBadges } = useProgressStore();
   const { user } = useAuthStore();
+  const isPremiumActive = user?.isPremium && (
+    !user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date()
+  );
 
   // All non-badge lesson IDs
   const nonBadgeLessonIds = BIT_MANIP_COURSE.lessons
@@ -790,6 +793,23 @@ int count = bs1.count(); // Total number of set bits`} />
             </div>
 
             {/* CTA */}
+            {isPremiumActive ? (
+              <Link
+                href="/learn/bit-manipulation/assignment"
+                className="btn btn-accent"
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
+              >
+                📝 Start 1h Assignment
+              </Link>
+            ) : (
+              <Link
+                href="/premium"
+                className="btn btn-accent"
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
+              >
+                👑 Unlock Assignment
+              </Link>
+            )}
             <Link
               href={profileHref}
               className="btn btn-primary"

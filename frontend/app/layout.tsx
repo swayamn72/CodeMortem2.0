@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthSync from "@/components/AuthSync";
 
 export const metadata: Metadata = {
   title: "CodeMortem — Code or be Coded",
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <div className="grid-bg" />
+        <AuthSync />
         {children}
       </body>
     </html>
