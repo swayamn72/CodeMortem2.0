@@ -18,6 +18,8 @@ interface Module {
   tagColor: string;
   icon: string;
   difficulty: "Easy" | "Medium" | "Hard";
+  /** Course level — independent of difficulty badge. */
+  level: "Beginner" | "Intermediate" | "Advanced";
   lessons: number;
   href: string;
   available: boolean;
@@ -35,6 +37,7 @@ const MODULES: Module[] = [
     tagColor: "#00ff88",
     icon: "/assets/segment tree easy.png",
     difficulty: "Easy",
+    level: "Beginner",
     lessons: 13,
     href: "/learn/segment-tree",
     available: true,
@@ -54,6 +57,7 @@ const MODULES: Module[] = [
     tagColor: "#00ff88",
     icon: "🔢",
     difficulty: "Easy",
+    level: "Beginner",
     lessons: 20,
     href: "/learn/bit-manipulation",
     available: true,
@@ -71,27 +75,34 @@ const MODULES: Module[] = [
   {
     id: "segment-tree-medium",
     title: "Segment Tree",
-    subtitle: "Lazy propagation & range updates",
+    subtitle: "Augmented nodes & structural merge",
     description:
-      "Level up with lazy propagation for efficient range updates. Tackle harder problems requiring deferred computation tricks.",
+      "Level up with multi-field node design. Learn to track (min, count) pairs and compute max subarray sum under point updates — the two most important intermediate segment tree patterns.",
     tag: "Medium",
     tagColor: "#ffd700",
     icon: "🌳",
     difficulty: "Medium",
-    lessons: 10,
-    href: "#",
-    available: false,
+    level: "Intermediate",
+    lessons: 7,
+    href: "/learn/segment-tree-intermediate",
+    available: true,
+    allLessonIds: [
+      "p1-motivation", "p1-insight", "p1-challenge",
+      "p2-motivation", "p2-insight", "p2-challenge",
+      "badge",
+    ],
   },
   {
     id: "segment-tree-hard",
     title: "Segment Tree",
-    subtitle: "Merge sort tree & persistent ST",
+    subtitle: "Lazy propagation, merge sort tree & persistent ST",
     description:
-      "Advanced techniques including merge sort trees, fractional cascading, and persistent segment trees for competitive programming.",
+      "Advanced techniques including lazy propagation for range updates, merge sort trees, fractional cascading, and persistent segment trees for competitive programming.",
     tag: "Hard",
     tagColor: "#ff2d55",
     icon: "🔥",
     difficulty: "Hard",
+    level: "Advanced",
     lessons: 8,
     href: "#",
     available: false,
@@ -161,7 +172,6 @@ export default function LearnPage() {
           </h1>
           <p className={styles.headerSubtitle}>
             Step-by-step interactive lessons designed for competitive programmers.
-            Complete modules to unlock new topics and climb the leaderboard.
           </p>
         </div>
 
@@ -207,16 +217,34 @@ export default function LearnPage() {
                       mod.icon
                     )}
                   </span>
-                  <span
-                    className={styles.difficultyBadge}
-                    style={{
-                      color: mod.tagColor,
-                      borderColor: mod.tagColor + "55",
-                      background: mod.tagColor + "15",
-                    }}
-                  >
-                    {mod.tag}
-                  </span>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                    {/* Level pill — independent of difficulty */}
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 600,
+                        color: "var(--text-muted)",
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "999px",
+                        padding: "1px 8px",
+                        letterSpacing: "0.4px",
+                      }}
+                    >
+                      {mod.level}
+                    </span>
+                    {/* Difficulty badge */}
+                    <span
+                      className={styles.difficultyBadge}
+                      style={{
+                        color: mod.tagColor,
+                        borderColor: mod.tagColor + "55",
+                        background: mod.tagColor + "15",
+                      }}
+                    >
+                      {mod.tag}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Card body */}

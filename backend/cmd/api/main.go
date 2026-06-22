@@ -13,8 +13,9 @@ import (
 	"codemortem/internal/ai"
 	"codemortem/internal/auth"
 	"codemortem/internal/challenges"
-	_ "codemortem/internal/challenges/segment_tree"    // registers all segment tree challenges
-	_ "codemortem/internal/challenges/bit_manipulation" // registers all bit manipulation challenges
+	_ "codemortem/internal/challenges/segment_tree"              // registers all segment tree challenges
+	_ "codemortem/internal/challenges/segment_tree_intermediate" // registers intermediate segment tree challenges
+	_ "codemortem/internal/challenges/bit_manipulation"          // registers all bit manipulation challenges
 	"codemortem/internal/codeforces"
 	"codemortem/internal/config"
 	"codemortem/internal/database"
