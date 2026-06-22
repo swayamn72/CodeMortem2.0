@@ -150,7 +150,7 @@ export default function Home() {
 
           <div className="hero-actions">
             <Link href="/register" className="btn btn-primary btn-lg btn-pulse">
-              ⚡ Find a Match
+              Find a Match
             </Link>
             <Link href="/learn" className="btn btn-secondary btn-lg">
               📖 Start Learning →

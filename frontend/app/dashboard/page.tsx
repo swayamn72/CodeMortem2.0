@@ -78,7 +78,7 @@ export default function DashboardPage() {
               style={!user.cfVerified ? { opacity: 0.5, pointerEvents: 'none' } : {}}
               aria-disabled={!user.cfVerified}
             >
-              ⚡ Find a Match
+              Find a Match
             </Link>
             <Link
               href="/match/solo"

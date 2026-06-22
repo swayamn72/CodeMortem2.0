@@ -72,7 +72,6 @@ export default function LeaderboardPage() {
       <main className={styles.leaderboard}>
         <div className={styles.header}>
           <h1 className={styles.title}>🏆 Global Leaderboard</h1>
-          <p className={styles.subtitle}>Top players ranked by Glicko-2 rating</p>
         </div>
 
         {loading ? (
