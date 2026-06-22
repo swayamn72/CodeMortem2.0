@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useProgressStore } from "@/stores/progressStore";
 import Navbar from "@/components/Navbar";
 import { getModuleAssignment } from "@/components/learn/moduleAssignments";
+import { SEGMENT_TREE_COURSE } from "@/components/learn/segment-tree/config";
 import styles from "./page.module.css";
 
 interface Module {
@@ -41,11 +42,7 @@ const MODULES: Module[] = [
     lessons: 18,
     href: "/learn/segment-tree",
     available: true,
-    allLessonIds: [
-      "lesson1", "lesson2", "mcq1",
-      "lesson3", "lesson4", "lesson5", "lesson5b", "lesson7", "mcq2",
-      "lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "challenge5", "challenge6", "challenge7", "challenge8", "challenge9", "badge",
-    ],
+    allLessonIds: SEGMENT_TREE_COURSE.allLessonIds,
   },
   {
     id: "bit-manipulation-easy",

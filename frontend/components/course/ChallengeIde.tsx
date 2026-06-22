@@ -5,6 +5,7 @@ import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
 import type { ChallengeConfig, LPTestResult } from "./types";
 import styles from "@/app/learn/segment-tree/page.module.css";
+import { useAuthStore } from "@/stores/authStore";
 
 // ── Starter templates shown in the editor on load ─────────────────────────────
 const TEMPLATES: Record<"cpp" | "python", string> = {
@@ -34,13 +35,38 @@ interface ChallengeIdeProps {
 const verdictColor = (v: string) => {
   if (v === "accepted") return "var(--cm-green)";
   if (v === "pending") return "var(--text-secondary)";
+  if (v === "idle") return "var(--text-muted)";
   if (v === "running") return "var(--cm-cyan)";
   return "var(--cm-red)";
 };
+function renderMarkdownText(text: string) {
+  if (!text) return null;
+  return text.split("\n\n").map((para, i) => {
+    const parts = para.split(/(\*\*.*?\*\*|_.*?_|`.*?`)/g);
+    return (
+      <p key={i} style={{ marginBottom: "0.75rem", lineHeight: 1.6 }}>
+        {parts.map((p, j) => {
+          if (p.startsWith("**") && p.endsWith("**")) {
+            return <strong key={j} style={{ color: "var(--text-primary)", fontWeight: 600 }}>{p.slice(2, -2)}</strong>;
+          }
+          if (p.startsWith("_") && p.endsWith("_")) {
+            return <em key={j}>{p.slice(1, -1)}</em>;
+          }
+          if (p.startsWith("`") && p.endsWith("`")) {
+            return <code key={j} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 4px", borderRadius: 4, color: "var(--cm-cyan)", fontSize: "0.9em", fontFamily: "monospace" }}>{p.slice(1, -1)}</code>;
+          }
+          return p.split("\n").flatMap((line, k, arr) => k < arr.length - 1 ? [line, <br key={`br-${j}-${k}`} />] : [line]);
+        })}
+      </p>
+    );
+  });
+}
+
 const verdictLabel = (v: string) => {
   const map: Record<string, string> = {
     accepted: "✓ AC",
-    pending: "○ Pending",
+    pending: "○ Queued",
+    idle: "○ Ready",
     running: "⟳ Running…",
     wrong_answer: "✗ WA",
     compile_error: "✗ CE",
@@ -52,6 +78,9 @@ const verdictLabel = (v: string) => {
 };
 
 export default function ChallengeIde({ challenge, onComplete, navigate }: ChallengeIdeProps) {
+  const { user } = useAuthStore();
+  const isPremiumActive = user?.isPremium && (!user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date());
+
   // ── Resize refs ──────────────────────────────────────────────────────────────
   const containerRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
@@ -114,10 +143,12 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
   const [testResults, setTestResults] = useState<LPTestResult[]>([]);
   const [activeCaseIdx, setActiveCaseIdx] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
 
   // Reset when challenge changes — restore the starter template
   useEffect(() => {
-    setCode(TEMPLATES[lang]);
+    const defaultTemplate = challenge.templates?.[lang] || TEMPLATES[lang];
+    setCode(defaultTemplate);
     setHasSubmitted(false);
     setHintsRevealed(1);
     setShowSuccess(false);
@@ -125,7 +156,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
     setLeftTab("statement");
     setConsoleTab("cases");
     const pending = challenge.sampleCases.map((s, i): LPTestResult => ({
-      testIndex: i, verdict: "pending",
+      testIndex: i, verdict: "idle",
       input: s.input, output: "", expected: s.expected,
       stderr: "", compileOutput: "", executionTime: "", memory: 0,
     }));
@@ -136,8 +167,10 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
   // Swap template when language changes (only if user hasn't written their own code)
   useEffect(() => {
     const otherLang: "cpp" | "python" = lang === "cpp" ? "python" : "cpp";
-    if (code === TEMPLATES[otherLang] || code === TEMPLATES[lang] || code.trim() === "") {
-      setCode(TEMPLATES[lang]);
+    const tOther = challenge.templates?.[otherLang] || TEMPLATES[otherLang];
+    const tThis = challenge.templates?.[lang] || TEMPLATES[lang];
+    if (code === tOther || code === tThis || code.trim() === "") {
+      setCode(tThis);
     }
   }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -286,7 +319,10 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
         >
           {challenge.difficulty}
         </span>
-        <span style={{ fontWeight: 700, fontSize: 14 }}>{challenge.title}</span>
+        <span style={{ fontWeight: 700, fontSize: 14 }}>
+          {challenge.title}
+          {challenge.premium && <span style={{ fontSize: 12, marginLeft: 6 }} title="Premium Challenge">👑</span>}
+        </span>
       </div>
 
       <div style={{ display: "flex", flex: 1, minHeight: 0, marginTop: 44, overflow: "hidden" }}>
@@ -308,8 +344,8 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
               background: "#0d0d12",
             }}
           >
-            {(["statement", "hints", "editorial"] as const).map(tab => {
-              const locked = tab === "editorial" && !hasSubmitted;
+            {(["statement", "hints", ...(challenge.editorial ? ["editorial" as const] : [])] as const).map(tab => {
+              const locked = tab === "editorial" && !hasSubmitted && !isPremiumActive;
               return (
                 <button
                   key={tab}
@@ -338,9 +374,9 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 <h2 style={{ fontSize: "1.1rem", marginBottom: "0.75rem", color: "var(--cm-cyan)" }}>
                   {challenge.title}
                 </h2>
-                <p style={{ color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: "1rem", fontSize: 14 }}>
-                  {challenge.statement}
-                </p>
+                <div style={{ color: "var(--text-secondary)", fontSize: 14 }}>
+                  {renderMarkdownText(challenge.statement)}
+                </div>
 
                 {[
                   ["CONSTRAINTS", challenge.constraints],
@@ -351,9 +387,9 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                     <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 4 }}>
                       {label}
                     </span>
-                    <p style={{ fontFamily: "monospace", fontSize: 13, color: "var(--text-primary)", margin: 0 }}>
-                      {text}
-                    </p>
+                    <div style={{ fontFamily: "monospace", fontSize: 13, color: "var(--text-primary)", margin: 0 }}>
+                      {renderMarkdownText(text)}
+                    </div>
                   </div>
                 ))}
 
@@ -411,30 +447,28 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                       <span>Hint {idx + 1}</span>
                       <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 400 }}>▶</span>
                     </summary>
-                    <div style={{ padding: "12px 14px 14px 14px", fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.7, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                      {hint}
+                    <div style={{ padding: "12px 14px 14px 14px", fontSize: "13px", color: "var(--text-secondary)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                      {renderMarkdownText(hint)}
                     </div>
                   </details>
                 ))}
               </div>
             )}
 
-            {leftTab === "editorial" && hasSubmitted && (
+            {leftTab === "editorial" && (hasSubmitted || isPremiumActive) && (
               <div>
                 <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--cm-cyan)" }}>Editorial</h3>
                 {challenge.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
                   // Every 3rd chunk starting at index 1 is the language, index 2 is the code
                   if (i % 3 === 0) {
-                    // Plain text segment — split on \n\n for paragraphs, **bold**
-                    part.split("\n\n").forEach((para, j) => {
-                      if (!para.trim()) return;
-                      const isBold = para.startsWith("**") && para.includes("**");
+                    // Plain text segment
+                    if (part.trim()) {
                       acc.push(
-                        <p key={`p-${i}-${j}`} style={{ fontSize: 14, color: isBold ? "var(--text-primary)" : "var(--text-secondary)", lineHeight: 1.75, marginBottom: "0.75rem", fontWeight: isBold ? 700 : 400 }}>
-                          {para.replace(/\*\*/g, "")}
-                        </p>
+                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+                          {renderMarkdownText(part)}
+                        </div>
                       );
-                    });
+                    }
                   } else if (i % 3 === 2) {
                     // Code segment
                     const lang = arr[i - 1] || "cpp";
@@ -467,7 +501,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
         {/* ── Right: editor + console ── */}
         <div
           ref={rightPanelRef}
-          style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}
+          style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}
         >
           {/* Language toggle + run/submit */}
           <div
@@ -494,6 +528,19 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 {l === "cpp" ? "C++" : "Python"}
               </button>
             ))}
+            <button
+              onClick={() => setShowTemplateModal(true)}
+              style={{
+                padding: "3px 12px", borderRadius: 6,
+                cursor: "pointer", fontSize: 12, fontWeight: 700,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "var(--text-secondary)",
+                marginLeft: 8,
+              }}
+            >
+              Refer Template
+            </button>
             <div style={{ flex: 1 }} />
             <button
               onClick={handleRun}
@@ -777,6 +824,73 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
             <p style={{ marginTop: "16px", fontSize: "11px", color: "var(--text-muted)" }}>
               Click anywhere outside to dismiss
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ★ TEMPLATE MODAL ★ */}
+      {showTemplateModal && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTemplateModal(false);
+          }}
+          style={{
+            position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
+          }}
+        >
+          <div style={{
+            background: "#12121a", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 12, padding: 24, width: "90%", maxWidth: 800,
+            maxHeight: "80vh", display: "flex", flexDirection: "column",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 style={{ margin: 0, color: "var(--text-primary)", fontSize: 18 }}>Reference Template ({lang === "cpp" ? "C++" : "Python"})</h2>
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                style={{
+                  background: "transparent", border: "none", color: "var(--text-secondary)",
+                  cursor: "pointer", fontSize: 20, padding: 4,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", background: "#0b0b10", borderRadius: 8, padding: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
+              <pre style={{ margin: 0, fontFamily: "monospace", fontSize: 13, color: "var(--text-primary)", lineHeight: 1.6 }}>
+                <code>{challenge.templates?.[lang] || TEMPLATES[lang]}</code>
+              </pre>
+            </div>
+            <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 12 }}>
+              <button
+                onClick={() => {
+                  if (confirm("Are you sure you want to replace your current code with the template? This will erase your work.")) {
+                    setCode(challenge.templates?.[lang] || TEMPLATES[lang]);
+                    setShowTemplateModal(false);
+                  }
+                }}
+                style={{
+                  padding: "8px 16px", borderRadius: 6, cursor: "pointer",
+                  fontSize: 13, fontWeight: 600,
+                  background: "transparent", border: "1px solid var(--cm-red)",
+                  color: "var(--cm-red)",
+                }}
+              >
+                Reset My Code to Template
+              </button>
+              <button
+                onClick={() => setShowTemplateModal(false)}
+                style={{
+                  padding: "8px 16px", borderRadius: 6, cursor: "pointer",
+                  fontSize: 13, fontWeight: 600,
+                  background: "var(--cm-cyan)", border: "none", color: "#000",
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

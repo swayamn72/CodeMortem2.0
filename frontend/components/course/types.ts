@@ -8,6 +8,7 @@ export interface LessonDef {
   title: string;
   part: number;
   type: LessonType;
+  premium?: boolean;
 }
 
 export interface SampleCase {
@@ -20,9 +21,12 @@ export interface SampleCase {
 export interface ChallengeConfig {
   /** lesson id, e.g. "challenge1" */
   id: string;
+  /** optional starter code mapped by language */
+  templates?: Record<"cpp" | "python", string>;
   /** backend challengeId sent to /learning-path/submit */
   backendId: string;
   title: string;
+  premium?: boolean;
   difficulty: string;
   diffColor: string;
   statement: string;

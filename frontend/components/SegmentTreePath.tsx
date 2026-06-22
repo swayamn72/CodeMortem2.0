@@ -11,7 +11,12 @@ import { getBadgeDef } from "@/lib/badges";
 // ── Subcomponents ──
 import McqCheckpoint from "./learn/segment-tree/McqCheckpoint";
 import TreeVisualizer from "./learn/segment-tree/TreeVisualizer";
-import ChallengeIde from "./learn/segment-tree/ChallengeIde";
+
+import CourseLayout from "@/components/course/CourseLayout";
+import ChallengeIde from "@/components/course/ChallengeIde";
+import { SEGMENT_TREE_COURSE } from "./learn/segment-tree/config";
+import { ST_CHALLENGES } from "./learn/segment-tree/constants";
+
 
 // ── Data ──
 import {
@@ -56,87 +61,40 @@ function renderHighlightedCode(code: string) {
 // ─────────────────────────────────────────────
 
 // The stable ID used as the key in the progress store
-const MODULE_ID = "segment-tree-easy";
+
 
 // Every lesson/exercise that must be completed to finish the module
-const ALL_LESSON_IDS = [
-  "lesson1", "lesson2", "mcq1",
-  "lesson3", "lesson4", "lesson5", "lesson5b", "lesson7", "mcq2",
-  "lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "challenge5", "challenge6", "challenge7", "challenge8", "challenge9", "badge",
-];
+
 
 // Part membership for quick lookup
-const PART_LESSONS: Record<number, string[]> = {
-  1: ["lesson1", "lesson2", "mcq1"],
-  2: ["lesson3", "lesson4", "lesson5", "lesson5b", "lesson7", "mcq2"],
-  3: ["lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "challenge5", "challenge6", "challenge7", "challenge8", "challenge9", "badge"],
-};
+
 
 export default function SegmentTreePath() {
-  // ── Navigation ──
   const [activeLesson, setActiveLesson] = useState("lesson1");
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isChallenge = activeLesson.startsWith("challenge");
 
-  // Auto-collapse sidebar when entering a challenge; toggle always works
-  useEffect(() => {
-    setSidebarCollapsed(isChallenge);
-  }, [isChallenge]);
-
-
-  // ── Progress store ──
   const { markLessonComplete, isLessonComplete, earnedBadges } = useProgressStore();
   const { user } = useAuthStore();
   const isPremiumActive = user?.isPremium && (
     !user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date()
   );
 
-  // Badge data for the completion screen
-  const badgeDef = getBadgeDef(MODULE_ID);
-  const badgeEarnedAt = earnedBadges[MODULE_ID];
+  const badgeDef = getBadgeDef(SEGMENT_TREE_COURSE.moduleId);
+  const badgeEarnedAt = earnedBadges[SEGMENT_TREE_COURSE.moduleId];
   const profileHref = user?.username ? `/profile/${user.username}` : "/profile";
 
-  // Derive part completion from persisted progress
-  const part1Complete = PART_LESSONS[1].every((id) => isLessonComplete(MODULE_ID, id));
-  const part2Complete = PART_LESSONS[2].every((id) => isLessonComplete(MODULE_ID, id));
-  const part3Complete = PART_LESSONS[3].every((id) => isLessonComplete(MODULE_ID, id));
+  const part1Complete = SEGMENT_TREE_COURSE.lessons.filter(l => l.part === 1).every((l) => isLessonComplete(SEGMENT_TREE_COURSE.moduleId, l.id));
+  const part2Complete = SEGMENT_TREE_COURSE.lessons.filter(l => l.part === 2).every((l) => isLessonComplete(SEGMENT_TREE_COURSE.moduleId, l.id));
+  const part3Complete = SEGMENT_TREE_COURSE.lessons.filter(l => l.part === 3).every((l) => isLessonComplete(SEGMENT_TREE_COURSE.moduleId, l.id));
 
-  const lessons: Lesson[] = [
-    // Part 1
-    { id: "lesson1", title: "1. The Naive Approach", part: 1, unlocked: true },
-    { id: "lesson2", title: "2. Why This Hurts", part: 1, unlocked: true },
-    { id: "mcq1", title: "Checkpoint: Complexity Check", part: 1, unlocked: true },
-    // Part 2
-    { id: "lesson3", title: "3. The Core Idea", part: 2, unlocked: true },
-    { id: "lesson4", title: "4. Answering a Query", part: 2, unlocked: true },
-    { id: "lesson5", title: "5. Point Update", part: 2, unlocked: true },
-    { id: "lesson5b", title: "6. Array Representation", part: 2, unlocked: true },
-    { id: "lesson7", title: "7. When to Use a Seg Tree", part: 2, unlocked: true },
-    { id: "mcq2", title: "Checkpoint: Tree Structure", part: 2, unlocked: true },
-    // Part 3
-    { id: "lesson6",    title: "8. Code Walkthrough",                    part: 3, unlocked: true },
-    { id: "challenge1", title: "9. Code: Sum Tree",                      part: 3, unlocked: true },
-    { id: "challenge2", title: "10. Code: Min Tree",                     part: 3, unlocked: true },
-    { id: "challenge3", title: "11. Code: Max Tree",                     part: 3, unlocked: true },
-    { id: "challenge4", title: "12. Code: Escape Route",                 part: 3, unlocked: true },
-    { id: "challenge5", title: "13. Queue Anomalies",                    part: 3, unlocked: true },
-    { id: "challenge6", title: "14. Queue Anomalies: Reconstruction",    part: 3, unlocked: true },
-    { id: "challenge7", title: "15. Nested Stays",                       part: 3, unlocked: true },
-    { id: "challenge8", title: "16. Partial Overlaps",                   part: 3, unlocked: true },
-    { id: "challenge9", title: "17. Energy Grid Polarities",             part: 3, unlocked: true },
-    { id: "badge",      title: "18. Completion Certificate",             part: 3, unlocked: true },
-  ];
-
-  // Helper: mark a lesson done and navigate
   const completeLessonAndGo = (lessonId: string, nextLessonId?: string) => {
-    markLessonComplete(MODULE_ID, lessonId);
+    markLessonComplete(SEGMENT_TREE_COURSE.moduleId, lessonId);
     if (nextLessonId) setActiveLesson(nextLessonId);
   };
 
-  // Auto-mark badge complete as soon as the user lands on it
   useEffect(() => {
     if (activeLesson === "badge") {
-      markLessonComplete(MODULE_ID, "badge");
+      markLessonComplete(SEGMENT_TREE_COURSE.moduleId, "badge");
     }
   }, [activeLesson, markLessonComplete]);
 
@@ -321,7 +279,7 @@ export default function SegmentTreePath() {
     const newChecked = { ...mcqChecked1, [qId]: true };
     setMcqChecked1(newChecked);
     if (newChecked[1] && newChecked[2] && mcqAnswers1[1] === MCQ_PART_1[0].answer && mcqAnswers1[2] === MCQ_PART_1[1].answer) {
-      markLessonComplete(MODULE_ID, "mcq1");
+      markLessonComplete(SEGMENT_TREE_COURSE.moduleId, "mcq1");
     }
   };
   const handleMcqSelect2 = (qId: number, optIdx: number) => {
@@ -336,7 +294,7 @@ export default function SegmentTreePath() {
       mcqAnswers2[1] === MCQ_PART_2[0].answer &&
       mcqAnswers2[2] === MCQ_PART_2[1].answer &&
       mcqAnswers2[3] === MCQ_PART_2[2].answer) {
-      markLessonComplete(MODULE_ID, "mcq2");
+      markLessonComplete(SEGMENT_TREE_COURSE.moduleId, "mcq2");
     }
   };
 
@@ -344,126 +302,13 @@ export default function SegmentTreePath() {
   //  Render
   // ─────────────────────────────────────────────
   return (
-    <div className={styles.container}>
-      {/* ── Sidebar ── */}
-      <aside
-        className={styles.sidebar}
-        style={{
-          // sidebarCollapsed is the single source of truth.
-          // useEffect auto-collapses when entering a challenge; toggle always works.
-          width: sidebarCollapsed ? "48px" : "280px",
-          minWidth: sidebarCollapsed ? "48px" : "280px",
-          padding: "var(--space-md) 0",
-          borderRight: "1px solid var(--border-primary)",
-          overflow: "hidden",
-          overflowY: sidebarCollapsed ? "hidden" : "auto",
-          transition: "width 0.22s ease, min-width 0.22s ease",
-        }}
-      >
-        <div style={{
-          display: "flex", alignItems: "center",
-          justifyContent: sidebarCollapsed ? "center" : "space-between",
-          padding: sidebarCollapsed ? "10px 0" : "0 12px 12px 16px",
-          borderBottom: "1px solid var(--border-primary)",
-          marginBottom: sidebarCollapsed ? 0 : "var(--space-md)",
-          flexShrink: 0,
-        }}>
-          {!sidebarCollapsed && (
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, fontSize: "var(--font-size-md)", color: "var(--text-primary)" }}>
-                <span>🌳</span> Segment Trees
-              </div>
-              <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "2px" }}>Interactive Textbook &amp; Sandbox</div>
-            </div>
-          )}
-          {/* Toggle always clickable — even during challenges */}
-          <button
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={() => setSidebarCollapsed(c => !c)}
-            style={{
-              background: "transparent", border: "1px solid var(--border-primary)",
-              borderRadius: "6px", color: "var(--text-muted)",
-              cursor: "pointer",
-              width: "28px", height: "28px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              flexShrink: 0, fontSize: "16px", lineHeight: 1,
-            }}
-          >
-            {sidebarCollapsed ? "›" : "‹"}
-          </button>
-        </div>
-
-        {/* COLLAPSED: icon-only list so user can navigate even inside a challenge */}
-        {sidebarCollapsed && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, paddingTop: 8 }}>
-            {lessons.map(l => {
-              const done = isLessonComplete(MODULE_ID, l.id);
-              const active = activeLesson === l.id;
-              const icon = done ? "✓" : l.id === "badge" ? "🏆" : l.id.startsWith("challenge") ? "💻" : l.id.includes("mcq") ? "❓" : "📖";
-              return (
-                <button
-                  key={l.id}
-                  title={l.title}
-                  onClick={() => setActiveLesson(l.id)}
-                  style={{
-                    width: 36, height: 36,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: active ? "rgba(0,240,255,0.15)" : done ? "rgba(0,255,136,0.07)" : "transparent",
-                    border: active ? "1px solid var(--cm-cyan)" : "1px solid transparent",
-                    borderRadius: 8, cursor: "pointer",
-                    fontSize: done ? 11 : 14,
-                    color: done ? "var(--cm-green)" : active ? "var(--cm-cyan)" : "var(--text-muted)",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {icon}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* EXPANDED: full lesson list */}
-        {!sidebarCollapsed && (
-          <>
-            {[1, 2, 3].map((part) => {
-              const partDone = [part1Complete, part2Complete, part3Complete][part - 1];
-              return (
-                <div key={part} className={styles.partGroup}>
-                  <div className={styles.partTitle}>
-                    <span>{part === 1 ? "Part 1: The Problem" : part === 2 ? "Part 2: Introducing Trees" : "Part 3: Code It"}</span>
-                    {partDone && (
-                      <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--cm-green)", fontSize: "11px", fontWeight: 700 }}>
-                        ✓ Done
-                      </span>
-                    )}
-                  </div>
-                  {lessons.filter(l => l.part === part).map(l => {
-                    const done = isLessonComplete(MODULE_ID, l.id);
-                    return (
-                      <button
-                        key={l.id}
-                        className={`${styles.lessonBtn} ${activeLesson === l.id ? styles.lessonActive : ""}`}
-                        onClick={() => setActiveLesson(l.id)}
-                      >
-                        <span className={styles.iconWrap}>
-                          {done
-                            ? <span style={{ color: "var(--cm-green)", fontSize: "13px" }}>✓</span>
-                            : l.id === "badge" ? "🏆" : l.id.startsWith("challenge") ? "💻" : l.id.includes("mcq") ? "❓" : "📖"}
-                        </span>
-                        <span style={{ flex: 1, textAlign: "left" }}>{l.title}</span>
-                        {done && !activeLesson.includes(l.id) && (
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--cm-green)", flexShrink: 0, opacity: 0.7 }} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </>
-        )}
-      </aside>
+    <CourseLayout
+      config={SEGMENT_TREE_COURSE}
+      activeLesson={activeLesson}
+      setActiveLesson={setActiveLesson}
+      isChallenge={isChallenge}
+      isPremiumActive={isPremiumActive}
+    >
 
       {/* ── Content Pane ── */}
       <section
@@ -1049,15 +894,13 @@ export default function SegmentTreePath() {
           {/* ==================== CHALLENGES ==================== */}
           {isChallenge && (
             <ChallengeIde
-              activeLesson={activeLesson}
-              setActiveLesson={(nextId) => {
-                // Mark the current challenge complete when navigating away
-                markLessonComplete(MODULE_ID, activeLesson);
-                setActiveLesson(nextId);
+              challenge={ST_CHALLENGES[activeLesson]}
+              onComplete={() => {
+                markLessonComplete(SEGMENT_TREE_COURSE.moduleId, activeLesson);
               }}
-              onPartComplete={() => {
-                markLessonComplete(MODULE_ID, activeLesson);
-                markLessonComplete(MODULE_ID, "badge");
+              navigate={(nextId) => {
+                markLessonComplete(SEGMENT_TREE_COURSE.moduleId, activeLesson);
+                setActiveLesson(nextId);
               }}
             />
           )}
@@ -1146,6 +989,6 @@ export default function SegmentTreePath() {
 
         </div>
       </section>
-    </div>
+    </CourseLayout>
   );
 }

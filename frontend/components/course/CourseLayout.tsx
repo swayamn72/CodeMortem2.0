@@ -11,6 +11,7 @@ interface CourseLayoutProps {
   setActiveLesson: (id: string) => void;
   /** true while a coding challenge is active (IDE takes full right panel) */
   isChallenge: boolean;
+  isPremiumActive?: boolean;
   children: React.ReactNode;
 }
 
@@ -27,6 +28,7 @@ export default function CourseLayout({
   activeLesson,
   setActiveLesson,
   isChallenge,
+  isPremiumActive,
   children,
 }: CourseLayoutProps) {
   // sidebarCollapsed is the single source of truth.
@@ -41,10 +43,11 @@ export default function CourseLayout({
   const { isLessonComplete } = useProgressStore();
 
   const partComplete = (partNum: number) => {
-    if (!config.parts[partNum - 1]) return false;
-    return config.lessons
-      .filter(l => l.part === partNum)
-      .every(l => isLessonComplete(config.moduleId, l.id));
+    const part = config.parts.find(p => p.number === partNum);
+    if (!part) return false;
+    const lessons = config.lessons.filter(l => l.part === partNum);
+    if (lessons.length === 0) return true;
+    return lessons.every(l => isLessonComplete(config.moduleId, l.id));
   };
 
   return (
@@ -55,23 +58,25 @@ export default function CourseLayout({
         style={{
           width: sidebarCollapsed ? "48px" : "280px",
           minWidth: sidebarCollapsed ? "48px" : "280px",
-          padding: "var(--space-md) 0",
+          padding: 0,
           borderRight: "1px solid var(--border-primary)",
           overflow: "hidden",
-          overflowY: sidebarCollapsed ? "hidden" : "auto",
+          display: "flex",
+          flexDirection: "column",
           transition: "width 0.22s ease, min-width 0.22s ease",
         }}
       >
-        {/* Header: title (when expanded) + toggle button (always) */}
+        {/* Header: title (when expanded) + toggle button (always) - STICKY TOP */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: sidebarCollapsed ? "center" : "space-between",
-            padding: sidebarCollapsed ? "10px 0" : "0 12px 12px 16px",
+            padding: sidebarCollapsed ? "10px 0" : "16px 12px 12px 16px",
             borderBottom: "1px solid var(--border-primary)",
-            marginBottom: sidebarCollapsed ? 0 : "var(--space-md)",
             flexShrink: 0,
+            background: "var(--bg-secondary)",
+            zIndex: 10,
           }}
         >
           {!sidebarCollapsed && (
@@ -109,109 +114,114 @@ export default function CourseLayout({
           </button>
         </div>
 
-        {/* COLLAPSED: icon-only list — always shown when collapsed so user can navigate */}
-        {sidebarCollapsed && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, paddingTop: 8 }}>
-            {config.lessons.map(l => {
-              const done = isLessonComplete(config.moduleId, l.id);
-              const active = activeLesson === l.id;
-              const isBadge = l.id === "badge";
-              // Badge is locked until every non-badge lesson is complete
-              const nonBadgeLessons = config.lessons.filter(x => x.id !== "badge");
-              const badgeLocked = isBadge && !nonBadgeLessons.every(x => isLessonComplete(config.moduleId, x.id));
-              return (
-                <button
-                  key={l.id}
-                  title={badgeLocked ? "Complete all lessons to unlock the badge" : l.title}
-                  onClick={() => !badgeLocked && setActiveLesson(l.id)}
-                  disabled={badgeLocked}
-                  style={{
-                    width: 36, height: 36,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    background: active
-                      ? "rgba(0,240,255,0.15)"
-                      : done
-                      ? "rgba(0,255,136,0.07)"
-                      : "transparent",
-                    border: active ? "1px solid var(--cm-cyan)" : "1px solid transparent",
-                    borderRadius: 8,
-                    cursor: badgeLocked ? "not-allowed" : "pointer",
-                    fontSize: done ? 11 : 14,
-                    color: badgeLocked ? "var(--text-muted)" : done ? "var(--cm-green)" : active ? "var(--cm-cyan)" : "var(--text-muted)",
-                    opacity: badgeLocked ? 0.4 : 1,
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {badgeLocked ? "🔒" : lessonIcon(l.id, done)}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "var(--space-md) 0" }}>
+          {/* COLLAPSED: icon-only list — always shown when collapsed so user can navigate */}
+          {sidebarCollapsed && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, paddingTop: 8 }}>
+              {config.lessons.map(l => {
+                const done = isLessonComplete(config.moduleId, l.id);
+                const active = activeLesson === l.id;
+                const isBadge = l.id === "badge";
+                // Badge is locked until every non-badge, non-premium lesson is complete
+                const nonBadgeLessons = config.lessons.filter(x => x.id !== "badge" && !x.premium);
+                const badgeLocked = isBadge && !nonBadgeLessons.every(x => isLessonComplete(config.moduleId, x.id));
+                const isPremiumLocked = l.premium && !isPremiumActive;
+                return (
+                  <button
+                    key={l.id}
+                    title={badgeLocked ? "Complete all lessons to unlock the badge" : isPremiumLocked ? "Premium Challenge" : l.title}
+                    onClick={() => !badgeLocked && !isPremiumLocked && setActiveLesson(l.id)}
+                    disabled={badgeLocked || isPremiumLocked}
+                    style={{
+                      width: 36, height: 36,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: active
+                        ? "rgba(0,240,255,0.15)"
+                        : done
+                        ? "rgba(0,255,136,0.07)"
+                        : "transparent",
+                      border: active ? "1px solid var(--cm-cyan)" : "1px solid transparent",
+                      borderRadius: 8,
+                      cursor: badgeLocked ? "not-allowed" : "pointer",
+                      fontSize: done ? 11 : 14,
+                      color: badgeLocked ? "var(--text-muted)" : done ? "var(--cm-green)" : active ? "var(--cm-cyan)" : "var(--text-muted)",
+                      opacity: badgeLocked ? 0.4 : 1,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {badgeLocked ? "🔒" : isPremiumLocked ? "👑" : lessonIcon(l.id, done)}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-        {/* EXPANDED: full lesson list */}
-        {!sidebarCollapsed && (
-          <>
-            {config.parts.map(part => {
-              const done = partComplete(part.number);
-              return (
-                <div key={part.number} className={styles.partGroup}>
-                  <div className={styles.partTitle}>
-                    <span>{part.title}</span>
-                    {done && (
-                      <span
-                        style={{
-                          display: "flex", alignItems: "center", gap: 4,
-                          color: "var(--cm-green)", fontSize: 11, fontWeight: 700,
-                        }}
-                      >
-                        ✓ Done
-                      </span>
-                    )}
-                  </div>
-                  {config.lessons
-                    .filter(l => l.part === part.number)
-                    .map(l => {
-                      const isDone = isLessonComplete(config.moduleId, l.id);
-                      const isActive = activeLesson === l.id;
-                      const isBadge = l.id === "badge";
-                      const nonBadgeLessons = config.lessons.filter(x => x.id !== "badge");
-                      const badgeLocked = isBadge && !nonBadgeLessons.every(x => isLessonComplete(config.moduleId, x.id));
-                      return (
-                        <button
-                          key={l.id}
-                          className={`${styles.lessonBtn} ${isActive ? styles.lessonActive : ""}`}
-                          onClick={() => !badgeLocked && setActiveLesson(l.id)}
-                          disabled={badgeLocked}
-                          title={badgeLocked ? "Complete all lessons to unlock" : undefined}
-                          style={badgeLocked ? { cursor: "not-allowed", opacity: 0.45 } : undefined}
+          {/* EXPANDED: full lesson list */}
+          {!sidebarCollapsed && (
+            <>
+              {config.parts.map(part => {
+                const done = partComplete(part.number);
+                return (
+                  <div key={part.number} className={styles.partGroup}>
+                    <div className={styles.partTitle}>
+                      <span>{part.title}</span>
+                      {done && (
+                        <span
+                          style={{
+                            display: "flex", alignItems: "center", gap: 4,
+                            color: "var(--cm-green)", fontSize: 11, fontWeight: 700,
+                          }}
                         >
-                          <span
-                            className={styles.iconWrap}
-                            style={{ color: badgeLocked ? "var(--text-muted)" : isDone ? "var(--cm-green)" : undefined, fontSize: 13 }}
+                          ✓ Done
+                        </span>
+                      )}
+                    </div>
+                    {config.lessons
+                      .filter(l => l.part === part.number)
+                      .map(l => {
+                        const isDone = isLessonComplete(config.moduleId, l.id);
+                        const isActive = activeLesson === l.id;
+                        const isBadge = l.id === "badge";
+                        const nonBadgeLessons = config.lessons.filter(x => x.id !== "badge" && !x.premium);
+                        const badgeLocked = isBadge && !nonBadgeLessons.every(x => isLessonComplete(config.moduleId, x.id));
+                        const isPremiumLocked = l.premium && !isPremiumActive;
+                        return (
+                          <button
+                            key={l.id}
+                            className={`${styles.lessonBtn} ${isActive ? styles.lessonActive : ""}`}
+                            onClick={() => !badgeLocked && !isPremiumLocked && setActiveLesson(l.id)}
+                            disabled={badgeLocked || isPremiumLocked}
+                            title={badgeLocked ? "Complete all lessons to unlock" : isPremiumLocked ? "Premium Challenge" : undefined}
+                            style={(badgeLocked || isPremiumLocked) ? { cursor: "not-allowed", opacity: 0.45 } : undefined}
                           >
-                            {badgeLocked ? "🔒" : lessonIcon(l.id, isDone)}
-                          </span>
-                          <span style={{ flex: 1, textAlign: "left" }}>
-                            {l.title}
-                            {badgeLocked && <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>locked</span>}
-                          </span>
-                          {isDone && !isActive && !badgeLocked && (
                             <span
-                              style={{
-                                width: 6, height: 6, borderRadius: "50%",
-                                background: "var(--cm-green)", flexShrink: 0, opacity: 0.7,
-                              }}
-                            />
-                          )}
-                        </button>
-                      );
-                    })}
-                </div>
-              );
-            })}
-          </>
-        )}
+                              className={styles.iconWrap}
+                              style={{ color: badgeLocked ? "var(--text-muted)" : isDone ? "var(--cm-green)" : undefined, fontSize: 13 }}
+                            >
+                              {badgeLocked ? "🔒" : isPremiumLocked ? "👑" : lessonIcon(l.id, isDone)}
+                            </span>
+                            <span style={{ flex: 1, textAlign: "left" }}>
+                              {l.title}
+                              {l.premium && <span style={{ fontSize: 11, marginLeft: 6, opacity: isDone ? 0.5 : 1 }} title="Premium Challenge">👑</span>}
+                              {badgeLocked && <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>locked</span>}
+                            </span>
+                            {isDone && !isActive && !badgeLocked && (
+                              <span
+                                style={{
+                                  width: 6, height: 6, borderRadius: "50%",
+                                  background: "var(--cm-green)", flexShrink: 0, opacity: 0.7,
+                                }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
       </aside>
 
       {/* ── Content / Challenge pane ── */}
