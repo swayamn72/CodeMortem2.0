@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
 import type { LPTestResult } from "./types";
-import { CODE_TEMPLATES, MIN_CPP_TEMPLATE, MIN_PYTHON_TEMPLATE, ESCAPE_CPP_TEMPLATE, ESCAPE_PYTHON_TEMPLATE, ESCAPE_CPP_REFERENCE, SAMPLE_TEST_CASES } from "./constants";
+import { CODE_TEMPLATES, MIN_CPP_TEMPLATE, MIN_PYTHON_TEMPLATE, ESCAPE_CPP_TEMPLATE, ESCAPE_PYTHON_TEMPLATE, ESCAPE_CPP_REFERENCE, ANOMALY_CPP_TEMPLATE, ANOMALY_PYTHON_TEMPLATE, RECONSTRUCTION_CPP_TEMPLATE, RECONSTRUCTION_PYTHON_TEMPLATE, SPACEPORT_NESTED_CPP_TEMPLATE, SPACEPORT_NESTED_PYTHON_TEMPLATE, SPACEPORT_OVERLAPS_CPP_TEMPLATE, SPACEPORT_OVERLAPS_PYTHON_TEMPLATE, ENERGY_CPP_TEMPLATE, ENERGY_PYTHON_TEMPLATE, SAMPLE_TEST_CASES } from "./constants";
 import styles from "@/app/learn/segment-tree/page.module.css";
 
 interface Challenge {
@@ -16,10 +16,15 @@ interface Challenge {
 }
 
 const CHALLENGES: Challenge[] = [
-  { id: "challenge1", title: "Range Sum Queries",     difficulty: "Easy",   diffColor: "var(--cm-green)",  tag: "READ & SUBMIT"  },
-  { id: "challenge2", title: "Range Min Queries",     difficulty: "Easy",   diffColor: "var(--cm-green)",  tag: "FILL IN BLANKS" },
-  { id: "challenge3", title: "Range Max Queries",     difficulty: "Easy",   diffColor: "var(--cm-green)",  tag: "FILL IN BLANKS" },
-  { id: "challenge4", title: "Cheapest Escape Route", difficulty: "Medium", diffColor: "var(--cm-yellow)", tag: "FROM SCRATCH"   },
+  { id: "challenge1", title: "Range Sum Queries",                    difficulty: "Easy",   diffColor: "var(--cm-green)",  tag: "READ & SUBMIT"  },
+  { id: "challenge2", title: "Range Min Queries",                    difficulty: "Easy",   diffColor: "var(--cm-green)",  tag: "FILL IN BLANKS" },
+  { id: "challenge3", title: "Range Max Queries",                    difficulty: "Easy",   diffColor: "var(--cm-green)",  tag: "FILL IN BLANKS" },
+  { id: "challenge4", title: "Cheapest Escape Route",                difficulty: "Medium", diffColor: "var(--cm-yellow)", tag: "FROM SCRATCH"   },
+  { id: "challenge5", title: "Queue Anomalies",                      difficulty: "Medium", diffColor: "var(--cm-yellow)", tag: "FROM SCRATCH"   },
+  { id: "challenge6", title: "Queue Anomalies (Reconstruction)",     difficulty: "Hard",   diffColor: "var(--cm-red)",    tag: "FROM SCRATCH"   },
+  { id: "challenge7", title: "Spaceport Logistics (Nested Stays)",   difficulty: "Hard",   diffColor: "var(--cm-red)",    tag: "FROM SCRATCH"   },
+  { id: "challenge8", title: "Spaceport Logistics (Partial Overlaps)", difficulty: "Hard", diffColor: "var(--cm-red)",    tag: "FROM SCRATCH"   },
+  { id: "challenge9", title: "Energy Grid Polarities",               difficulty: "Hard",   diffColor: "var(--cm-red)",    tag: "FROM SCRATCH"   },
 ];
 
 interface ChallengeIdeProps {
@@ -31,7 +36,12 @@ interface ChallengeIdeProps {
 export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComplete }: ChallengeIdeProps) {
   const challengeIdx = activeLesson === "challenge1" ? 0
                      : activeLesson === "challenge2" ? 1
-                     : activeLesson === "challenge3" ? 2 : 3;
+                     : activeLesson === "challenge3" ? 2
+                     : activeLesson === "challenge4" ? 3
+                     : activeLesson === "challenge5" ? 4
+                     : activeLesson === "challenge6" ? 5
+                     : activeLesson === "challenge7" ? 6
+                     : activeLesson === "challenge8" ? 7 : 8;
   const ch = CHALLENGES[challengeIdx];
 
   // ── Drag-to-resize refs & state ──
@@ -115,6 +125,16 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
       setEditorValue(CODE_TEMPLATES.max[selectedLanguage]);
     } else if (activeLesson === "challenge4") {
       setEditorValue(selectedLanguage === "cpp" ? ESCAPE_CPP_TEMPLATE : ESCAPE_PYTHON_TEMPLATE);
+    } else if (activeLesson === "challenge5") {
+      setEditorValue(selectedLanguage === "cpp" ? ANOMALY_CPP_TEMPLATE : ANOMALY_PYTHON_TEMPLATE);
+    } else if (activeLesson === "challenge6") {
+      setEditorValue(selectedLanguage === "cpp" ? RECONSTRUCTION_CPP_TEMPLATE : RECONSTRUCTION_PYTHON_TEMPLATE);
+    } else if (activeLesson === "challenge7") {
+      setEditorValue(selectedLanguage === "cpp" ? SPACEPORT_NESTED_CPP_TEMPLATE : SPACEPORT_NESTED_PYTHON_TEMPLATE);
+    } else if (activeLesson === "challenge8") {
+      setEditorValue(selectedLanguage === "cpp" ? SPACEPORT_OVERLAPS_CPP_TEMPLATE : SPACEPORT_OVERLAPS_PYTHON_TEMPLATE);
+    } else if (activeLesson === "challenge9") {
+      setEditorValue(selectedLanguage === "cpp" ? ENERGY_CPP_TEMPLATE : ENERGY_PYTHON_TEMPLATE);
     }
     // Reset to pending sample cases
     const pending = samples.map((s, i): LPTestResult => ({
@@ -219,7 +239,12 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
     const challengeId = activeLesson === "challenge1" ? "sum_segment_tree"
                       : activeLesson === "challenge2" ? "min_segment_tree"
                       : activeLesson === "challenge3" ? "max_segment_tree"
-                      : "escape_route";
+                      : activeLesson === "challenge4" ? "escape_route"
+                      : activeLesson === "challenge5" ? "queue_anomalies"
+                      : activeLesson === "challenge6" ? "queue_anomalies_reconstruction"
+                      : activeLesson === "challenge7" ? "spaceport_nested"
+                      : activeLesson === "challenge8" ? "spaceport_overlaps"
+                      : "energy_grid";
     try {
       const res = await api.post("/learning-path/submit", {
         code: editorValue,
@@ -258,10 +283,20 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
   const nextLesson = activeLesson === "challenge1" ? "challenge2"
                    : activeLesson === "challenge2" ? "challenge3"
                    : activeLesson === "challenge3" ? "challenge4"
+                   : activeLesson === "challenge4" ? "challenge5"
+                   : activeLesson === "challenge5" ? "challenge6"
+                   : activeLesson === "challenge6" ? "challenge7"
+                   : activeLesson === "challenge7" ? "challenge8"
+                   : activeLesson === "challenge8" ? "challenge9"
                    : "badge";
   const nextLabel  = activeLesson === "challenge1" ? "Next: Range Min →"
                    : activeLesson === "challenge2" ? "Next: Range Max →"
                    : activeLesson === "challenge3" ? "Next: Escape Route →"
+                   : activeLesson === "challenge4" ? "Next: Queue Anomalies →"
+                   : activeLesson === "challenge5" ? "Next: The Reconstruction →"
+                   : activeLesson === "challenge6" ? "Next: Nested Stays →"
+                   : activeLesson === "challenge7" ? "Next: Partial Overlaps →"
+                   : activeLesson === "challenge8" ? "Next: Energy Grid →"
                    : "🏆 Claim Your Badge";
 
   return (
@@ -374,7 +409,7 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
                   {ch.title}
                 </h2>
 
-                {activeLesson !== "challenge4" ? (
+                {activeLesson !== "challenge4" && activeLesson !== "challenge5" && activeLesson !== "challenge6" && activeLesson !== "challenge7" && activeLesson !== "challenge8" && activeLesson !== "challenge9" ? (
                   /* ── Challenges 1-3: standard segment tree statement ── */
                   <>
                     <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "20px", fontStyle: "italic" }}>
@@ -443,7 +478,7 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
                       </pre>
                     </div>
                   </>
-                ) : (
+                ) : activeLesson === "challenge4" ? (
                   /* ── Challenge 4: Cheapest Escape Route ── */
                   <>
                     <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "20px", fontStyle: "italic" }}>
@@ -471,7 +506,6 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
                         <span>Print the <strong style={{ color: "var(--text-primary)" }}>minimum cost</strong> to pass through any one city in <em>[l, r]</em></span>
                       </li>
                     </ul>
-                    {/* Constraints */}
                     <div style={{ marginBottom: "20px" }}>
                       <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Constraints</div>
                       <ul style={{ paddingLeft: "20px", color: "#9ca3af", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
@@ -480,7 +514,6 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
                         <li>All operations are <strong style={{ color: "var(--cm-yellow)" }}>1-indexed</strong></li>
                       </ul>
                     </div>
-                    {/* Sample */}
                     <div>
                       <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "10px" }}>Sample</div>
                       <pre style={{ background: "#08080c", padding: "14px 16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>
@@ -488,11 +521,203 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
                       </pre>
                     </div>
                   </>
+                ) : activeLesson === "challenge5" ? (
+                  /* ── Challenge 5: Queue Anomalies ── */
+                  <>
+
+                    <p style={{ marginBottom: "14px" }}>
+                      Players join a matchmaking queue one by one. Each has a unique, hidden{" "}
+                      <strong style={{ color: "var(--cm-cyan)" }}>skill rating</strong>{" "}
+                      (a permutation of 1 to N). A player&apos;s{" "}
+                      <strong style={{ color: "var(--cm-yellow)" }}>anomaly score</strong>{" "}
+                      is the number of players{" "}
+                      <strong style={{ color: "var(--text-primary)" }}>ahead of them in the queue</strong>{" "}
+                      with a <strong style={{ color: "var(--text-primary)" }}>strictly higher rating</strong>.
+                    </p>
+                    <p style={{ marginBottom: "16px" }}>
+                      Given the sequence of skill ratings from front to back, print the anomaly score for every player.
+                    </p>
+
+                    <div style={{ marginBottom: "20px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Constraints</div>
+                      <ul style={{ paddingLeft: "20px", color: "#9ca3af", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <li>1 ≤ N ≤ 10⁵</li>
+                        <li>R is a permutation of integers 1 to N</li>
+                        <li>Time limit: 1.0 s — O(N²) brute force will <strong style={{ color: "var(--cm-red)" }}>TLE</strong></li>
+                        <li>Memory limit: 1024 MB</li>
+                      </ul>
+                    </div>
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Input Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N\nR[0] R[1] ... R[N-1]`}</pre>
+                    </div>
+                    <div style={{ marginBottom: "20px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Output Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N space-separated integers (the anomaly score for each player)`}</pre>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "10px" }}>Sample</div>
+                      <pre style={{ background: "#08080c", padding: "14px 16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>
+                        {`Input:\n5\n4 1 3 5 2\n\nOutput:\n0 1 1 0 3\n\nExplanation:\n  Player 1 (rating 4): no one ahead → score 0\n  Player 2 (rating 1): player 1 (4>1) ahead → score 1\n  Player 3 (rating 3): player 1 (4>3) ahead → score 1\n  Player 4 (rating 5): no one greater ahead → score 0\n  Player 5 (rating 2): players 1,3,4 (4,3,5 > 2) ahead → score 3`}
+                      </pre>
+                    </div>
+                  </>
+                ) : activeLesson === "challenge6" ? (
+                  /* ── Challenge 6: Queue Anomalies (The Reconstruction) ── */
+                  <>
+
+                    <p style={{ marginBottom: "14px" }}>
+                      A critical database failure has erased the original ratings.
+                      The only backup is the array of <strong style={{ color: "var(--cm-yellow)" }}>anomaly scores</strong>.
+                      Given those scores, reconstruct the original{" "}
+                      <strong style={{ color: "var(--cm-cyan)" }}>skill rating sequence</strong> — a permutation of 1 to N.
+                    </p>
+
+
+
+                    {/* Constraints */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Constraints</div>
+                      <ul style={{ paddingLeft: "20px", color: "#9ca3af", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <li>1 ≤ N ≤ 10⁵</li>
+                        <li>Input scores are guaranteed to be from a valid permutation of 1..N</li>
+                        <li>Time limit: 1.0 s · Memory limit: 1024 MB</li>
+                      </ul>
+                    </div>
+
+                    {/* I/O */}
+                    <div style={{ marginBottom: "12px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Input Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N\nA[0] A[1] ... A[N-1]`}</pre>
+                    </div>
+                    <div style={{ marginBottom: "20px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Output Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N space-separated integers — the original rating sequence`}</pre>
+                    </div>
+
+                    {/* Sample */}
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "10px" }}>Sample</div>
+                      <pre style={{ background: "#08080c", padding: "14px 16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>
+                        {`Input:\n5\n0 1 1 0 3\n\nOutput:\n4 1 3 5 2\n\nWalkthrough (right to left):\n  i=4: 5 ratings left, A[4]=3 → rank k = 5-3 = 2nd smallest of {1,2,3,4,5} = 2\n  i=3: 4 left, A[3]=0 → k=4, 4th smallest of {1,3,4,5} = 5\n  i=2: 3 left, A[2]=1 → k=2, 2nd smallest of {1,3,4} = 3\n  i=1: 2 left, A[1]=1 → k=1, 1st smallest of {1,4} = 1\n  i=0: 1 left, A[0]=0 → k=1, only {4} → 4`}
+                      </pre>
+                    </div>
+                  </>
+                ) : activeLesson === "challenge7" ? (
+                  /* ── Challenge 7: Spaceport Logistics (Nested Stays) ── */
+                  <>
+
+                    <p style={{ marginBottom: "14px" }}>
+                      The docking bay logs exactly two events per ship: one when it <strong style={{ color: "var(--cm-cyan)" }}>docks</strong> and one when it <strong style={{ color: "var(--cm-cyan)" }}>departs</strong>. Ship <em>Y</em>&apos;s stay is{" "}
+                      <strong style={{ color: "var(--cm-yellow)" }}>strictly nested</strong> inside Ship <em>X</em>&apos;s if <em>Y</em> docks after <em>X</em> docks and departs before <em>X</em> departs.
+                    </p>
+                    <p style={{ marginBottom: "16px" }}>
+                      Given the chronological log of <em>2N</em> events, compute for each ship how many stays are strictly nested inside it.
+                    </p>
+
+
+
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Constraints</div>
+                      <ul style={{ paddingLeft: "20px", color: "#9ca3af", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <li>1 ≤ N ≤ 10⁵ · Each ship ID 1..N appears exactly twice</li>
+                        <li>Time limit: 1.0 s · Memory limit: 1024 MB</li>
+                      </ul>
+                    </div>
+                    <div style={{ marginBottom: "12px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Input Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N\nlog[0] log[1] ... log[2N-1]`}</pre>
+                    </div>
+                    <div style={{ marginBottom: "20px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Output Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N space-separated integers — nested count for each ship 1..N`}</pre>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "10px" }}>Sample</div>
+                      <pre style={{ background: "#08080c", padding: "14px 16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>
+                        {`Input:\n5\n5 1 2 2 3 1 3 4 5 4\n\nOutput:\n1 0 0 0 3\n\nExplanation:\n  Ship 5: docks at pos 1, departs at pos 9. Ships 1, 2, 3 are all nested → 3\n  Ship 1: docks at pos 2, departs at pos 6. Only Ship 2 (pos 3→4) is nested → 1\n  Ships 2, 3, 4: nothing nested inside them → 0`}
+                      </pre>
+                    </div>
+                  </>
+                ) : activeLesson === "challenge8" ? (
+                  /* ── Challenge 8: Spaceport Logistics (Partial Overlaps) ── */
+                  <>
+
+                    <p style={{ marginBottom: "14px" }}>
+                      Using the same ship log as Problem C, we now count <strong style={{ color: "var(--cm-yellow)" }}>partial overlaps</strong>. Ship <em>Y</em> <em>intersects</em> Ship <em>X</em>&apos;s stay if <strong style={{ color: "var(--text-primary)" }}>exactly one</strong> of <em>Y</em>&apos;s events occurs while <em>X</em> is in port.
+                    </p>
+
+
+
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Constraints</div>
+                      <ul style={{ paddingLeft: "20px", color: "#9ca3af", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <li>1 ≤ N ≤ 10⁵ · Each ship ID 1..N appears exactly twice</li>
+                        <li>Time limit: 1.0 s · Memory limit: 1024 MB</li>
+                      </ul>
+                    </div>
+                    <div style={{ marginBottom: "12px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Input / Output</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`Same format as Problem C`}</pre>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "10px" }}>Sample</div>
+                      <pre style={{ background: "#08080c", padding: "14px 16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>
+                        {`Input:\n5\n5 1 2 2 3 1 3 4 5 4\n\nOutput:\n1 0 1 1 1\n\nExplanation (Ship 1, dock=2, depart=6):\n  Events inside [2,6]: positions 3,4,5 → 3 events\n  Nested ships: 1 (Ship 2 at pos 3→4) → contributes 2 events\n  Intersecting = 3 − 2×1 = 1  (Ship 3, which docks at 5 but departs at 7)`}
+                      </pre>
+                    </div>
+                  </>
+                ) : (
+                  /* ── Challenge 9: Energy Grid Polarities ── */
+                  <>
+
+                    <p style={{ marginBottom: "14px" }}>
+                      An energy grid of <em>N</em> cells is connected in series. A bypass cable across cells <em>[L, R]</em> produces a <strong style={{ color: "var(--cm-cyan)" }}>net alternating voltage</strong>:
+                    </p>
+                    <div style={{ background: "rgba(0,240,255,0.04)", border: "1px solid rgba(0,240,255,0.15)", borderRadius: "8px", padding: "12px 16px", marginBottom: "14px", fontFamily: "var(--font-mono)", fontSize: "13px", color: "#e2e8f0" }}>
+                      C<sub>L</sub> − C<sub>L+1</sub> + C<sub>L+2</sub> − C<sub>L+3</sub> + … ± C<sub>R</sub>
+                    </div>
+                    <p style={{ marginBottom: "16px" }}>Drones can also update any cell&apos;s charge. Handle both operations efficiently.</p>
+
+
+
+                    <ul style={{ paddingLeft: "0", listStyle: "none", marginBottom: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <li style={{ display: "flex", gap: "10px" }}>
+                        <span style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)", fontSize: "13px", background: "rgba(0,240,255,0.07)", padding: "2px 8px", borderRadius: "4px", flexShrink: 0 }}>0 i j</span>
+                        <span>Set C[i] = j (point update, 1-indexed)</span>
+                      </li>
+                      <li style={{ display: "flex", gap: "10px" }}>
+                        <span style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)", fontSize: "13px", background: "rgba(0,240,255,0.07)", padding: "2px 8px", borderRadius: "4px", flexShrink: 0 }}>1 l r</span>
+                        <span>Output alternating voltage for range <em>[l, r]</em></span>
+                      </li>
+                    </ul>
+
+                    <div style={{ marginBottom: "16px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Constraints</div>
+                      <ul style={{ paddingLeft: "20px", color: "#9ca3af", fontSize: "13px", display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <li>1 ≤ N, M ≤ 10⁵ · 1 ≤ j ≤ 10⁴ · 1 ≤ i ≤ N</li>
+                        <li>Time limit: 2.0 s · Memory limit: 1024 MB</li>
+                      </ul>
+                    </div>
+                    <div style={{ marginBottom: "12px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "8px" }}>Input Format</div>
+                      <pre style={{ background: "#08080c", padding: "12px 14px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>{`N\nC[1] C[2] ... C[N]\nM\n(M lines of operations)`}</pre>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "10px" }}>Sample</div>
+                      <pre style={{ background: "#08080c", padding: "14px 16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", border: "1px solid rgba(255,255,255,0.06)", color: "#e2e8f0", margin: 0 }}>
+                        {`Input:\n3\n1 2 3\n5\n1 1 2\n1 1 3\n1 2 3\n0 2 1\n1 1 3\n\nOutput:\n-1\n2\n-1\n3\n\nTrace:\n  B = [1, -2, 3]\n  query[1,2]: sum = 1+(-2) = -1. l=1 (odd) → answer -1\n  query[1,3]: sum = 1+(-2)+3 = 2. l=1 (odd) → answer 2\n  query[2,3]: sum = -2+3 = 1. l=2 (even) → answer -1\n  update C[2]=1 → B[2]=-1\n  query[1,3]: sum = 1+(-1)+3 = 3. l=1 (odd) → answer 3`}
+                      </pre>
+                    </div>
+                  </>
                 )}
+
               </div>
             )}
 
             {/* TEST CASES TAB */}
+
+
             {leftTab === "cases" && (
               <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "16px", overflowY: "auto" }}>
                 {testResults.length > 0 ? (() => {
@@ -699,8 +924,81 @@ export default function ChallengeIde({ activeLesson, setActiveLesson, onPartComp
                     body: <span>Input queries are <strong style={{ color: "var(--cm-yellow)" }}>1-indexed</strong>. If your segment tree is 0-indexed internally, subtract 1 from <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>i</code>, <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>l</code>, and <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>r</code> when passing them into tree functions. The reference template keeps the tree 1-indexed to avoid this translation entirely.</span>,
                   },
                 ],
+                challenge5: [
+                  {
+                    title: "Hint 1 — Read the solution structure",
+                    body: <span>This challenge is <strong style={{ color: "var(--text-primary)" }}>read-only</strong>. Focus on the two critical lines per player: the <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>query(1, 1, n, r[i]+1, n)</code> call (how many inserted elements are greater?) and the <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>add(1, 1, n, r[i], 1)</code> call (inserting the current rating).</span>,
+                  },
+                  {
+                    title: "Hint 2 — Why query [R+1, N]?",
+                    body: <span>The tree tracks how many times each rating has been inserted so far. Querying <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>[R+1, N]</code> counts exactly the previously-seen ratings that are <strong style={{ color: "var(--text-primary)" }}>strictly greater</strong> than the current player&apos;s rating <em>R</em>. This is the inversion count ending at position <em>i</em>.</span>,
+                  },
+                  {
+                    title: "Hint 3 — Why O(N²) TLEs",
+                    body: <span>A naive brute-force loops over all prior players for each player, giving O(N²) total work. With N = 10⁵, that is 10¹⁰ operations — 100× over the 10⁸ CPU limit. The Segment Tree reduces each query and insert to O(log N), making the total O(N log N) — well under 1 second.</span>,
+                  },
+                ],
+                challenge6: [
+                  {
+                    title: "Hint 1 — Work backwards",
+                    body: <span>This challenge is <strong style={{ color: "var(--text-primary)" }}>read-only</strong>. Start from the last player. They have no one behind them, so their anomaly score directly tells you how many of all N ratings are larger. Process right to left — at each step you know exactly <em>i+1</em> ratings remain unassigned.</span>,
+                  },
+                  {
+                    title: "Hint 2 — The k-th rank formula",
+                    body: <span>At position <em>i</em> (0-indexed), there are <em>i+1</em> available ratings. If <em>A[i]</em> of them are larger, then the current rating is the <strong style={{ color: "var(--cm-cyan)" }}>(i+1 − A[i])-th smallest</strong> available. For example: if 3 available remain and A[i]=1, the rating is the 2nd smallest of those 3.</span>,
+                  },
+                  {
+                    title: "Hint 3 — findAndRemove traversal",
+                    body: <span>Initialise your range-sum structure with all 1s (every rating available). <strong style={{ color: "var(--text-primary)" }}>findAndRemove(k)</strong> starts at root: if left child sum ≥ k, go left; else subtract left sum from k and go right. At a leaf, set it to 0 and return its index. O(log N) per step.</span>,
+                  },
+                ],
+                challenge7: [
+                  {
+                    title: "Hint 1 — What counts as nested?",
+                    body: <span>This challenge is <strong style={{ color: "var(--text-primary)" }}>read-only</strong>. Ship Y is nested inside Ship X if Y <em>docks after X docks</em> AND <em>departs before X departs</em>. In the event log, Y&apos;s two positions are both strictly between X&apos;s two positions.</span>,
+                  },
+                  {
+                    title: "Hint 2 — Process events left to right",
+                    body: <span>When you see ship <em>id</em> for the first time at position <em>L</em>, just record <em>L</em>. When you see it again at <em>R</em>, its stay <em>[L, R]</em> is complete. Any ship that is nested must have <em>both</em> events between <em>L</em> and <em>R</em>, meaning it was fully completed earlier — so it&apos;s already marked in your structure.</span>,
+                  },
+                  {
+                    title: "Hint 3 — Range query + point update",
+                    body: <span>Use a structure supporting range-sum queries and point updates. When ship X departs at R: <strong style={{ color: "var(--cm-cyan)" }}>query [L+1, R-1]</strong> for the count of completed ships nested inside. Then <strong style={{ color: "var(--cm-cyan)" }}>add 1 at position L</strong> to mark X as completed. O(log N) per event → O(N log N) total.</span>,
+                  },
+                ],
+                challenge8: [
+                  {
+                    title: "Hint 1 — Categorise by event count",
+                    body: <span>This challenge is <strong style={{ color: "var(--text-primary)" }}>read-only</strong>. For Ship X with stay <em>[L, R]</em>, count how many events fall strictly inside: that&apos;s <em>R − L − 1</em>. Each event belongs to exactly one other ship. A ship that <strong>encompasses</strong> X contributes 0 events, a <strong>nested</strong> ship contributes 2, and an <strong>intersecting</strong> ship contributes exactly 1.</span>,
+                  },
+                  {
+                    title: "Hint 2 — The arithmetic formula",
+                    body: <span>We know: <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>events_inside = 2×nested + 1×intersecting</code>. We already know <em>events_inside</em> (trivially) and <em>nested</em> (from Problem C). Rearranging: <strong style={{ color: "var(--cm-yellow)" }}>intersecting = events_inside − 2×nested</strong>. No extra data structure needed!</span>,
+                  },
+                  {
+                    title: "Hint 3 — Combine both results",
+                    body: <span>The code for Problem D is identical to Problem C except for one extra line: after computing <em>nested</em> with the range query, calculate <em>events_inside = R − L − 1</em> and set <em>ans = events_inside − 2×nested</em>. The range-sum structure update stays exactly the same.</span>,
+                  },
+                ],
+                challenge9: [
+                  {
+                    title: "Hint 1 — The alternating-sign problem",
+                    body: <span>This challenge is <strong style={{ color: "var(--text-primary)" }}>read-only</strong>. A naïve loop for each query is O(N) — too slow. The sign of each element in the alternating sum depends on its distance from the starting index <em>L</em>, making direct range queries tricky. Think about pre-baking the signs into the array itself.</span>,
+                  },
+                  {
+                    title: "Hint 2 — The sign-transform",
+                    body: <span>Define array <em>B</em>: <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>B[i] = +C[i]</code> if <em>i</em> is odd (1-based), <code style={{ color: "var(--cm-cyan)", fontFamily: "var(--font-mono)" }}>B[i] = −C[i]</code> if <em>i</em> is even. Store <em>B</em> in a range-sum structure. Now <strong style={{ color: "var(--text-primary)" }}>sum(B[l..r])</strong> is the alternating sum starting with a <em>+</em> at odd positions. Updates just flip the stored sign.</span>,
+                  },
+                  {
+                    title: "Hint 3 — Fix the parity",
+                    body: <span>If <em>l</em> is <strong style={{ color: "var(--cm-cyan)" }}>odd</strong>: the standard sum of <em>B[l..r]</em> matches the alternating formula directly — output it as-is. If <em>l</em> is <strong style={{ color: "var(--cm-red)" }}>even</strong>: <em>B[l]</em> is <em>−C[l]</em>, so the sum is the negative of what we want — multiply by <strong>−1</strong>. That&apos;s the entire fix!</span>,
+                  },
+                ],
               };
-              const hints = hintSets[activeLesson] ?? hintSets["challenge2"];
+              const hints = hintSets[activeLesson] ?? hintSets["challenge1"];
+
+
+
               return (
                 <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
                   <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "4px" }}>

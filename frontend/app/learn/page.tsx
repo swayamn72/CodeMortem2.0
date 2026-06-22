@@ -38,13 +38,13 @@ const MODULES: Module[] = [
     icon: "/assets/segment tree easy.png",
     difficulty: "Easy",
     level: "Beginner",
-    lessons: 13,
+    lessons: 18,
     href: "/learn/segment-tree",
     available: true,
     allLessonIds: [
       "lesson1", "lesson2", "mcq1",
       "lesson3", "lesson4", "lesson5", "lesson5b", "lesson7", "mcq2",
-      "lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "badge",
+      "lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "challenge5", "challenge6", "challenge7", "challenge8", "challenge9", "badge",
     ],
   },
   {

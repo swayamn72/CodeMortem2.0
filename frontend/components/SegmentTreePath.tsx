@@ -62,14 +62,14 @@ const MODULE_ID = "segment-tree-easy";
 const ALL_LESSON_IDS = [
   "lesson1", "lesson2", "mcq1",
   "lesson3", "lesson4", "lesson5", "lesson5b", "lesson7", "mcq2",
-  "lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "badge",
+  "lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "challenge5", "challenge6", "challenge7", "challenge8", "challenge9", "badge",
 ];
 
 // Part membership for quick lookup
 const PART_LESSONS: Record<number, string[]> = {
   1: ["lesson1", "lesson2", "mcq1"],
   2: ["lesson3", "lesson4", "lesson5", "lesson5b", "lesson7", "mcq2"],
-  3: ["lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "badge"],
+  3: ["lesson6", "challenge1", "challenge2", "challenge3", "challenge4", "challenge5", "challenge6", "challenge7", "challenge8", "challenge9", "badge"],
 };
 
 export default function SegmentTreePath() {
@@ -114,12 +114,17 @@ export default function SegmentTreePath() {
     { id: "lesson7", title: "7. When to Use a Seg Tree", part: 2, unlocked: true },
     { id: "mcq2", title: "Checkpoint: Tree Structure", part: 2, unlocked: true },
     // Part 3
-    { id: "lesson6", title: "8. Code Walkthrough", part: 3, unlocked: true },
-    { id: "challenge1", title: "9. Code: Sum Tree",          part: 3, unlocked: true },
-    { id: "challenge2", title: "10. Code: Min Tree",          part: 3, unlocked: true },
-    { id: "challenge3", title: "11. Code: Max Tree",          part: 3, unlocked: true },
-    { id: "challenge4", title: "12. Code: Escape Route",      part: 3, unlocked: true },
-    { id: "badge",     title: "13. Completion Certificate",  part: 3, unlocked: true },
+    { id: "lesson6",    title: "8. Code Walkthrough",                    part: 3, unlocked: true },
+    { id: "challenge1", title: "9. Code: Sum Tree",                      part: 3, unlocked: true },
+    { id: "challenge2", title: "10. Code: Min Tree",                     part: 3, unlocked: true },
+    { id: "challenge3", title: "11. Code: Max Tree",                     part: 3, unlocked: true },
+    { id: "challenge4", title: "12. Code: Escape Route",                 part: 3, unlocked: true },
+    { id: "challenge5", title: "13. Queue Anomalies",                    part: 3, unlocked: true },
+    { id: "challenge6", title: "14. Queue Anomalies: Reconstruction",    part: 3, unlocked: true },
+    { id: "challenge7", title: "15. Nested Stays",                       part: 3, unlocked: true },
+    { id: "challenge8", title: "16. Partial Overlaps",                   part: 3, unlocked: true },
+    { id: "challenge9", title: "17. Energy Grid Polarities",             part: 3, unlocked: true },
+    { id: "badge",      title: "18. Completion Certificate",             part: 3, unlocked: true },
   ];
 
   // Helper: mark a lesson done and navigate
@@ -1042,7 +1047,7 @@ export default function SegmentTreePath() {
           )}
 
           {/* ==================== CHALLENGES ==================== */}
-          {(activeLesson === "challenge1" || activeLesson === "challenge2" || activeLesson === "challenge3" || activeLesson === "challenge4") && (
+          {isChallenge && (
             <ChallengeIde
               activeLesson={activeLesson}
               setActiveLesson={(nextId) => {

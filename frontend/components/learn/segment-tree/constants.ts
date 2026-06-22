@@ -72,6 +72,52 @@ export const SAMPLE_TEST_CASES: Record<string, SampleCase[]> = {
       expected: "1\n1000",
     },
   ],
+  // ── Challenge 5: Queue Anomalies ──
+  challenge5: [
+    {
+      label: "Problem Statement Example",
+      input: "5\n4 1 3 5 2",
+      expected: "0 1 1 0 3",
+    },
+    {
+      label: "Already Sorted (all zeros)",
+      input: "4\n1 2 3 4",
+      expected: "0 0 0 0",
+    },
+    {
+      label: "Reverse Sorted (max inversions)",
+      input: "4\n4 3 2 1",
+      expected: "0 1 2 3",
+    },
+    {
+      label: "Single Element",
+      input: "1\n1",
+      expected: "0",
+    },
+  ],
+  // ── Challenge 6: Queue Anomalies (The Reconstruction) ──
+  challenge6: [
+    {
+      label: "Problem Statement Example",
+      input: "5\n0 1 1 0 3",
+      expected: "4 1 3 5 2",
+    },
+    {
+      label: "All Zeros → Sorted Ascending",
+      input: "4\n0 0 0 0",
+      expected: "1 2 3 4",
+    },
+    {
+      label: "0 1 2 3 → Reverse Sorted",
+      input: "4\n0 1 2 3",
+      expected: "4 3 2 1",
+    },
+    {
+      label: "Single Element",
+      input: "1\n0",
+      expected: "1",
+    },
+  ],
 };
 
 
@@ -873,13 +919,203 @@ def main():
             st.update(1, 0, n - 1, ???, val)
             idx += 3
         else:
-            l = int(data[idx + 1]) - 1        # 1-indexed → 0-indexed
-            r = int(data[idx + 2]) - 1
-            max_discount = st.query(1, 0, n - 1, ???, ???)
-            # TODO: compute and append the minimum COST (not the discount itself)
-            out.append(str(???))
+class SegmentTree:
+    def __init__(self, n):
+        self.n = n
+        self.tree = [float('inf')] * (4 * n)
+
+    def build(self, a, node, start, end):
+        if start == end:
+            self.tree[node] = a[start]
+            return
+        mid = (start + end) // 2
+        self.build(a, 2 * node, start, mid)
+        self.build(a, 2 * node + 1, mid + 1, end)
+        # TODO: merge — store the minimum of left and right children
+        self.tree[node] = min(self.tree[2 * node], self.tree[2 * node + 1])
+
+    def update(self, node, start, end, idx, val):
+        if start == end:
+            self.tree[node] = val
+            return
+        mid = (start + end) // 2
+        if idx <= mid:
+            self.update(2 * node, start, mid, idx, val)
+        else:
+            self.update(2 * node + 1, mid + 1, end, idx, val)
+        # TODO: merge — store the minimum of left and right children
+        self.tree[node] = min(self.tree[2 * node], self.tree[2 * node + 1])
+
+    def query(self, node, start, end, l, r):
+        if r < start or end < l:
+            # TODO: return identity value for minimum
+            return float('inf')
+        if l <= start and end <= r:
+            return self.tree[node]
+        mid = (start + end) // 2
+        p1 = self.query(2 * node, start, mid, l, r)
+        p2 = self.query(2 * node + 1, mid + 1, end, l, r)
+        # TODO: return minimum of p1 and p2
+        return min(p1, p2)
+
+def main():
+    data = sys.stdin.read().split()
+    n, q = int(data[0]), int(data[1])
+    a = [int(data[2 + i]) for i in range(n)]
+    st = SegmentTree(n)
+    st.build(a, 1, 0, n - 1)
+    idx = 2 + n
+    out = []
+    for _ in range(q):
+        t = int(data[idx])
+        if t == 1:
+            i_val, val = int(data[idx+1]), int(data[idx+2])
+            st.update(1, 0, n - 1, i_val, val)
             idx += 3
-    print("\\n".join(out))
+        elif t == 2:
+            l, r = int(data[idx+1]), int(data[idx+2])
+            out.append(str(st.query(1, 0, n - 1, l, r)))
+            idx += 3
+    print("\n".join(out))
 
 if __name__ == '__main__':
     main()`;
+
+// ── Queue Anomalies (Challenge 5) — FROM SCRATCH
+export const ANOMALY_CPP_TEMPLATE = `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    // your code goes here
+
+    return 0;
+}`;
+
+export const ANOMALY_PYTHON_TEMPLATE = `import sys
+
+def solve():
+    # your code goes here
+    pass
+
+if __name__ == '__main__':
+    solve()`;
+
+// ── Queue Anomalies Reconstruction (Challenge 6) — FROM SCRATCH
+export const RECONSTRUCTION_CPP_TEMPLATE = `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    // your code goes here
+
+    return 0;
+}`;
+
+export const RECONSTRUCTION_PYTHON_TEMPLATE = `import sys
+
+def solve():
+    # your code goes here
+    pass
+
+if __name__ == '__main__':
+    solve()`;
+
+
+// ── Challenge 7 / 8 / 9: Sample Test Cases injected into shared map ──
+(SAMPLE_TEST_CASES as any)["challenge7"] = [
+  { label: "Problem Statement Example", input: "5\n5 1 2 2 3 1 3 4 5 4", expected: "1 0 0 0 3" },
+  { label: "All Disjoint",              input: "3\n1 1 2 2 3 3",          expected: "0 0 0"   },
+  { label: "Fully Nested (3 in 2 in 1)",input: "3\n1 2 3 3 2 1",          expected: "2 1 0"   },
+  { label: "Single Ship",               input: "1\n1 1",                   expected: "0"       },
+];
+(SAMPLE_TEST_CASES as any)["challenge8"] = [
+  { label: "Problem Statement Example",   input: "5\n5 1 2 2 3 1 3 4 5 4", expected: "1 0 1 1 1" },
+  { label: "All Disjoint",                input: "3\n1 1 2 2 3 3",          expected: "0 0 0"     },
+  { label: "Fully Nested (no intersect)", input: "3\n1 2 3 3 2 1",          expected: "0 0 0"     },
+  { label: "Two Ships Intersecting",      input: "2\n1 2 1 2",              expected: "1 1"       },
+];
+(SAMPLE_TEST_CASES as any)["challenge9"] = [
+  { label: "Problem Statement Example",   input: "3\n1 2 3\n5\n1 1 2\n1 1 3\n1 2 3\n0 2 1\n1 1 3", expected: "-1\n2\n-1\n3" },
+  { label: "Single Cell",                 input: "1\n5\n1\n1 1 1",  expected: "5" },
+  { label: "Update then Full Query",      input: "4\n1 2 3 4\n2\n0 3 10\n1 1 4", expected: "8" },
+];
+
+
+// ── Challenge 7: Nested Stays — C++ Template ──
+export const SPACEPORT_NESTED_CPP_TEMPLATE = `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    // your code goes here
+
+    return 0;
+}`;
+
+// ── Challenge 7: Nested Stays — Python Template ──
+export const SPACEPORT_NESTED_PYTHON_TEMPLATE = `import sys
+
+def solve():
+    # your code goes here
+    pass
+
+if __name__ == '__main__':
+    solve()`;
+
+// ── Challenge 8: Partial Overlaps — C++ Template ──
+export const SPACEPORT_OVERLAPS_CPP_TEMPLATE = `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    // your code goes here
+
+    return 0;
+}`;
+
+// ── Challenge 8: Partial Overlaps — Python Template ──
+export const SPACEPORT_OVERLAPS_PYTHON_TEMPLATE = `import sys
+
+def solve():
+    # your code goes here
+    pass
+
+if __name__ == '__main__':
+    solve()`;
+
+// ── Challenge 9: Energy Grid Polarities — C++ Template ──
+export const ENERGY_CPP_TEMPLATE = `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    // your code goes here
+
+    return 0;
+}`;
+
+// ── Challenge 9: Energy Grid Polarities — Python Template ──
+export const ENERGY_PYTHON_TEMPLATE = `import sys
+
+def solve():
+    # your code goes here
+    pass
+
+if __name__ == '__main__':
+    solve()`;
