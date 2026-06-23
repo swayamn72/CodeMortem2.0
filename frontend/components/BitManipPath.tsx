@@ -184,27 +184,115 @@ export default function BitManipPath() {
 
         <Section title="What is a Bit?">
           <P>Every piece of data in a computer is stored as <strong>bits</strong> — tiny switches that are either off (0) or on (1). A bit is called <strong style={{ color: "var(--cm-cyan)" }}>set</strong> when it is 1, and <strong>cleared</strong> when it is 0.</P>
-          <P>We always read bits from right to left. The rightmost bit is the <strong>0th bit</strong> (0-indexed). If a problem says "the i-th bit", it means 0-indexed from the right.</P>
+          <P>We always read bits from right to left. The rightmost bit is the <strong>0th bit</strong> (0-indexed). If a problem says &quot;the i-th bit&quot;, it means 0-indexed from the right.</P>
         </Section>
 
         <Section title="Positional Value — Reading Binary Numbers">
-          <P>Each bit position represents a power of 2. The 0th bit is worth 2⁰ = 1, the 1st bit is worth 2¹ = 2, and so on. To convert from binary to decimal, add up the values of all set bits.</P>
-          <CodeBlock code={`// Example: 1101₂
+          <P>Each bit position represents a power of 2. The 0th bit is worth 2^0 = 1, the 1st bit is worth 2^1 = 2, and so on. To convert from binary to decimal, add up the values of all set bits.</P>
+          <CodeBlock code={`// Example: 1101 in binary
 //   Pos:  3  2  1  0  (0-indexed, right-to-left)
 //   Bit:  1  1  0  1
 //   Val:  8  4  2  1
 //
-// Add up the set bits: 8 + 4 + 0 + 1 = 13₁₀`} />
-          <Callout icon="💡">To convert decimal to binary, repeatedly divide by 2 and read the remainders bottom-to-top.</Callout>
+// Add up the set bits: 8 + 4 + 0 + 1 = 13 in decimal`} />
+          <P>To convert <strong>decimal to binary</strong>, repeatedly divide the number by 2 and record each remainder. Then read the remainders from bottom to top.</P>
+          <CodeBlock code={`// Convert 13 to binary:
+//   13 / 2 = 6  remainder 1   (bit 0)
+//    6 / 2 = 3  remainder 0   (bit 1)
+//    3 / 2 = 1  remainder 1   (bit 2)
+//    1 / 2 = 0  remainder 1   (bit 3)
+//
+// Read remainders bottom-to-top: 1101
+// So 13 in decimal = 1101 in binary`} />
+        </Section>
+
+        <Section title="Shift Operators: << and >>">
+          <P>Before understanding the three essential numbers below, you need to know the two <strong>shift operators</strong>. They move all the bits inside a number to the left or to the right by a given number of positions.</P>
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Left Shift ({"<<"})</strong> — shifts all bits to the left by k positions. Zeros are inserted on the right side to fill the gaps. Each left shift by 1 is equivalent to multiplying the number by 2.</P>
+          <CodeBlock code={`// Left Shift: x << k  (shift bits left by k positions)
+//
+// Example: 5 << 1
+//   5 in binary:   00000101
+//   shift left 1:  00001010   (each bit moved one position left, 0 fills the right)
+//   result:        10 in decimal
+//   Notice: 5 * 2 = 10. Left shift by 1 = multiply by 2.
+//
+// Example: 5 << 3
+//   5 in binary:   00000101
+//   shift left 3:  00101000   (bits moved 3 positions left, three 0s fill the right)
+//   result:        40 in decimal
+//   Notice: 5 * 2^3 = 5 * 8 = 40. Left shift by k = multiply by 2^k.
+//
+// Example: 1 << 0 = 1      (no shift at all)
+// Example: 1 << 1 = 2      (binary: 10)
+// Example: 1 << 2 = 4      (binary: 100)
+// Example: 1 << 3 = 8      (binary: 1000)
+// Example: 1 << 4 = 16     (binary: 10000)`} />
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Right Shift ({">>"}) </strong> — shifts all bits to the right by k positions. The bits that fall off the right side are discarded. For non-negative integers, each right shift by 1 is equivalent to integer division by 2 (rounding down).</P>
+          <CodeBlock code={`// Right Shift: x >> k  (shift bits right by k positions)
+//
+// Example: 40 >> 1
+//   40 in binary:  00101000
+//   shift right 1: 00010100   (each bit moved one position right, leftmost filled with 0)
+//   result:        20 in decimal
+//   Notice: 40 / 2 = 20. Right shift by 1 = divide by 2.
+//
+// Example: 40 >> 3
+//   40 in binary:  00101000
+//   shift right 3: 00000101   (bits moved 3 positions right, three rightmost bits lost)
+//   result:        5 in decimal
+//   Notice: 40 / 2^3 = 40 / 8 = 5. Right shift by k = divide by 2^k (floor).
+//
+// Example: 7 >> 1
+//   7 in binary:   00000111
+//   shift right 1: 00000011   (the rightmost 1 falls off and is lost)
+//   result:        3 in decimal
+//   Notice: 7 / 2 = 3.5, but integer division floors it to 3.`} />
+
+          <Callout icon="*" color="var(--cm-cyan)">Summary: <code>x {"<<"} k</code> multiplies x by 2^k. <code>x {">>"} k</code> divides x by 2^k (rounding down). Shifting by k is far faster than actual multiplication or division on a CPU, but in competitive programming we use it primarily for bit manipulation patterns, not for speed.</Callout>
         </Section>
 
         <Section title="Three Essential Numbers">
+          <P>Now that you understand shifts, here are three number patterns that appear constantly in bit manipulation. Each one uses the left shift operator to construct a useful binary value.</P>
           <TrickTable rows={[
-            ["1 << k",  "The number with ONLY bit k set",        "1 << 3 = 8 = 1000₂"],
-            ["0",       "All bits cleared — the empty set",      "0 = 00000000₂"],
-            ["(1<<N)-1","All N low bits set — the full set",     "(1<<4)-1 = 15 = 1111₂"],
+            ["1 << k",  "The number with ONLY bit k set",        "1 << 3 = 8 = 1000 in binary"],
+            ["0",       "All bits cleared — the empty set",      "0 = 00000000 in binary"],
+            ["(1<<N)-1","All N low bits set — the full set",     "(1<<4)-1 = 15 = 1111 in binary"],
           ]} />
-          <P>These three forms appear constantly in bit manipulation. Internalize them now.</P>
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Pattern 1: <code>1 {"<<"} k</code></strong> — This creates a number where only the k-th bit is set to 1, and every other bit is 0. The number 1 in binary is just <code>...0001</code>. Left-shifting it by k positions moves that single 1 to position k. This is how you create a &quot;mask&quot; to target a specific bit.</P>
+          <CodeBlock code={`// 1 << k creates a "mask" with only bit k turned on:
+//
+// 1 << 0  =  1   =  00000001   (bit 0 is set)
+// 1 << 1  =  2   =  00000010   (bit 1 is set)
+// 1 << 2  =  4   =  00000100   (bit 2 is set)
+// 1 << 3  =  8   =  00001000   (bit 3 is set)
+// 1 << 7  = 128  =  10000000   (bit 7 is set)
+//
+// Why this matters: you use (1 << k) to set, clear, toggle,
+// or check a specific bit inside any number.`} />
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Pattern 2: <code>0</code></strong> — Zero means every bit is 0. In the context of bitmasks (where each bit represents whether an item is included), zero represents the empty set — nothing is selected.</P>
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Pattern 3: <code>(1 {"<<"} N) - 1</code></strong> — This creates a number where the lowest N bits are all set to 1. Here is why it works: <code>1 {"<<"} N</code> gives you a 1 followed by N zeros (for example, <code>1 {"<<"} 4 = 10000</code>). Subtracting 1 from it flips that leading 1 to 0 and turns all the zeros below it into ones (for example, <code>10000 - 1 = 01111</code>). The result is a number with exactly N bits all set to 1.</P>
+          <CodeBlock code={`// (1 << N) - 1 gives you a number with N bits all set to 1:
+//
+// Step by step for N = 4:
+//   1 << 4  = 16  = 10000   (a 1 followed by four 0s)
+//   16 - 1  = 15  = 01111   (subtract 1: the leading 1 drops, four 0s become 1s)
+//
+// More examples:
+//   (1 << 1) - 1 =  1  = 1           (one bit set)
+//   (1 << 2) - 1 =  3  = 11          (two bits set)
+//   (1 << 3) - 1 =  7  = 111         (three bits set)
+//   (1 << 4) - 1 = 15  = 1111        (four bits set)
+//   (1 << 8) - 1 = 255 = 11111111    (eight bits set)
+//
+// In bitmask problems, this represents the "full set"
+// where all N items are selected.`} />
+          <Callout icon="*" color="var(--cm-cyan)">These three forms are the building blocks of every technique in this course. <code>1 {"<<"} k</code> targets a single bit. <code>0</code> means nothing is set. <code>(1{"<<"}N)-1</code> means everything is set. You will see them in every lesson that follows.</Callout>
         </Section>
 
 
@@ -390,33 +478,100 @@ while (n) {
         <LessonHeading num="Lesson 6" title="XOR Properties and Applications" />
 
         <Section title="XOR Identities">
+          <P>XOR has four properties that make it uniquely powerful. These are not just theory — they are the reason entire categories of competitive programming problems can be solved in O(N) time with O(1) space.</P>
           <TrickTable rows={[
-            ["a ^ a = 0",         "XOR with itself cancels out",   "5 ^ 5 = 0"],
-            ["a ^ 0 = a",         "XOR with 0 is identity",        "5 ^ 0 = 5"],
-            ["a ^ b = b ^ a",     "Commutative",                   "3^5 = 5^3"],
-            ["(a^b)^c = a^(b^c)", "Associative",                   "Pairs cancel anywhere"],
+            ["a ^ a = 0",         "Self-cancellation: any value XORed with itself gives 0",   "5 ^ 5 = 0"],
+            ["a ^ 0 = a",         "Identity: XOR with 0 leaves the value unchanged",          "5 ^ 0 = 5"],
+            ["a ^ b = b ^ a",     "Commutative: order does not matter",                       "3^5 = 5^3 = 6"],
+            ["(a^b)^c = a^(b^c)", "Associative: grouping does not matter",                    "Pairs cancel in any order"],
           ]} />
+          <P>The self-cancellation property (<code>a ^ a = 0</code>) is the most important one. Combined with commutativity and associativity, it means that if you XOR a collection of numbers together, any value that appears an even number of times will completely vanish from the result.</P>
         </Section>
 
         <Section title="Classic Application: Find the Single Non-Duplicate">
-          <CodeBlock code={`// [4, 1, 2, 1, 2]
-// 4 ^ 1 ^ 2 ^ 1 ^ 2
-// = 4 ^ (1^1) ^ (2^2)
-// = 4 ^ 0 ^ 0 = 4  ✓
+          <P>Given an array where every number appears exactly twice except one, find the unique number. The brute-force approach uses a hash map (O(N) space). XOR solves it in O(1) space.</P>
+          <CodeBlock code={`// Array: [4, 1, 2, 1, 2]
 //
-// All pairs cancel to 0. The lone survivor remains.`} />
-          <P>Because XOR is commutative and associative, the order doesn't matter — pairs will always find each other and cancel, no matter where they appear in the array.</P>
+// XOR every element together, step by step:
+//   Start:       result = 0
+//   XOR with 4:  result = 0 ^ 4 = 4
+//   XOR with 1:  result = 4 ^ 1 = 5
+//   XOR with 2:  result = 5 ^ 2 = 7
+//   XOR with 1:  result = 7 ^ 1 = 6     (the first 1 and second 1 are cancelling)
+//   XOR with 2:  result = 6 ^ 2 = 4     (the first 2 and second 2 are cancelling)
+//
+// Final result = 4. That is the unique number.
+//
+// Why? Because XOR is commutative and associative, we can regroup:
+//   4 ^ 1 ^ 2 ^ 1 ^ 2
+// = 4 ^ (1 ^ 1) ^ (2 ^ 2)
+// = 4 ^ 0 ^ 0
+// = 4`} />
+          <P>The key insight: it does not matter where duplicates appear in the array. XOR will always find and cancel them, leaving only the unique value behind.</P>
         </Section>
 
-        <Section title="XOR Prefix Arrays">
-          <CodeBlock code={`// XOR prefix array — enables range XOR queries in O(1):
-// xor_prefix[i] = a[0] ^ a[1] ^ ... ^ a[i-1]
-vector<int> xp(n + 1, 0);
-for (int i = 0; i < n; i++) xp[i+1] = xp[i] ^ a[i];
+        <XorChainExplorer />
 
-// XOR of a[l..r]:
-int range_xor = xp[r+1] ^ xp[l];
-// Works because xp[r+1] ^ xp[l] cancels elements before l.`} />
+        <Section title="XOR Prefix Arrays">
+          <P>A <strong>prefix XOR array</strong> is a technique that lets you compute the XOR of any contiguous subarray in O(1) time, after O(N) preprocessing. It works exactly like a prefix sum array, but with XOR instead of addition.</P>
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>The idea</strong>: Build an array <code>xp</code> where <code>xp[i]</code> stores the XOR of all elements from index 0 up to (but not including) index i. Then the XOR of any range [L..R] can be computed by XORing just two values from this array.</P>
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Step 1: Build the prefix XOR array</strong></P>
+          <CodeBlock code={`// Given array a[] of size n:
+vector<int> xp(n + 1, 0);   // xp has n+1 entries, all starting at 0
+
+// xp[0] = 0                 (XOR of zero elements)
+// xp[1] = a[0]              (XOR of first 1 element)
+// xp[2] = a[0] ^ a[1]       (XOR of first 2 elements)
+// xp[3] = a[0] ^ a[1] ^ a[2]
+// ...
+// xp[i] = a[0] ^ a[1] ^ ... ^ a[i-1]
+
+for (int i = 0; i < n; i++)
+    xp[i + 1] = xp[i] ^ a[i];`} />
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Step 2: Query any range [L..R] in O(1)</strong></P>
+          <CodeBlock code={`int range_xor = xp[R + 1] ^ xp[L];`} />
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Why does this work?</strong> Let us trace through the math carefully.</P>
+          <CodeBlock code={`// xp[R+1] contains: a[0] ^ a[1] ^ ... ^ a[L-1] ^ a[L] ^ ... ^ a[R]
+// xp[L]   contains: a[0] ^ a[1] ^ ... ^ a[L-1]
+//
+// When we compute xp[R+1] ^ xp[L]:
+//   = (a[0] ^ a[1] ^ ... ^ a[L-1] ^ a[L] ^ ... ^ a[R])
+//     ^
+//     (a[0] ^ a[1] ^ ... ^ a[L-1])
+//
+// The elements a[0] through a[L-1] appear in BOTH sides.
+// Since x ^ x = 0 (self-cancellation), they all cancel out:
+//
+//   = a[L] ^ a[L+1] ^ ... ^ a[R]
+//
+// That is exactly the XOR of the range [L..R].`} />
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Concrete example</strong>: Array <code>a = [3, 1, 5, 2, 4]</code></P>
+          <CodeBlock code={`// Build prefix XOR array:
+//   xp[0] = 0
+//   xp[1] = 0 ^ 3         = 3
+//   xp[2] = 3 ^ 1         = 2
+//   xp[3] = 2 ^ 5         = 7
+//   xp[4] = 7 ^ 2         = 5
+//   xp[5] = 5 ^ 4         = 1
+//
+// Index:    0   1   2   3   4   5
+// xp:     [ 0,  3,  2,  7,  5,  1 ]
+//
+// Query: XOR of a[1..3] = a[1] ^ a[2] ^ a[3] = 1 ^ 5 ^ 2 = 6
+// Using prefix array:  xp[4] ^ xp[1] = 5 ^ 3 = 6   (same answer)
+//
+// Query: XOR of a[0..4] = 3 ^ 1 ^ 5 ^ 2 ^ 4 = 1
+// Using prefix array:  xp[5] ^ xp[0] = 1 ^ 0 = 1   (same answer)
+//
+// Query: XOR of a[2..2] = a[2] = 5
+// Using prefix array:  xp[3] ^ xp[2] = 7 ^ 2 = 5   (same answer)`} />
+
+          <Callout icon="*" color="var(--cm-cyan)">If you already know prefix sum arrays, the XOR prefix array works identically -- just replace addition with XOR and subtraction with XOR (since XOR is its own inverse: a ^ b ^ b = a, just like a + b - b = a).</Callout>
         </Section>
 
         <NavBtn label="Next: Code Challenge →" onClick={() => go("lesson6", "challenge4")} />
@@ -426,39 +581,179 @@ int range_xor = xp[r+1] ^ xp[l];
       case "lesson7": return (<>
         <LessonHeading num="Lesson 7" title="Subset Enumeration" />
 
-        <Section title="Iterating All 2ᴺ Subsets">
-          <P>For N items, there are exactly 2^N subsets. An integer with N bits can represent any of them — bit i is 1 if item i is in the subset.</P>
+        <Section title="The Problem Subset Enumeration Solves">
+          <P>Many competitive programming problems ask you to consider <strong>every possible selection</strong> from a set of items. For example: given N items with weights and values, which combination maximizes value while staying under a weight limit? Or: given N cities, what is the shortest route that visits all of them?</P>
+          <P>When N is small (typically N &le; 20), you can afford to try every possible subset. The key insight is that <strong>an integer can represent a subset</strong>: if bit i is 1, item i is included; if bit i is 0, item i is excluded.</P>
+        </Section>
+
+        <Section title="Why an Integer Represents a Subset">
+          <P>Consider N = 3 items: A (index 0), B (index 1), C (index 2). An integer with 3 bits can encode any subset:</P>
+          <CodeBlock code={`// N = 3 items: A, B, C
+//
+// mask = 0  (binary 000)  -->  subset = {}           (nothing selected)
+// mask = 1  (binary 001)  -->  subset = {A}          (only bit 0 is set)
+// mask = 2  (binary 010)  -->  subset = {B}          (only bit 1 is set)
+// mask = 3  (binary 011)  -->  subset = {A, B}       (bits 0 and 1 are set)
+// mask = 4  (binary 100)  -->  subset = {C}          (only bit 2 is set)
+// mask = 5  (binary 101)  -->  subset = {A, C}       (bits 0 and 2 are set)
+// mask = 6  (binary 110)  -->  subset = {B, C}       (bits 1 and 2 are set)
+// mask = 7  (binary 111)  -->  subset = {A, B, C}    (all bits set)
+//
+// That is 2^3 = 8 subsets total, represented by integers 0 through 7.
+// In general, N items produce 2^N subsets, represented by 0 through (2^N - 1).`} />
+          <P>This is why <code>(1 {"<<"} N)</code> equals the number of subsets: it gives 2^N, and the integers 0 through 2^N - 1 cover every possible combination of N bits.</P>
+        </Section>
+
+        <Section title="The Enumeration Loop">
+          <P>To try every subset, loop from 0 to <code>(1 {"<<"} N) - 1</code>. For each mask, check which bits are set to determine which items are in that subset:</P>
           <CodeBlock code={`// Iterate all 2^N subsets:
 for (int mask = 0; mask < (1 << N); mask++) {
-    for (int i = 0; i < N; i++)
-        if (mask & (1 << i))
-            // item i is in this subset
 
-// mask = 0b000 = {} (empty)
-// mask = 0b001 = {item 0}
-// mask = 0b010 = {item 1}
-// mask = 0b011 = {item 0, item 1}  ... etc.`} />
-          <Callout icon="💡">N ≤ 20 is the threshold where 2^N ≈ 10⁶ is feasible. Whenever a problem says N ≤ 20 and asks about subsets or selections, think bitmask enumeration.</Callout>
+    // For this mask, find which items are included:
+    for (int i = 0; i < N; i++) {
+        if (mask & (1 << i)) {
+            // Item i is in this subset.
+            // Do something with item i.
+        }
+    }
+}`} />
+          <P>Let us trace this for N = 3 with items having weights [2, 3, 5]:</P>
+          <CodeBlock code={`// Suppose we want to find which subsets have total weight <= 6.
+//
+// mask = 0 (000): no items selected.       Weight = 0.        <= 6? Yes.
+// mask = 1 (001): item 0 selected.         Weight = 2.        <= 6? Yes.
+// mask = 2 (010): item 1 selected.         Weight = 3.        <= 6? Yes.
+// mask = 3 (011): items 0,1 selected.      Weight = 2+3 = 5.  <= 6? Yes.
+// mask = 4 (100): item 2 selected.         Weight = 5.        <= 6? Yes.
+// mask = 5 (101): items 0,2 selected.      Weight = 2+5 = 7.  <= 6? No.
+// mask = 6 (110): items 1,2 selected.      Weight = 3+5 = 8.  <= 6? No.
+// mask = 7 (111): items 0,1,2 selected.    Weight = 2+3+5=10. <= 6? No.
+//
+// Answer: 5 subsets have total weight <= 6.`} />
         </Section>
 
-        <Section title="Iterating All Submasks — O(3ᴺ) Total">
+        <Section title="When Can You Use This?">
+          <P>The total number of subsets is 2^N. This grows very fast:</P>
+          <TrickTable rows={[
+            ["N = 10",  "2^10 = 1,024",        "Always fast"],
+            ["N = 15",  "2^15 = 32,768",       "Fast"],
+            ["N = 20",  "2^20 = 1,048,576",    "Feasible (around 10^6)"],
+            ["N = 25",  "2^25 = 33,554,432",   "Tight, but sometimes works"],
+            ["N = 30",  "2^30 = 1,073,741,824","Too slow for most problems"],
+          ]} />
+          <Callout icon="*" color="var(--cm-cyan)">The rule of thumb: if a problem has N &le; 20 and asks about selecting, choosing, or visiting items, subset enumeration with bitmasks is almost certainly the intended approach.</Callout>
+        </Section>
+
+        <Section title="Practical Example: Subset Sum with DP">
+          <P>Here is a complete, realistic example. Given N items with values, compute the maximum value subset where the total weight does not exceed W. This is the classic 0/1 Knapsack problem solved by trying all subsets:</P>
+          <CodeBlock code={`int N;
+int weight[N], value[N];
+int W;  // max allowed weight
+
+int best = 0;
+
+for (int mask = 0; mask < (1 << N); mask++) {
+    int totalWeight = 0, totalValue = 0;
+
+    for (int i = 0; i < N; i++) {
+        if (mask & (1 << i)) {         // is item i in this subset?
+            totalWeight += weight[i];
+            totalValue  += value[i];
+        }
+    }
+
+    if (totalWeight <= W) {
+        best = max(best, totalValue);  // update best if valid
+    }
+}
+
+cout << best << endl;
+// Time: O(2^N * N). Feasible when N <= 20.`} />
+        </Section>
+
+        <Section title="Iterating All Submasks of a Given Mask">
+          <P>Sometimes you do not want all 2^N subsets. Instead, you have a specific mask and want to enumerate only its <strong>submasks</strong> -- subsets that use only the bits that are set in the original mask.</P>
+          <P>For example, if mask = 0b10110, its submasks are all combinations of bits 1, 2, and 4 (the three set bits). The submasks are: 10110, 10100, 10010, 10000, 00110, 00100, 00010, 00000. That is 2^3 = 8 submasks for a mask with 3 set bits.</P>
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>The loop:</strong></P>
           <CodeBlock code={`// Enumerate all non-empty submasks of 'mask':
-for (int s = mask; s > 0; s = (s - 1) & mask)
+for (int s = mask; s > 0; s = (s - 1) & mask) {
     // process submask s
+}
+// Note: this loop does NOT include s = 0 (the empty submask).
+// If you need the empty submask, handle it separately after the loop.`} />
 
-// The expression (s-1) & mask:
-// (s-1) clears the lowest set bit of s and sets all bits below it
-// & mask then zeroes out any bits outside our original mask`} />
-          <Callout icon="📐"><strong>Why O(3^N) total?</strong> Consider each of the N bit positions independently. A bit can be: (1) zero in mask — always zero, no choice; (2) one in mask but zero in submask s; or (3) one in both. That's 3 states per bit, and 3^N total iterations summed across all masks. It's not O(2^N × 2^N) = O(4^N).</Callout>
-          <Callout icon="⚠️" color="var(--cm-yellow)">The loop never processes s = 0 (the empty submask). If you need to handle the empty set, do so separately after the loop.</Callout>
+          <P><strong style={{ color: "var(--cm-cyan)" }}>How does <code>(s - 1) & mask</code> work?</strong> Let us trace it step by step with mask = 0b1010 (decimal 10):</P>
+          <CodeBlock code={`// mask = 1010 (bits 1 and 3 are set)
+// Submasks of 1010 are: 1010, 1000, 0010, 0000
+//
+// Step 1:  s = 1010                (start with the full mask)
+//          process s = 1010
+//
+// Step 2:  s-1   = 1001            (subtract 1: lowest set bit flips, bits below set)
+//          & mask = 1001 & 1010
+//                 = 1000           (keep only bits that exist in mask)
+//          process s = 1000
+//
+// Step 3:  s-1   = 0111            (subtract 1 from 1000)
+//          & mask = 0111 & 1010
+//                 = 0010           (only bit 1 survives)
+//          process s = 0010
+//
+// Step 4:  s-1   = 0001            (subtract 1 from 0010)
+//          & mask = 0001 & 1010
+//                 = 0000           (no bits survive)
+//          s = 0, loop condition s > 0 fails, we stop.
+//
+// Processed submasks: 1010, 1000, 0010. (Empty submask 0000 was excluded.)`} />
+
+          <P><strong style={{ color: "var(--cm-cyan)" }}>Why is the total work O(3^N)?</strong> When you iterate submasks for every possible mask (which is common in subset DP), each of the N bit positions has exactly 3 possible states:</P>
+          <CodeBlock code={`// For each bit position, across all (mask, submask) pairs:
+//
+//   State 1: bit is 0 in mask  -->  bit is always 0 in submask (no choice)
+//   State 2: bit is 1 in mask, AND bit is 0 in submask
+//   State 3: bit is 1 in mask, AND bit is 1 in submask
+//
+// 3 states per bit, N bits total = 3^N total iterations across ALL masks.
+// This is much better than the naive O(4^N) bound.
+//
+// For N = 20:  3^20 = ~3.5 billion  (too slow)
+// For N = 15:  3^15 = ~14 million   (feasible)
+// For N = 13:  3^13 = ~1.6 million  (comfortable)`} />
+          <Callout icon="*" color="var(--cm-yellow)">Submask enumeration over all masks is feasible for N &le; 15 approximately. For pure subset enumeration (no submask-of-submask), the limit is N &le; 20.</Callout>
         </Section>
 
-        <Section title="CP Applications">
-          <ul style={{ color: "var(--text-secondary)", lineHeight: 2.1, paddingLeft: "1.25rem", fontSize: "0.95rem" }}>
-            <li><strong>Brute force on small N</strong> — try all subsets when N ≤ 20</li>
-            <li><strong>Visited state tracking</strong> — "which cities have I visited?" = one int</li>
-            <li><strong>Subset DP</strong> — compute answers for all subsets, building up from smaller ones</li>
-          </ul>
+        <Section title="Subset DP: The Travelling Salesman Problem">
+          <P>The most famous application of subset enumeration is the bitmask DP solution to the Travelling Salesman Problem (TSP). The state is <code>dp[mask][last]</code> = minimum cost to visit exactly the cities in mask, ending at city last.</P>
+          <CodeBlock code={`// TSP with bitmask DP:
+// dp[mask][i] = min cost to visit all cities in 'mask', ending at city i
+//
+// N cities, dist[i][j] = distance from city i to city j
+int dp[1 << N][N];
+memset(dp, 0x3f, sizeof dp);   // fill with infinity
+dp[1][0] = 0;                  // start at city 0, only city 0 visited
+
+for (int mask = 1; mask < (1 << N); mask++) {
+    for (int last = 0; last < N; last++) {
+        if (dp[mask][last] >= INF) continue;    // unreachable state
+        if (!(mask & (1 << last))) continue;    // last must be in mask
+
+        // Try going to each unvisited city 'next':
+        for (int next = 0; next < N; next++) {
+            if (mask & (1 << next)) continue;   // already visited
+
+            int newMask = mask | (1 << next);   // mark 'next' as visited
+            dp[newMask][next] = min(
+                dp[newMask][next],
+                dp[mask][last] + dist[last][next]
+            );
+        }
+    }
+}
+
+// Answer: min over all ending cities of dp[(1<<N)-1][i] + dist[i][0]
+// Time: O(2^N * N^2).   Feasible for N <= 20.`} />
+          <P>Notice how the visited set is compressed into a single integer (mask). Without bitmasks, you would need a boolean array for each state, making DP impractical.</P>
         </Section>
 
         <SubsetVisualizer />

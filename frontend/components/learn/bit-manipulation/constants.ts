@@ -134,7 +134,7 @@ export const SAMPLE_TEST_CASES: Record<string, SampleCase[]> = {
     { input: "0 0 7",  expected: "255", label: "Flip all 8 bits" },
     { input: "255 0 7", expected: "0",  label: "Flip 255 back to 0" },
     { input: "1 0 0",   expected: "0",  label: "Flip only bit 0" },
-    { input: "100 2 5", expected: "92", label: "N=100, L=2, R=5" },
+    { input: "100 2 5", expected: "88", label: "N=100, L=2, R=5" },
   ],
   challenge4: [
     { input: "5\n4 1 2 1 2", expected: "4", label: "[4,1,2,1,2] → 4" },
