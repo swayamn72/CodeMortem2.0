@@ -41,24 +41,53 @@ const verdictColor = (v: string) => {
 };
 function renderMarkdownText(text: string) {
   if (!text) return null;
-  return text.split("\n\n").map((para, i) => {
-    const parts = para.split(/(\*\*.*?\*\*|_.*?_|`.*?`)/g);
-    return (
-      <p key={i} style={{ marginBottom: "0.75rem", lineHeight: 1.6 }}>
-        {parts.map((p, j) => {
-          if (p.startsWith("**") && p.endsWith("**")) {
-            return <strong key={j} style={{ color: "var(--text-primary)", fontWeight: 600 }}>{p.slice(2, -2)}</strong>;
-          }
-          if (p.startsWith("_") && p.endsWith("_")) {
-            return <em key={j}>{p.slice(1, -1)}</em>;
-          }
-          if (p.startsWith("`") && p.endsWith("`")) {
-            return <code key={j} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 4px", borderRadius: 4, color: "var(--cm-cyan)", fontSize: "0.9em", fontFamily: "monospace" }}>{p.slice(1, -1)}</code>;
-          }
-          return p.split("\n").flatMap((line, k, arr) => k < arr.length - 1 ? [line, <br key={`br-${j}-${k}`} />] : [line]);
-        })}
-      </p>
-    );
+
+  const blocks: { type: 'text' | 'code', content: string, lang?: string }[] = [];
+  const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+  let lastIndex = 0;
+  let match;
+  
+  while ((match = codeBlockRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      blocks.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+    }
+    blocks.push({ type: 'code', lang: match[1] || 'cpp', content: match[2].trim() });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    blocks.push({ type: 'text', content: text.substring(lastIndex) });
+  }
+
+  return blocks.map((block, i) => {
+    if (block.type === 'code') {
+      const lineCount = block.content.split("\n").length;
+      return (
+        <div key={i} style={{ height: Math.min(lineCount * 21 + 24, 400), marginBottom: "1rem", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <CodeEditor value={block.content} language={block.lang!} onChange={() => {}} readOnly={true} />
+        </div>
+      );
+    }
+
+    return block.content.split("\n\n").map((para, j) => {
+      if (!para.trim()) return null;
+      const parts = para.split(/(\*\*.*?\*\*|_.*?_|`.*?`)/g);
+      return (
+        <p key={`${i}-${j}`} style={{ marginBottom: "0.75rem", lineHeight: 1.6 }}>
+          {parts.map((p, k) => {
+            if (p.startsWith("**") && p.endsWith("**")) {
+              return <strong key={k} style={{ color: "var(--text-primary)", fontWeight: 600 }}>{p.slice(2, -2)}</strong>;
+            }
+            if (p.startsWith("_") && p.endsWith("_")) {
+              return <em key={k}>{p.slice(1, -1)}</em>;
+            }
+            if (p.startsWith("`") && p.endsWith("`")) {
+              return <code key={k} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 4px", borderRadius: 4, color: "var(--cm-cyan)", fontSize: "0.9em", fontFamily: "monospace" }}>{p.slice(1, -1)}</code>;
+            }
+            return p.split("\n").flatMap((line, idx, arr) => idx < arr.length - 1 ? [line, <br key={`br-${k}-${idx}`} />] : [line]);
+          })}
+        </p>
+      );
+    });
   });
 }
 
@@ -144,6 +173,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
   const [activeCaseIdx, setActiveCaseIdx] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [resetType, setResetType] = useState<"starter" | "reference" | null>(null);
 
   // Reset when challenge changes — restore the starter template
   useEffect(() => {
@@ -472,12 +502,14 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                   } else if (i % 3 === 2) {
                     // Code segment
                     const lang = arr[i - 1] || "cpp";
+                    const cleanCode = part.trim();
+                    const lineCount = cleanCode.split("\n").length;
                     acc.push(
                       <div key={`code-${i}`} style={{ marginBottom: "1rem" }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cm-cyan)", letterSpacing: "0.5px", marginBottom: 4, textTransform: "uppercase" }}>{lang === "python" ? "Python" : "C++"}</div>
-                        <pre style={{ background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-cyan)", borderRadius: "0 8px 8px 0", padding: "0.9rem 1rem", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#cdd3de", lineHeight: 1.7, overflowX: "auto", margin: 0 }}>
-                          <code>{part}</code>
-                        </pre>
+                        <div style={{ height: Math.min(lineCount * 21 + 24, 400), background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-cyan)", borderRadius: "0 8px 8px 0", overflow: "hidden" }}>
+                          <CodeEditor value={cleanCode} language={lang} onChange={() => {}} readOnly={true} />
+                        </div>
                       </div>
                     );
                   }
@@ -528,8 +560,23 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 {l === "cpp" ? "C++" : "Python"}
               </button>
             ))}
+            {(challenge.templates || challenge.referenceTemplates) && (
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                style={{
+                  padding: "3px 12px", borderRadius: 6,
+                  cursor: "pointer", fontSize: 12, fontWeight: 700,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--text-secondary)",
+                  marginLeft: 8,
+                }}
+              >
+                Refer Template
+              </button>
+            )}
             <button
-              onClick={() => setShowTemplateModal(true)}
+              onClick={() => setResetType("starter")}
               style={{
                 padding: "3px 12px", borderRadius: 6,
                 cursor: "pointer", fontSize: 12, fontWeight: 700,
@@ -539,7 +586,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 marginLeft: 8,
               }}
             >
-              Refer Template
+              Reset
             </button>
             <div style={{ flex: 1 }} />
             <button
@@ -663,7 +710,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                             {verdictLabel(activeResult.verdict)}
                           </div>
                           <div style={{ color: "var(--text-muted)", fontSize: 11, lineHeight: 1.6 }}>
-                            Failed on hidden test case #{activeCaseIdx + 1}.<br />
+                            {activeResult.verdict === "accepted" ? "Passed" : "Failed on"} hidden test case #{activeCaseIdx + 1}.<br />
                             Hidden test inputs and expected outputs are not shown.
                           </div>
                         </div>
@@ -858,19 +905,17 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 ✕
               </button>
             </div>
-            <div style={{ flex: 1, overflowY: "auto", background: "#0b0b10", borderRadius: 8, padding: 16, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <pre style={{ margin: 0, fontFamily: "monospace", fontSize: 13, color: "var(--text-primary)", lineHeight: 1.6 }}>
-                <code>{challenge.templates?.[lang] || TEMPLATES[lang]}</code>
-              </pre>
+            <div style={{ height: 400, overflow: "hidden", background: "#0b0b10", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
+              <CodeEditor 
+                value={challenge.referenceTemplates?.[lang] || challenge.templates?.[lang] || TEMPLATES[lang]} 
+                language={lang} 
+                onChange={() => {}} 
+                readOnly={true} 
+              />
             </div>
             <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 12 }}>
               <button
-                onClick={() => {
-                  if (confirm("Are you sure you want to replace your current code with the template? This will erase your work.")) {
-                    setCode(challenge.templates?.[lang] || TEMPLATES[lang]);
-                    setShowTemplateModal(false);
-                  }
-                }}
+                onClick={() => setResetType("reference")}
                 style={{
                   padding: "8px 16px", borderRadius: 6, cursor: "pointer",
                   fontSize: 13, fontWeight: 600,
@@ -889,6 +934,71 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ★ RESET CONFIRM MODAL ★ */}
+      {resetType && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setResetType(null);
+          }}
+          style={{
+            position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200,
+          }}
+        >
+          <div style={{
+            background: "#12121a", border: "1px solid rgba(255,100,100,0.2)",
+            borderRadius: 12, padding: 32, width: "90%", maxWidth: 400,
+            display: "flex", flexDirection: "column", alignItems: "center",
+            boxShadow: "0 10px 40px rgba(0,0,0,0.5)", textAlign: "center",
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 16 }}>⚠️</div>
+            <h2 style={{ margin: "0 0 12px 0", color: "var(--text-primary)", fontSize: 20 }}>
+              Reset Code?
+            </h2>
+            <p style={{ margin: "0 0 28px 0", color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>
+              Are you sure you want to {resetType === "starter" ? "reset your code" : "replace your code with the template"}? This will erase your current work and cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: 16, width: "100%" }}>
+              <button
+                onClick={() => setResetType(null)}
+                style={{
+                  flex: 1, padding: "12px 0", borderRadius: 8, cursor: "pointer",
+                  fontSize: 14, fontWeight: 600,
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--text-primary)", transition: "background 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (resetType === "starter") {
+                    setCode(challenge.templates?.[lang] || TEMPLATES[lang]);
+                  } else {
+                    setCode(challenge.referenceTemplates?.[lang] || challenge.templates?.[lang] || TEMPLATES[lang]);
+                    setShowTemplateModal(false);
+                  }
+                  setResetType(null);
+                }}
+                style={{
+                  flex: 1, padding: "12px 0", borderRadius: 8, cursor: "pointer",
+                  fontSize: 14, fontWeight: 600,
+                  background: "rgba(255,100,100,0.15)", border: "1px solid rgba(255,100,100,0.4)",
+                  color: "var(--cm-red)", transition: "background 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,100,100,0.25)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,100,100,0.15)"}
+              >
+                Yes, Reset
               </button>
             </div>
           </div>

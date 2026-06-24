@@ -854,7 +854,7 @@ int main() {
     return 0;
 }`;
 
-export const ESCAPE_PYTHON_TEMPLATE = `import sys
+export const ESCAPE_PYTHON_REFERENCE = `import sys
 sys.setrecursionlimit(300000)
 
 # Cheapest Escape Route
@@ -980,6 +980,15 @@ def main():
 
 if __name__ == '__main__':
     main()`;
+
+export const ESCAPE_PYTHON_TEMPLATE = `import sys
+
+def solve():
+    # your code goes here
+    pass
+
+if __name__ == '__main__':
+    solve()`;
 
 // ── Queue Anomalies (Challenge 5) — FROM SCRATCH
 export const ANOMALY_CPP_TEMPLATE = `#include <iostream>
@@ -1189,6 +1198,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
   challenge4: {
     id: "challenge4",
     templates: { cpp: ESCAPE_CPP_TEMPLATE, python: ESCAPE_PYTHON_TEMPLATE },
+    referenceTemplates: { cpp: ESCAPE_CPP_REFERENCE, python: ESCAPE_PYTHON_REFERENCE },
     backendId: "escape_route",
     title: "Cheapest Escape Route",
     difficulty: "Medium",

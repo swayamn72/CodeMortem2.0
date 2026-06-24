@@ -45,14 +45,25 @@ a = [rng.randint(lo, hi) for _ in range(n)]
 print(n, q)
 print(*a)
 for _ in range(q):
-    t = rng.randint(1, 2)
+    # For large tests, 80% queries, 20% updates to maximize work for naive
+    if seed >= 15:
+        t = 1 if rng.random() < 0.2 else 2
+    else:
+        t = rng.randint(1, 2)
+        
     if t == 1:
         idx = rng.randint(0, n - 1)
         val = rng.randint(lo, hi)
         print(1, idx, val)
     else:
-        l = rng.randint(0, n - 1)
-        r = rng.randint(l, n - 1)
+        # Force large queries in large tests to defeat fast vectorized O(N^2)
+        if seed >= 15 and rng.random() < 0.8:
+            l = rng.randint(0, max(0, n // 10))
+            r = rng.randint(min(n - 1, n - 1 - n // 10), n - 1)
+            if l > r: l, r = r, l
+        else:
+            l = rng.randint(0, n - 1)
+            r = rng.randint(l, n - 1)
         print(2, l, r)
 `
 
@@ -276,14 +287,23 @@ discounts = [rng.randint(0, 999) for _ in range(n)]
 print(n, q)
 print(*discounts)
 for _ in range(q):
-    t = rng.randint(1, 2)
+    if seed >= 15:
+        t = 1 if rng.random() < 0.2 else 2
+    else:
+        t = rng.randint(1, 2)
+        
     if t == 1:
         i = rng.randint(1, n)
         v = rng.randint(0, 999)
         print(1, i, v)
     else:
-        l = rng.randint(1, n)
-        r = rng.randint(l, n)
+        if seed >= 15 and rng.random() < 0.8:
+            l = rng.randint(1, max(1, n // 10))
+            r = rng.randint(min(n, n - n // 10), n)
+            if l > r: l, r = r, l
+        else:
+            l = rng.randint(1, n)
+            r = rng.randint(l, n)
         print(2, l, r)
 `,
 

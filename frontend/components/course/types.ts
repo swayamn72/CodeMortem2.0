@@ -23,6 +23,8 @@ export interface ChallengeConfig {
   id: string;
   /** optional starter code mapped by language */
   templates?: Record<"cpp" | "python", string>;
+  /** optional reference template code shown in the modal (if different from templates) */
+  referenceTemplates?: Record<"cpp" | "python", string>;
   /** backend challengeId sent to /learning-path/submit */
   backendId: string;
   title: string;

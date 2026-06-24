@@ -50,21 +50,22 @@ function P({ children }: { children: React.ReactNode }) {
   return <p style={{ color: "var(--text-secondary)", lineHeight: 1.8, marginBottom: "0.85rem", fontSize: "0.96rem" }}>{children}</p>;
 }
 
+import CodeEditor from "@/components/editor/CodeEditor";
+
 function CodeBlock({ code }: { code: string }) {
+  const lineCount = code.trim().split("\n").length;
   return (
-    <pre style={{
+    <div style={{
+      height: Math.min(lineCount * 21 + 24, 400),
       background: "#0b0b10",
       border: "1px solid rgba(255,255,255,0.07)",
       borderLeft: "3px solid var(--cm-cyan)",
       borderRadius: "0 8px 8px 0",
-      padding: "1.1rem 1.25rem",
-      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-      fontSize: "0.82rem", overflowX: "auto",
-      color: "#cdd3de", lineHeight: 1.75,
-      margin: "0.75rem 0 1.25rem", whiteSpace: "pre-wrap",
+      margin: "0.75rem 0 1.25rem",
+      overflow: "hidden"
     }}>
-      <code>{code}</code>
-    </pre>
+      <CodeEditor value={code.trim()} language="cpp" onChange={() => {}} readOnly={true} />
+    </div>
   );
 }
 
@@ -1088,23 +1089,7 @@ int count = bs1.count(); // Total number of set bits`} />
             </div>
 
             {/* CTA */}
-            {isPremiumActive ? (
-              <Link
-                href="/learn/bit-manipulation/assignment"
-                className="btn btn-accent"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
-              >
-                📝 Start 1h Assignment
-              </Link>
-            ) : (
-              <Link
-                href="/premium"
-                className="btn btn-accent"
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, marginRight: 12 }}
-              >
-                👑 Unlock Assignment
-              </Link>
-            )}
+
             <Link
               href={profileHref}
               className="btn btn-primary"
