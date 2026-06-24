@@ -143,15 +143,17 @@ services:
       redis:
         condition: service_healthy
 
-  # CodeMortem Web Frontend
+  # CodeMortem Web Frontend (disabled by default — run `npm run dev` instead)
   web:
+    profiles: [web]
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: codemortem-web
     restart: unless-stopped
     env_file:
-      - ./frontend/.env
+      - path: ./frontend/.env
+        required: false
     ports:
       - "3000:3000"
     environment:

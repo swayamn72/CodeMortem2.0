@@ -70,7 +70,7 @@ function renderMarkdownText(text: string) {
 
     return block.content.split("\n\n").map((para, j) => {
       if (!para.trim()) return null;
-      const parts = para.split(/(\*\*.*?\*\*|_.*?_|`.*?`)/g);
+      const parts = para.split(/(\*\*.*?\*\*|_.*?_|`.*?`|\^.*?\^)/g);
       return (
         <p key={`${i}-${j}`} style={{ marginBottom: "0.75rem", lineHeight: 1.6 }}>
           {parts.map((p, k) => {
@@ -82,6 +82,9 @@ function renderMarkdownText(text: string) {
             }
             if (p.startsWith("`") && p.endsWith("`")) {
               return <code key={k} style={{ background: "rgba(255,255,255,0.1)", padding: "2px 4px", borderRadius: 4, color: "var(--cm-cyan)", fontSize: "0.9em", fontFamily: "monospace" }}>{p.slice(1, -1)}</code>;
+            }
+            if (p.startsWith("^") && p.endsWith("^") && p.length > 2) {
+              return <sup key={k} style={{ fontSize: "0.75em", lineHeight: 0 }}>{p.slice(1, -1)}</sup>;
             }
             return p.split("\n").flatMap((line, idx, arr) => idx < arr.length - 1 ? [line, <br key={`br-${k}-${idx}`} />] : [line]);
           })}

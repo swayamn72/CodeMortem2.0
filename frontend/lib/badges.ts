@@ -35,6 +35,16 @@ export const BADGE_REGISTRY: BadgeDef[] = [
     secondaryColor: "#00c853",
     moduleId: "segment-tree-easy",
   },
+  {
+    id: "combinatorics-beginner",
+    name: "Formula Master",
+    subtitle: "Level I",
+    description: "Built a complete O(1) combinatorics library: modular arithmetic, binary exponentiation, Fermat's inverse, and solved 13 coding challenges.",
+    icon: "∑",
+    accentColor: "#aa00e6",
+    secondaryColor: "#7b00b4",
+    moduleId: "combinatorics-beginner",
+  },
 ];
 
 /** Look up a badge definition by its id (= moduleId) */

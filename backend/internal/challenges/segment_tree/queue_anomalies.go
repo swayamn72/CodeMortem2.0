@@ -168,9 +168,27 @@ rng = random.Random(seed)
 def anomaly_scores(perm):
     n = len(perm)
     scores = []
+    bit = [0] * (n + 1)
+    
+    def add(idx, val):
+        while idx <= n:
+            bit[idx] += val
+            idx += idx & -idx
+            
+    def query(idx):
+        s = 0
+        while idx > 0:
+            s += bit[idx]
+            idx -= idx & -idx
+        return s
+
     for i in range(n):
-        cnt = sum(1 for j in range(i) if perm[j] > perm[i])
+        # perm[i] is 1-indexed. We want count of elements already seen that are > perm[i].
+        # That is: (elements seen so far) - (elements <= perm[i])
+        cnt = i - query(perm[i])
         scores.append(cnt)
+        add(perm[i], 1)
+        
     return scores
 
 if seed == 0:

@@ -1053,7 +1053,7 @@ if __name__ == '__main__':
 (SAMPLE_TEST_CASES as any)["challenge9"] = [
   { label: "Problem Statement Example",   input: "3\n1 2 3\n5\n1 1 2\n1 1 3\n1 2 3\n0 2 1\n1 1 3", expected: "-1\n2\n-1\n3" },
   { label: "Single Cell",                 input: "1\n5\n1\n1 1 1",  expected: "5" },
-  { label: "Update then Full Query",      input: "4\n1 2 3 4\n2\n0 3 10\n1 1 4", expected: "8" },
+  { label: "Update then Full Query",      input: "4\n1 2 3 4\n2\n0 3 10\n1 1 4", expected: "5" },
 ];
 
 

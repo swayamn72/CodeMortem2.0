@@ -5,7 +5,7 @@ export const SEGMENT_TREE_COURSE: CourseConfig = {
   moduleId: "segment-tree-easy",
   title: "Segment Trees",
   icon: "🌳",
-  subtitle: "Easy · 18 steps",
+  subtitle: "Beginner · 18 steps",
   parts: [
     { number: 1, title: "Part 1: The Problem" },
     { number: 2, title: "Part 2: Introducing Trees" },

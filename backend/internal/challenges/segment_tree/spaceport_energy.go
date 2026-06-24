@@ -280,8 +280,9 @@ else:
             j = rng.randint(1, 10000)
             print(0, i, j)
         else:
-            l = rng.randint(1, n)
-            r = rng.randint(l, n)
+            # Force large intervals to guarantee O(N) TLE
+            l = rng.randint(1, n // 4)
+            r = rng.randint(n - n // 4, n)
             print(1, l, r)
 `,
 
@@ -344,33 +345,10 @@ int main() {
 }
 `,
 
-		// Line-by-line checker: compare each query output line
-		CheckerPy: `
-import sys
-
-def check(input_str, expected_str, actual_str):
-    exp_lines = expected_str.strip().split("\n")
-    act_lines = actual_str.strip().split("\n")
-    if len(exp_lines) != len(act_lines):
-        return False, f"Expected {len(exp_lines)} lines, got {len(act_lines)}"
-    for i, (e, a) in enumerate(zip(exp_lines, act_lines)):
-        if e.strip() != a.strip():
-            return False, f"Line {i+1}: expected {e.strip()!r}, got {a.strip()!r}"
-    return True, ""
-
-if __name__ == "__main__":
-    inp  = open(sys.argv[1]).read()
-    exp  = open(sys.argv[2]).read()
-    act  = open(sys.argv[3]).read()
-    ok, msg = check(inp, exp, act)
-    if ok:
-        print("AC")
-    else:
-        print("WA:", msg)
-`,
+		CheckerPy:   tokenCheckerPy,
 
 		NumTests:    20,
-		TimeLimitMs: 2000, // 2s as per problem statement
+		TimeLimitMs: 1000, // 1s to strictly enforce Segment Tree
 		MemLimitKB:  1048576,
 	})
 }

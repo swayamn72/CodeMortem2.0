@@ -70,6 +70,37 @@ const MODULES: Module[] = [
     ],
   },
   {
+    id: "combinatorics-beginner",
+    title: "Combinatorics",
+    subtitle: "Efficient precomputation & O(1) nCr",
+    description:
+      "Build a reusable C++ combinatorics library from scratch. Master modular arithmetic, binary exponentiation, Fermat's inverse, and classical counting models (grid paths, stars & bars, anagrams, inclusion-exclusion).",
+    tag: "Beginner",
+    tagColor: "#aa00e6",
+    icon: "∑",
+    difficulty: "Easy",
+    level: "Beginner",
+    lessons: 29,
+    href: "/learn/combinatorics",
+    available: true,
+    allLessonIds: [
+      "lesson1", "challenge1",
+      "lesson2", "challenge2",
+      "lesson3", "challenge3",
+      "lesson4", "challenge4",
+      "lesson5", "challenge5", "mcq1",
+      "lesson6", "challenge6",
+      "lesson7", "challenge7",
+      "lesson8", "challenge8",
+      "lesson9", "challenge9",
+      "lesson10", "challenge10",
+      "lesson11", "challenge11", "mcq2",
+      "lesson12", "challenge12",
+      "lesson13", "challenge13",
+      "badge",
+    ],
+  },
+  {
     id: "segment-tree-medium",
     title: "Segment Tree",
     subtitle: "Augmented nodes & structural merge",
@@ -230,17 +261,6 @@ export default function LearnPage() {
                     >
                       {mod.level}
                     </span>
-                    {/* Difficulty badge */}
-                    <span
-                      className={styles.difficultyBadge}
-                      style={{
-                        color: mod.tagColor,
-                        borderColor: mod.tagColor + "55",
-                        background: mod.tagColor + "15",
-                      }}
-                    >
-                      {mod.tag}
-                    </span>
                   </div>
                 </div>
 
@@ -284,66 +304,7 @@ export default function LearnPage() {
                       >
                         {isCompleted ? "Review →" : inProgress ? "Continue →" : "Start Learning →"}
                       </Link>
-                      {/* Practice Bank button */}
-                      {mod.allLessonIds && (
-                        isPremiumActive ? (
-                          <Link
-                            href={`/learn/${mod.id}/practice`}
-                            style={{
-                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
-                              background: "rgba(0,240,255,0.08)",
-                              border: "1px solid rgba(0,240,255,0.25)",
-                              borderRadius: 8, color: "var(--cm-cyan)",
-                              textDecoration: "none", whiteSpace: "nowrap",
-                              transition: "background 0.15s",
-                            }}
-                          >
-                            Practice Bank →
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/premium"
-                            style={{
-                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
-                              background: "rgba(255,215,0,0.06)",
-                              border: "1px solid rgba(255,215,0,0.2)",
-                              borderRadius: 8, color: "#ffd700",
-                              textDecoration: "none", whiteSpace: "nowrap",
-                            }}
-                          >
-                            👑 Practice Bank
-                          </Link>
-                        )
-                      )}
-                      {isCompleted && getModuleAssignment(mod.id) && (
-                        isPremiumActive ? (
-                          <Link
-                            href={`/learn/${mod.id}/assignment`}
-                            style={{
-                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
-                              background: "rgba(255,215,0,0.06)",
-                              border: "1px solid rgba(255,215,0,0.22)",
-                              borderRadius: 8, color: "#ffd700",
-                              textDecoration: "none", whiteSpace: "nowrap",
-                            }}
-                          >
-                            1h Assignment →
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/premium"
-                            style={{
-                              fontSize: 12, fontWeight: 700, padding: "6px 12px",
-                              background: "rgba(255,215,0,0.06)",
-                              border: "1px solid rgba(255,215,0,0.22)",
-                              borderRadius: 8, color: "#ffd700",
-                              textDecoration: "none", whiteSpace: "nowrap",
-                            }}
-                          >
-                            👑 1h Assignment
-                          </Link>
-                        )
-                      )}
+
                     </div>
                   ) : (
                     <span className={styles.comingSoonBadge}>🔒 Coming Soon</span>

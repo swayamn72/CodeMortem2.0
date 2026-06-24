@@ -16,13 +16,16 @@ import (
 
 // DynamicTestResult holds the outcome of a single dynamically-generated test.
 type DynamicTestResult struct {
-	TestIndex     int     `json:"testIndex"`
-	Verdict       string  `json:"verdict"`        // "accepted" | "wrong_answer" | "time_limit" | "runtime_error" | "compilation_error"
-	VerdictMsg    string  `json:"verdictMsg"`     // human-readable detail from checker
-	Input         string  `json:"input"`          // truncated for display
-	ExpectedOutput string `json:"expectedOutput"` // from reference solution (truncated)
-	ActualOutput  string  `json:"actualOutput"`   // from user's solution (truncated)
-	ExecutionMs   int64   `json:"executionMs"`
+	TestIndex      int    `json:"testIndex"`
+	Verdict        string `json:"verdict"`        // "accepted" | "wrong_answer" | "time_limit" | "runtime_error" | "compilation_error"
+	VerdictMsg     string `json:"verdictMsg"`     // human-readable detail from checker
+	Input          string `json:"input"`          // truncated for display
+	ExpectedOutput string `json:"expected"`       // from reference solution (truncated)
+	ActualOutput   string `json:"output"`         // from user's solution (truncated)
+	ExecutionMs    int64  `json:"executionTime"`
+	CompileOutput  string `json:"compileOutput"`
+	Stderr         string `json:"stderr"`
+	Memory         int64  `json:"memory"`
 }
 
 // refBinaryCache caches compiled reference solution binaries by challenge ID.
@@ -44,9 +47,10 @@ func (c *Client) DynamicJudge(ctx context.Context, langID int, sourceCode string
 	if compileErr != nil {
 		// Return a single compilation error result
 		return []DynamicTestResult{{
-			TestIndex:  0,
-			Verdict:    "compilation_error",
-			VerdictMsg: *compileErr,
+			TestIndex:     0,
+			Verdict:       "compile_error",
+			VerdictMsg:    *compileErr,
+			CompileOutput: *compileErr,
 		}}, nil
 	}
 	if userBinaryPath != "" {
@@ -180,6 +184,7 @@ func (c *Client) runSingleDynamicTest(
 		if userErr != nil {
 			result.Verdict = "runtime_error"
 			result.VerdictMsg = errBuf.String()
+			result.Stderr = errBuf.String()
 			result.ActualOutput = truncate(userOut, 500)
 			return result, nil
 		}

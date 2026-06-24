@@ -467,37 +467,7 @@ export default function SegmentTreePath() {
                   </div>
                 </div>
 
-                {/* Sliders */}
-                <div className={styles.animationCard} style={{ marginTop: "20px" }}>
-                  <div className={styles.animationHeader}>
-                    <span className={styles.animationTitle}>⚙️ Interactive Complexity Explorer</span>
-                    {isTLE && <span style={{ background: "rgba(255,45,85,0.2)", border: "1px solid var(--cm-red)", color: "var(--cm-red)", fontSize: "var(--font-size-xs)", fontWeight: 700, padding: "3px 10px", borderRadius: "var(--radius-full)", animation: "blink 0.8s step-end infinite" }}>⚠️ TLE!</span>}
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", marginBottom: "20px" }}>
-                    {[{ label: "Array Size (N)", val: sliderN, set: setSliderN }, { label: "Query Count (Q)", val: sliderQ, set: setSliderQ }].map(({ label, val, set }) => (
-                      <div key={label}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                          <span style={{ fontSize: "var(--font-size-sm)", fontWeight: 600, color: "var(--text-secondary)" }}>{label}</span>
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--font-size-sm)", color: "var(--cm-cyan)", fontWeight: 700 }}>{val.toLocaleString()}</span>
-                        </div>
-                        <input type="range" min={1} max={100000} step={100} value={val} onChange={e => set(Number(e.target.value))} style={{ width: "100%", accentColor: "var(--cm-cyan)", cursor: "pointer" }} />
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "var(--text-muted)", marginTop: "4px" }}><span>10</span><span>10⁵</span></div>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ background: isTLE ? "rgba(255,45,85,0.08)" : "rgba(0,240,255,0.05)", border: `1px solid ${isTLE ? "rgba(255,45,85,0.4)" : "rgba(0,240,255,0.2)"}`, borderRadius: "var(--radius-md)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", transition: "all 0.3s ease" }}>
-                    <div>
-                      <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>O(N · Q) operations</div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--font-size-2xl)", fontWeight: 800, color: isTLE ? "var(--cm-red)" : "var(--cm-green)", transition: "color 0.3s ease" }}>
-                        {ops >= 1e9 ? `${(ops / 1e9).toFixed(1)}B` : ops >= 1e6 ? `${(ops / 1e6).toFixed(1)}M` : ops >= 1e3 ? `${(ops / 1e3).toFixed(1)}K` : ops.toLocaleString()}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginBottom: "4px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Verdict</div>
-                      <div style={{ fontSize: "var(--font-size-lg)", fontWeight: 800, color: isTLE ? "var(--cm-red)" : "var(--cm-green)" }}>{isTLE ? "🔴 TLE" : "🟢 OK"}</div>
-                    </div>
-                  </div>
-                </div>
+
                 <button className="btn btn-accent btn-sm" style={{ marginTop: "16px" }} onClick={() => completeLessonAndGo("lesson2", "mcq1")}>
                   Continue to Checkpoint →
                 </button>
@@ -542,7 +512,7 @@ export default function SegmentTreePath() {
                     {treeBuildStep < 3 ? (
                       <button className="btn btn-primary btn-sm" onClick={() => setTreeBuildStep(Math.min(3, treeBuildStep + 1))}>Next Construction Step ▶</button>
                     ) : (
-                      <button className="btn btn-accent btn-sm" onClick={() => setActiveLesson("lesson4")} style={{ animation: "pulse-glow 2s ease-in-out infinite" }}>✓ Done — Lesson 4 →</button>
+                      <button className="btn btn-accent btn-sm" onClick={() => completeLessonAndGo("lesson3", "lesson4")} style={{ animation: "pulse-glow 2s ease-in-out infinite" }}>✓ Done — Lesson 4 →</button>
                     )}
                   </div>
                 </div>
@@ -627,7 +597,7 @@ export default function SegmentTreePath() {
                         <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-secondary)" }}>You've seen how O(log N) query traversal works on a Segment Tree.</div>
                       </div>
                     </div>
-                    <button className="btn btn-accent btn-sm" onClick={() => setActiveLesson("lesson5")}>Next: Point Update →</button>
+                    <button className="btn btn-accent btn-sm" onClick={() => completeLessonAndGo("lesson4", "lesson5")}>Next: Point Update →</button>
                   </div>
                 )}
               </div>
