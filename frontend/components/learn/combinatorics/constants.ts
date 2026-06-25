@@ -187,6 +187,7 @@ export interface ChallengeData {
   title: string;
   difficulty: string;
   diffColor: string;
+  premium?: boolean;
   statement: string;
   constraints: string;
   inputFormat: string;
