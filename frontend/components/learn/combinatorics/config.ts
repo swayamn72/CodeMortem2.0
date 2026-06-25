@@ -17,8 +17,8 @@ const NEXT_LESSON: Record<string, string> = {
   challenge10: "lesson10",
   challenge11: "lesson11",
   challenge12: "mcq2",
-  challenge13: "challenge14",
   challenge14: "badge",
+  challenge15: "badge",
 };
 
 const NEXT_LABEL: Record<string, string> = {
@@ -34,8 +34,8 @@ const NEXT_LABEL: Record<string, string> = {
   challenge10: "Next: Stars & Bars →",
   challenge11: "Next: DNA Sequences →",
   challenge12: "Checkpoint 2 →",
-  challenge13: "Next: Co-prime Count →",
   challenge14: "🏆 Claim Your Badge",
+  challenge15: "Complete →",
 };
 
 export const COMB_CHALLENGE_CONFIGS: Record<string, ChallengeConfig> = Object.fromEntries(
@@ -45,6 +45,7 @@ export const COMB_CHALLENGE_CONFIGS: Record<string, ChallengeConfig> = Object.fr
       id: c.id,
       backendId: c.backendId,
       title: c.title,
+      premium: c.premium,
       difficulty: c.difficulty,
       diffColor: c.diffColor,
       statement: c.statement,
@@ -64,13 +65,14 @@ export const COMB_COURSE: CourseConfig = {
   moduleId: "combinatorics-beginner",
   title: "Combinatorics",
   icon: "∑",
-  subtitle: "Beginner · 22 steps",
+  subtitle: "Beginner · 20 steps",
   parts: [
     { number: 1, title: "Part 1: Modular Arithmetic" },
     { number: 2, title: "Part 2: Counting Principles" },
     { number: 3, title: "Part 3: Precomputation Template" },
     { number: 4, title: "Part 4: Classical Models" },
     { number: 5, title: "Part 5: Advanced Counting" },
+    { number: 6, title: "Part 6: Practice (Premium)" },
   ],
   lessons: [
     // Part 1
@@ -103,11 +105,11 @@ export const COMB_COURSE: CourseConfig = {
     { id: "challenge12",title: "Code: DNA Sequences",          part: 4, type: "challenge" },
     { id: "mcq2",       title: "Checkpoint 2",                 part: 4, type: "mcq" },
     // Part 5
-    { id: "lesson12",   title: "12. Pigeonhole Principle",     part: 5, type: "lesson" },
-    { id: "challenge13",title: "Code: Subarray Divisibility",  part: 5, type: "challenge" },
-    { id: "lesson13",   title: "13. Inclusion-Exclusion",      part: 5, type: "lesson" },
+    { id: "lesson13",   title: "12. Inclusion-Exclusion",      part: 5, type: "lesson" },
     { id: "challenge14",title: "Code: Co-prime Count",         part: 5, type: "challenge" },
     { id: "badge",      title: "Completion Badge",             part: 5, type: "badge" },
+    // Part 6
+    { id: "challenge15",title: "Code: Quantum Routing",        part: 6, type: "challenge", premium: true },
   ],
   allLessonIds: [
     "lesson1", "challenge1",
@@ -121,7 +123,6 @@ export const COMB_COURSE: CourseConfig = {
     "lesson9", "challenge9", "challenge10",
     "lesson10", "challenge11",
     "lesson11", "challenge12", "mcq2",
-    "lesson12", "challenge13",
     "lesson13", "challenge14",
     "badge",
   ],

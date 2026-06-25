@@ -96,7 +96,7 @@ export default function CombinatoricsPath() {
   const { user } = useAuthStore();
   const isPremiumActive = user?.isPremium && (!user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date());
 
-  const nonBadgeLessonIds = COMB_COURSE.lessons.filter(l => l.id !== "badge").map(l => l.id);
+  const nonBadgeLessonIds = COMB_COURSE.allLessonIds.filter(id => id !== "badge");
   const allLessonsComplete = nonBadgeLessonIds.every(id => isLessonComplete(COMB_COURSE.moduleId, id));
 
   const badgeDef = getBadgeDef(COMB_COURSE.moduleId);
@@ -472,7 +472,6 @@ ll nCr(int n, int k) {
         </Section>
 
         <NavBtn label="Code: Robot Grid →" onClick={() => go("lesson9", "challenge9")} />
-        <NavBtn label="Code: The Relay Station →" onClick={() => go("lesson9", "challenge10")} />
       </>);
 
       // ═══ LESSON 10: Stars and Bars ════════════════════════════════════════
@@ -480,23 +479,25 @@ ll nCr(int n, int k) {
         <LessonHeading num="Lesson 10" title="Stars and Bars — Distributing Identical Items" />
 
         <Section title="The Setup">
-          <P>How many ways can you distribute N identical candies among K children, where each child can receive 0 or more?</P>
-          <P>Imagine the N candies as stars (★★★★★) and you have K-1 dividers (|) to separate them into K groups:</P>
-          <CodeBlock code={`// Example: N=5 candies, K=3 children
-// Total symbols: 5 stars + 2 dividers = 7 positions
-// Choose 2 of those 7 to be dividers:
-//
-// ★★|★★|★   → [2, 2, 1]
-// ★★★||★★   → [3, 0, 2]
-// |★★★★|★   → [0, 4, 1]
-// etc.
-//
-// Answer = C(N + K - 1, K - 1) = C(7, 2) = 21`} />
+          <P>A classic combinatorial question is: <em>"How many ways can you distribute N identical candies among K children?"</em></P>
+          <P>Because the candies are completely identical, the only thing that matters is <strong>how many</strong> candies each child gets, not which specific candies they get.</P>
+        </Section>
+
+        <Section title="The Intuition (Zero Allowed)">
+          <P>Imagine the N candies as stars (★★★★★) in a row. To split them into K groups (one for each child), we need to insert <strong>K-1 dividers</strong> (|) between the stars.</P>
+          <P>If a child is allowed to receive 0 candies, then dividers can be placed anywhere—even right next to each other!</P>
+          <CodeBlock code={`// Example: N=5 candies, K=3 children\n// Total items in our sequence: 5 stars + 2 dividers = 7 positions\n\n★★|★★|★   → [2, 2, 1]\n★★★||★★   → [3, 0, 2] (Child 2 gets nothing)\n|★★★★|★   → [0, 4, 1] (Child 1 gets nothing)`} />
         </Section>
 
         <Section title="The Formula">
+          <P>Since we have a total sequence length of <strong>N + (K - 1)</strong>, and we just need to choose exactly <strong>K - 1</strong> positions to place the dividers (or alternatively, choose N positions for the stars), the formula is:</P>
           <MathBox>Ways(N, K) = C(N + K - 1, K - 1)</MathBox>
-          <P>This formula distributes N identical items into K distinct bins where 0 is allowed. It is one of the most-used combinatorics formulas in CP, especially in DP problems.</P>
+        </Section>
+
+        <Section title="Variation: At Least One Item">
+          <P>What if the rules say <em>"every child must receive at least 1 candy"</em>?</P>
+          <P>Simple trick: Hand out 1 candy to each of the K children immediately. Now you have exactly <strong>N - K</strong> candies left to distribute however you want (including giving 0 to some)!</P>
+          <MathBox>Ways(N, K, ≥1) = C((N-K) + K - 1, K - 1) = C(N - 1, K - 1)</MathBox>
         </Section>
         <NavBtn label="Code: Candy Distribution →" onClick={() => go("lesson10", "challenge11")} />
       </>);
@@ -506,75 +507,49 @@ ll nCr(int n, int k) {
         <LessonHeading num="Lesson 11" title="Permutations with Repetitions — Anagrams and Multisets" />
 
         <Section title="The Problem">
-          <P>How many distinct strings can be formed from the letters in "AABBC"? Simply counting N! = 5! = 120 overcounts — swapping the two A's gives the same string.</P>
-          <P>Divide out the duplicate orderings for each repeated character:</P>
+          <P>Suppose you want to find all possible anagrams (rearrangements) of the word <strong>MISSISSIPPI</strong>. It has 11 letters, so your first instinct might be that there are <strong>11!</strong> ways to arrange them.</P>
+        </Section>
+
+        <Section title="The Overcounting Intuition">
+          <P>There's a catch: MISSISSIPPI has 4 'I's, 4 'S's, and 2 'P's. If you swap the first 'S' with the second 'S', the word still spells MISSISSIPPI.</P>
+          <P>In a standard permutation (N!), we treat every single item as unique (e.g., S₁, S₂, S₃, S₄). Those 4 unique 'S's can be arranged among themselves in exactly <strong>4! = 24</strong> different ways.</P>
+          <P>To get the number of <em>distinct</em> strings, we must take our total permutations and <strong>divide out</strong> the internal permutations of every duplicate group.</P>
+        </Section>
+
+        <Section title="The Formula">
           <MathBox>Distinct arrangements = N! / (f₁! × f₂! × f₃! × ...)</MathBox>
-          <P>For "AABBC": N=5, f(A)=2, f(B)=2, f(C)=1. Answer = 5! / (2! × 2! × 1!) = 120 / 4 = 30.</P>
+          <P>Where N is the total number of items, and f₁, f₂, etc., are the frequencies of each identical item.</P>
+          <P>For <strong>AACCG</strong>: N=5, f(A)=2, f(C)=2, f(G)=1.<br/>Answer = 5! / (2! × 2! × 1!) = 120 / (2 × 2 × 1) = <strong>30</strong>.</P>
         </Section>
 
         <Section title="Under Modular Arithmetic">
-          <P>With large N and character frequencies, use the precomputed template:</P>
-          <CodeBlock code={`string s; cin >> s;
-int n = s.size();
-map<char, int> freq;
-for (char c : s) freq[c]++;
-
-long long ans = fact[n];  // N!
-for (auto& [c, f] : freq)
-    ans = ans * inv_fact[f] % MOD;  // divide by each fᵢ!
-cout << ans << "\\n";`} />
+          <P>In competitive programming, you'll be asked to output this modulo 10<sup>9</sup>+7. Since we are dividing by factorials, we must multiply by their <strong>modular inverses</strong> using our precomputed <code>inv_fact</code> array:</P>
+          <CodeBlock code={`string s; cin >> s;\nint n = s.size();\nmap<char, int> freq;\nfor (char c : s) freq[c]++;\n\nlong long ans = fact[n];  // Start with N!\nfor (auto& [c, f] : freq) {\n    // Instead of dividing by f!, multiply by inverse(f!)\n    ans = (ans * inv_fact[f]) % MOD;\n}\ncout << ans << "\\n";`} />
         </Section>
 
 
         <NavBtn label="Code: DNA Sequences →" onClick={() => go("lesson11", "challenge12")} />
       </>);
 
-      // ═══ LESSON 12: Pigeonhole Principle ══════════════════════════════════
-      case "lesson12": return (<>
-        <LessonHeading num="Lesson 12" title="The Pigeonhole Principle — Guaranteed Collisions" />
-
-        <Section title="The Principle">
-          <P>If you put N+1 pigeons into N holes, at least one hole must contain 2 or more pigeons. Simple — yet devastatingly powerful in algorithm design.</P>
-          <Callout icon="📦" color="var(--cm-purple)">
-            <strong>General form:</strong> If N items are placed into K categories (K &lt; N), at least one category must contain at least ⌈N/K⌉ items.
-          </Callout>
-        </Section>
-
-        <Section title="Classic Application: Prefix Sums">
-          <P>Consider the array [A₀, A₁, ..., A_{"{"}N-1{"}"}]. Compute prefix sums P₀=0, P₁=A₀, ..., P_N = A₀+...+A_{"{"}N-1{"}"}. There are N+1 prefix sums and N possible remainders mod N (0, 1, ..., N-1).</P>
-          <P>By Pigeonhole, at least two of the N+1 prefix sums must share the same remainder mod N. If P_i ≡ P_j (mod N) for i &lt; j, then the sum A_i + ... + A_{"{"}j-1{"}"} is divisible by N!</P>
-          <CodeBlock code={`// Count subarrays with sum divisible by N
-map<long long, long long> cnt;
-cnt[0] = 1;  // empty prefix has sum 0
-long long prefix = 0, ans = 0;
-for (int i = 0; i < n; i++) {
-    prefix = ((prefix + a[i]) % n + n) % n;
-    ans += cnt[prefix];
-    cnt[prefix]++;
-}
-// Time: O(N), Space: O(N)`} />
-        </Section>
-
-        <NavBtn label="Code: Subarray Divisibility →" onClick={() => go("lesson12", "challenge13")} />
-      </>);
-
-      // ═══ LESSON 13: Inclusion-Exclusion ═══════════════════════════════════
+      // ═══ LESSON 12: Inclusion-Exclusion ═══════════════════════════════════
       case "lesson13": return (<>
-        <LessonHeading num="Lesson 13" title="Inclusion-Exclusion Principle — Counting Overlapping Sets" />
+        <LessonHeading num="Lesson 12" title="Inclusion-Exclusion Principle — Counting Overlapping Sets" />
 
-        <Section title="The Principle">
-          <P>When counting elements in a union of sets A ∪ B ∪ C, simply adding |A| + |B| + |C| overcounts elements that appear in multiple sets. Inclusion-Exclusion corrects this:</P>
-          <MathBox>|A ∪ B ∪ C| = |A| + |B| + |C| − |A∩B| − |A∩C| − |B∩C| + |A∩B∩C|</MathBox>
-          <P>The pattern: add singles, subtract pairwise intersections, add triple intersections, etc. This alternating ± pattern extends to any number of sets.</P>
+        <Section title="The Overcounting Problem">
+          <P>Imagine a class of 30 students. 15 study Math, and 20 study Physics. If you want to know how many study <em>at least one</em> of the subjects, you can't just do 15 + 20 = 35 (there are only 30 students!).</P>
+          <P>Because some students study <strong>both</strong>, they were counted twice. To get the true number, we must subtract the overlap: <br/><code>Total = |Math| + |Physics| - |Math ∩ Physics|</code>.</P>
         </Section>
 
-        <Section title="Application: Counting Multiples">
-          <P>How many integers in [1, X] are divisible by 2, 3, or 5? The count of multiples of D in [1, X] is simply ⌊X/D⌋. Use PIE with lcm for intersections:</P>
-          <CodeBlock code={`long long x;
-cin >> x;
-// lcm(2,3)=6, lcm(2,5)=10, lcm(3,5)=15, lcm(2,3,5)=30
-cout << x/2 + x/3 + x/5 - x/6 - x/10 - x/15 + x/30 << "\\n";
-// Works even for x up to 10^18 with long long`} />
+        <Section title="The General Principle (PIE)">
+          <P>This concept scales to any number of overlapping sets. It's called the <strong>Principle of Inclusion-Exclusion (PIE)</strong>. For three sets A, B, and C, the formula becomes:</P>
+          <MathBox>|A ∪ B ∪ C| = |A| + |B| + |C| − |A∩B| − |A∩C| − |B∩C| + |A∩B∩C|</MathBox>
+          <P><strong>The Alternating Pattern:</strong> Add the singles (+), subtract the pairwise intersections (-), add back the triple intersections (+), subtract quadruple intersections (-), and so on.</P>
+        </Section>
+
+        <Section title="Application: Divisibility Queries">
+          <P>A classic competitive programming question asks: <em>"How many integers between 1 and X are divisible by 2, 3, or 5?"</em></P>
+          <P>The number of multiples of D in the range [1, X] is simply <code>floor(X / D)</code>. We can use PIE to combine them. Note that the intersection of "multiples of 2" and "multiples of 3" is "multiples of LCM(2, 3) = 6".</P>
+          <CodeBlock code={`long long x;\ncin >> x;\n\n// Singles: 2, 3, 5\nlong long singles = x/2 + x/3 + x/5;\n\n// Pairs: lcm(2,3)=6, lcm(2,5)=10, lcm(3,5)=15\nlong long pairs = x/6 + x/10 + x/15;\n\n// Triples: lcm(2,3,5)=30\nlong long triples = x/30;\n\n// Combine using PIE (+ singles, - pairs, + triples)\ncout << singles - pairs + triples << "\\n";\n// This works flawlessly even for X up to 10^18!`} />
         </Section>
 
         <InclusionExclusionVenn />

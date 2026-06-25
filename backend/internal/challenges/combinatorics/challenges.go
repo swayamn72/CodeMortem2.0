@@ -24,10 +24,12 @@ func init() {
 	registerInverseArray()
 	registerMassiveQueries()
 	registerRobotGrid()
+	registerRelayStation()
 	registerCandyDist()
 	registerDnaSequences()
-	registerSubarrayDiv()
+
 	registerCoprimeCount()
+	registerQuantumRouting()
 }
 
 // Standard whitespace-insensitive token checker.
@@ -731,66 +733,6 @@ int main(){
 	})
 }
 
-// ── Challenge 12: Subarray Divisibility ──────────────────────────────────────
-
-func registerSubarrayDiv() {
-	challenges.Register(&challenges.Challenge{
-		ID:          "comb_subarray_div",
-		Name:        "Subarray Divisibility",
-		CourseSlug:  "combinatorics",
-		NumTests:    20,
-		TimeLimitMs: 2000,
-
-		GeneratorPy: `
-import sys, random
-
-seed = int(sys.argv[1])
-rng = random.Random(seed)
-
-if seed < 5:
-    n = rng.randint(1, 10)
-    arr = [rng.randint(-100, 100) for _ in range(n)]
-elif seed < 15:
-    n = rng.randint(100, 5000)
-    arr = [rng.randint(-10**9, 10**9) for _ in range(n)]
-else:
-    n = rng.randint(100000, 200000)
-    arr = [rng.randint(-10**9, 10**9) for _ in range(n)]
-
-print(n)
-print(*arr)
-`,
-
-		ReferenceCpp: `
-#include <bits/stdc++.h>
-using namespace std;
-typedef long long ll;
-
-int main(){
-    ios_base::sync_with_stdio(false); cin.tie(NULL);
-    int n; cin >> n;
-    vector<ll> a(n);
-    for(auto& x : a) cin >> x;
-
-    // Count subarrays whose sum is divisible by n.
-    // Use prefix sum mod n. Two indices i < j give sum divisible by n
-    // iff prefix[i] == prefix[j] (mod n).
-    // The empty prefix (index -1) has prefix sum 0, i.e. value 0 mod n.
-    map<ll, ll> cnt;
-    cnt[0] = 1;
-    ll prefix = 0, ans = 0;
-    for(int i = 0; i < n; i++){
-        prefix = ((prefix + a[i]) % n + n) % n;
-        ans += cnt[prefix];
-        cnt[prefix]++;
-    }
-    cout << ans << "\n";
-}
-`,
-
-		CheckerPy: tokenCheckerPy,
-	})
-}
 
 // ── Challenge 13: Co-prime Count ─────────────────────────────────────────────
 
@@ -842,6 +784,244 @@ int main(){
     ll abc = x / 30;  // lcm(2,3,5)
 
     cout << a + b + c - ab - ac - bc + abc << "\n";
+}
+`,
+
+		CheckerPy: tokenCheckerPy,
+	})
+}
+
+// ── Challenge 10: The Relay Station ───────────────────────────────────────────
+
+func registerRelayStation() {
+	challenges.Register(&challenges.Challenge{
+		ID:          "comb_relay_station",
+		Name:        "The Relay Station",
+		CourseSlug:  "combinatorics",
+		NumTests:    20,
+		TimeLimitMs: 2000,
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    q = rng.randint(1, 10)
+    MAX_COORD = 10
+elif seed < 15:
+    q = rng.randint(100, 1000)
+    MAX_COORD = 1000
+else:
+    q = 100000
+    MAX_COORD = 100000
+
+print(q)
+for _ in range(q):
+    x = rng.randint(0, MAX_COORD)
+    y = rng.randint(0, MAX_COORD)
+    a = rng.randint(0, x)
+    b = rng.randint(0, y)
+    print(f"{x} {y} {a} {b}")
+`,
+
+		ReferenceCpp: `
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef long long ll;
+const ll MOD = 1e9 + 7;
+const int MAXN = 200005;
+
+ll fact[MAXN], inv_fact[MAXN];
+
+ll power(ll b, ll e, ll m) {
+    ll r = 1;
+    b %= m;
+    while (e > 0) {
+        if (e % 2 == 1) r = (r * b) % m;
+        b = (b * b) % m;
+        e /= 2;
+    }
+    return r;
+}
+
+void precompute() {
+    fact[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2, MOD);
+    for (int i = MAXN - 2; i >= 0; i--) {
+        inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;
+    }
+}
+
+ll nCr(int n, int k) {
+    if (k < 0 || k > n) return 0;
+    return fact[n] * inv_fact[k] % MOD * inv_fact[n - k] % MOD;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    precompute();
+
+    int q;
+    if (!(cin >> q)) return 0;
+    while (q--) {
+        int x, y, a, b;
+        cin >> x >> y >> a >> b;
+        
+        ll paths_to_relay = nCr(a + b, a);
+        ll paths_to_base = nCr((x - a) + (y - b), x - a);
+        ll total_paths = (paths_to_relay * paths_to_base) % MOD;
+        
+        cout << total_paths << "\n";
+    }
+
+    return 0;
+}
+`,
+
+		CheckerPy: tokenCheckerPy,
+	})
+}
+
+// ── Challenge 15: The Quantum Routing Protocol ────────────────────────────────
+
+func registerQuantumRouting() {
+	challenges.Register(&challenges.Challenge{
+		ID:          "comb_quantum_routing",
+		Name:        "The Quantum Routing Protocol",
+		CourseSlug:  "combinatorics",
+		NumTests:    20,
+		TimeLimitMs: 2000,
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    x = rng.randint(2, 20)
+    y = rng.randint(2, 20)
+    k = rng.randint(1, 5)
+elif seed < 15:
+    x = rng.randint(100, 1000)
+    y = rng.randint(100, 1000)
+    k = rng.randint(10, 100)
+else:
+    x = rng.randint(80000, 100000)
+    y = rng.randint(80000, 100000)
+    k = rng.randint(50000, 100000)
+
+points = set()
+while len(points) < k:
+    a = rng.randint(0, x)
+    b = rng.randint(0, y)
+    if (a, b) != (0, 0) and (a, b) != (x, y):
+        points.add((a, b))
+
+# Introduce some impossible paths randomly on medium/large tests
+if seed > 5 and rng.random() < 0.2:
+    # guarantee an impossible link
+    pts = list(points)
+    pts[0] = (x, 0)
+    pts[1] = (0, y)
+    points = set(pts)
+
+print(f"{x} {y} {k}")
+for a, b in points:
+    print(f"{a} {b}")
+`,
+
+		ReferenceCpp: `
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+const int MOD = 1e9 + 7;
+const int MAX = 200005;
+
+long long fact[MAX];
+long long invFact[MAX];
+
+long long power(long long base, long long exp) {
+    long long res = 1;
+    base %= MOD;
+    while (exp > 0) {
+        if (exp % 2 == 1) res = (res * base) % MOD;
+        base = (base * base) % MOD;
+        exp /= 2;
+    }
+    return res;
+}
+
+void precompute() {
+    fact[0] = 1;
+    invFact[0] = 1;
+    for (int i = 1; i < MAX; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+    invFact[MAX - 1] = power(fact[MAX - 1], MOD - 2);
+    for (int i = MAX - 2; i >= 1; i--) {
+        invFact[i] = (invFact[i + 1] * (i + 1)) % MOD;
+    }
+}
+
+long long nCr(int n, int r) {
+    if (r < 0 || r > n) return 0;
+    return fact[n] * invFact[r] % MOD * invFact[n - r] % MOD;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    precompute();
+    
+    int X, Y, K;
+    if (!(cin >> X >> Y >> K)) return 0;
+    
+    vector<pair<int, int>> nodes;
+    for (int i = 0; i < K; i++) {
+        int a, b;
+        cin >> a >> b;
+        nodes.push_back({a, b});
+    }
+    
+    sort(nodes.begin(), nodes.end());
+    
+    vector<pair<int, int>> fullPath;
+    fullPath.push_back({0, 0});
+    for (auto node : nodes) {
+        fullPath.push_back(node);
+    }
+    fullPath.push_back({X, Y});
+    
+    long long totalPaths = 1;
+    
+    for (size_t i = 0; i < fullPath.size() - 1; i++) {
+        int dx = fullPath[i+1].first - fullPath[i].first;
+        int dy = fullPath[i+1].second - fullPath[i].second;
+        
+        if (dx < 0 || dy < 0) {
+            totalPaths = 0;
+            break;
+        }
+        
+        long long segmentPaths = nCr(dx + dy, dx);
+        totalPaths = (totalPaths * segmentPaths) % MOD;
+    }
+    
+    cout << totalPaths << "\n";
+    return 0;
 }
 `,
 

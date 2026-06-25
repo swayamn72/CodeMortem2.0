@@ -163,19 +163,19 @@ export const SAMPLE_TEST_CASES: Record<string, SampleCase[]> = {
     { input: "10 1",expected: "1",   label: "1 child gets all 10 → 1 way" },
   ],
   challenge12: [
-    { input: "AABBC",  expected: "30",  label: "5!/(2!×2!) = 30" },
+    { input: "AACCG",  expected: "30",  label: "5!/(2!×2!) = 30" },
     { input: "AAAA",   expected: "1",   label: "All same → 1 arrangement" },
     { input: "ACGT",   expected: "24",  label: "All distinct → 4! = 24" },
   ],
-  challenge13: [
-    { input: "4\n1 2 3 4",      expected: "0",  label: "No subarray sum divisible by 4 here... wait, check manually" },
-    { input: "3\n3 6 9",        expected: "6",  label: "All sums divisible by 3" },
-    { input: "5\n0 0 0 0 0",    expected: "15", label: "All zeros, all subarrays valid" },
-  ],
+
   challenge14: [
     { input: "30",  expected: "22", label: "x=30: count divisible by 2,3, or 5" },
     { input: "1",   expected: "0",  label: "x=1: none divisible" },
     { input: "100", expected: "74", label: "x=100" },
+  ],
+  challenge15: [
+    { input: "5 5 2\n2 2\n4 4", expected: "72", label: "Valid path through all firewalls" },
+    { input: "5 5 2\n3 1\n1 3", expected: "0", label: "Impossible backwards traversal" },
   ],
 };
 
@@ -458,7 +458,7 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "A robot starts at (0,0) and must reach (X, Y) on an infinite grid, moving only right (+1 to column) or down (+1 to row). Count the number of unique paths mod (10^9^+7).\n\nKey formula: the robot makes exactly X right-moves and Y down-moves in any order → C(X+Y, X).",
+      "A robot starts at (0,0) and must reach (X, Y) on an infinite grid, moving only right (+1 to column) or down (+1 to row). Count the number of unique paths mod (10^9^+7).",
     constraints: "0 ≤ X, Y ≤ 10^5^",
     inputFormat: "Two integers X Y on a single line.",
     outputFormat: "A single integer: the number of unique paths mod 10^9^+7.",
@@ -496,7 +496,7 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "You have N identical candies to distribute among K children. Each child can receive 0 or more candies. Count the number of ways to distribute them mod (10^9^+7).\n\nKey formula (Stars and Bars): C(N + K - 1, K - 1).",
+      "You have N identical candies to distribute among K children. Each child can receive 0 or more candies. Count the number of ways to distribute them mod (10^9^+7).",
     constraints: "0 ≤ N ≤ 10^5^\n1 ≤ K ≤ 10^5^",
     inputFormat: "Two integers N K on a single line.",
     outputFormat: "A single integer: the number of ways mod 10^9^+7.",
@@ -515,7 +515,7 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "Given a DNA string of length N consisting of characters 'A', 'C', 'G', 'T', count the number of distinct strings formed by rearranging its characters, modulo 10^9^+7.\n\nFormula: N! / (fA! × fC! × fG! × fT!), where fX is the frequency of character X.",
+      "Given a DNA string of length N consisting of characters 'A', 'C', 'G', 'T', count the number of distinct strings formed by rearranging its characters, modulo 10^9^+7.",
     constraints: "1 ≤ N ≤ 2×10^5^\nString contains only 'A', 'C', 'G', 'T'",
     inputFormat: "A single string S.",
     outputFormat: "A single integer: the number of distinct rearrangements mod 10^9^+7.",
@@ -528,32 +528,13 @@ export const COMB_CHALLENGES: ChallengeData[] = [
       "Count character frequencies, then apply the multinomial coefficient formula using precomputed fact and invFact arrays.\n\nC++ Solution:\n```cpp\nstring s; cin>>s; int n=s.size();\nmap<char,int> freq; for(char c:s) freq[c]++;\nll ans = fact[n];\nfor(auto&[c,f]:freq) ans=ans*inv_fact[f]%MOD;\ncout<<ans<<\"\\n\";\n```",
   },
   {
-    id: "challenge13",
-    backendId: "comb_subarray_div",
-    title: "Subarray Divisibility",
-    difficulty: "Medium",
-    diffColor: "var(--cm-yellow)",
-    statement:
-      "Given an array of N integers, find the number of contiguous subarrays whose sum is divisible by N.\n\nHint: Use prefix sums mod N and the Pigeonhole Principle — if two prefix sums have the same remainder mod N, the subarray between them has sum divisible by N.",
-    constraints: "1 ≤ N ≤ 2×10^5^\n-10^9^ ≤ Aᵢ ≤ 10^9^",
-    inputFormat: "First line: N. Second line: N space-separated integers.",
-    outputFormat: "A single integer: the count of valid subarrays.",
-    hints: [
-      "Define prefix[i] = (A[0] + A[1] + ... + A[i]) mod N. The sum of subarray [l, r] is divisible by N iff prefix[r] == prefix[l-1] (mod N).",
-      "So you need to count pairs (i, j) with i < j such that prefix[i] == prefix[j] mod N. Use a hash map!",
-      "Keep a frequency map of prefix sums seen so far. For each new prefix sum, add cnt[prefix] to the answer before incrementing cnt[prefix]. Be careful with negative mod in C++: use ((prefix % n) + n) % n.",
-    ],
-    editorial:
-      "Prefix sum + Pigeonhole: if two prefixes have the same remainder mod N, the subarray between them is divisible by N. O(N) solution with a hash map.\n\nC++ Solution:\n```cpp\nmap<ll,ll> cnt; cnt[0]=1;\nll prefix=0, ans=0;\nfor(int i=0;i<n;i++){\n    prefix=((prefix+a[i])%n+n)%n;\n    ans+=cnt[prefix];\n    cnt[prefix]++;\n}\ncout<<ans<<\"\\n\";\n```",
-  },
-  {
     id: "challenge14",
     backendId: "comb_coprime_count",
     title: "Co-prime Count",
     difficulty: "Hard",
     diffColor: "var(--cm-red)",
     statement:
-      "Given an integer X (up to 10^18^), count how many integers in the range [1, X] are divisible by 2, 3, or 5. Use the Inclusion-Exclusion Principle.\n\n|A∪B∪C| = |A| + |B| + |C| - |A∩B| - |A∩C| - |B∩C| + |A∩B∩C|",
+      "Given an integer X (up to 10^18^), count how many integers in the range [1, X] are divisible by 2, 3, or 5.",
     constraints: "1 ≤ X ≤ 10^18^",
     inputFormat: "A single integer X.",
     outputFormat: "A single integer: count of integers in [1, X] divisible by 2, 3, or 5.",
@@ -564,5 +545,25 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     ],
     editorial:
       "Pure Inclusion-Exclusion with 7 floor-division operations. No loops needed.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\ntypedef long long ll;\nint main(){\n    ll x; cin>>x;\n    cout << x/2 + x/3 + x/5 - x/6 - x/10 - x/15 + x/30 << \"\\n\";\n}\n```",
+  },
+  {
+    id: "challenge15",
+    backendId: "comb_quantum_routing",
+    title: "The Quantum Routing Protocol",
+    difficulty: "Hard",
+    diffColor: "var(--cm-red)",
+    premium: true,
+    statement:
+      "In the year 2142, you are a network architect managing data streams across a massive 2D quantum grid. A critical data packet must be sent from the Source Node located at (0, 0) to the Mainframe Server located at (X, Y).\n\nBecause the grid's connections only flow in specific directions to prevent data backwash, the packet can only move Right (+1 to X) or Up (+1 to Y).\n\nTo ensure the packet is properly encrypted, it must pass through exactly K specific Security Firewalls (waypoints) located at various coordinates on the grid. If the packet misses even one firewall, or if the arrangement of firewalls makes the journey physically impossible, the packet is destroyed.\n\nCalculate the total number of unique valid paths the packet can take, modulo 10^9^+7.",
+    constraints: "1 ≤ X, Y ≤ 10^5^\n0 ≤ K ≤ 10^5^\n0 ≤ A_i ≤ 10^5^, 0 ≤ B_i ≤ 10^5^\nNo two firewalls overlap, none start at (0,0)",
+    inputFormat: "First line: X Y K. Next K lines: A_i B_i.",
+    outputFormat: "A single integer: valid paths mod 10^9^+7.",
+    hints: [
+      "Break the journey into smaller, independent segments. The total number of valid paths is simply the product of the number of paths between each consecutive pair of required nodes.",
+      "In what order must the nodes be visited? A packet can only move right and up. Sort the firewall coordinates primarily by their X-coordinate, and secondarily by their Y-coordinate, to find the mandatory visitation order.",
+      "If any firewall requires the packet to move negatively (left or down) from the previous firewall, the answer is instantly 0. To calculate the paths quickly, precompute factorials and their inverses.",
+    ],
+    editorial:
+      "This problem is an advanced variation of the classic \"Grid Paths\" combinatorial problem.\n\n1. The Mathematics of a Single Segment\nTo travel from (X1, Y1) to (X2, Y2), the packet must move horizontal dx = X2 - X1 and vertical dy = Y2 - Y1. Number of paths is C(dx + dy, dx).\n\n2. Handling Multiple Nodes\nAppend the start point (0,0) and target (X,Y) to the list of firewalls, and then sort the entire list by X, then Y.\n\n3. Validation and Multiplication\nIterate through consecutive pairs. If dx < 0 or dy < 0, a backwards movement is required. The path is impossible, output 0.\nOtherwise, calculate C(dx + dy, dx) for that segment and multiply into a running total, taking modulo 10^9^+7.\n\nC++ Solution:\n```cpp\n#include <iostream>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n\nconst int MOD = 1e9 + 7;\nconst int MAXN = 200005;\nlong long fact[MAXN], inv_fact[MAXN];\n\nlong long power(long long b, long long e) {\n    long long r = 1;\n    b %= MOD;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % MOD;\n        b = (b * b) % MOD;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) fact[i] = (fact[i - 1] * i) % MOD;\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2);\n    for (int i = MAXN - 2; i >= 0; i--) inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n}\n\nlong long nCr(int n, int r) {\n    if (r < 0 || r > n) return 0;\n    return fact[n] * inv_fact[r] % MOD * inv_fact[n - r] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false); cin.tie(NULL);\n    precompute();\n    int X, Y, K; if (!(cin >> X >> Y >> K)) return 0;\n    \n    vector<pair<int, int>> nodes;\n    for (int i = 0; i < K; i++) {\n        int a, b; cin >> a >> b;\n        nodes.push_back({a, b});\n    }\n    sort(nodes.begin(), nodes.end());\n    \n    vector<pair<int, int>> path;\n    path.push_back({0, 0});\n    for (auto node : nodes) path.push_back(node);\n    path.push_back({X, Y});\n    \n    long long total = 1;\n    for (size_t i = 0; i < path.size() - 1; i++) {\n        int dx = path[i+1].first - path[i].first;\n        int dy = path[i+1].second - path[i].second;\n        if (dx < 0 || dy < 0) { total = 0; break; }\n        total = (total * nCr(dx + dy, dx)) % MOD;\n    }\n    \n    cout << total << \"\\n\";\n    return 0;\n}\n```",
   },
 ];
