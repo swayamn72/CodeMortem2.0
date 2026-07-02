@@ -442,22 +442,23 @@ export default function ChallengeRenderer({
                   style={{ marginBottom: "20px", whiteSpace: "pre-wrap" }}
                 >
                   {content.problemStatement.split("\n").map((line, i) => {
-                    // Bold **text** rendering
-                    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+                    const parts = line.split(/(\*\*[^*]+\*\*|\b[A-Za-z0-9]+\^[0-9]+)/g);
                     return (
                       <p key={i} style={{ marginBottom: "6px" }}>
-                        {parts.map((p, j) =>
-                          p.startsWith("**") && p.endsWith("**") ? (
-                            <strong
-                              key={j}
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {p.slice(2, -2)}
-                            </strong>
-                          ) : (
-                            <span key={j}>{p}</span>
-                          )
-                        )}
+                        {parts.map((p, j) => {
+                          if (p.startsWith("**") && p.endsWith("**")) {
+                            return (
+                              <strong key={j} style={{ color: "var(--text-primary)" }}>
+                                {p.slice(2, -2)}
+                              </strong>
+                            );
+                          }
+                          const caretIdx = p.indexOf("^");
+                          if (caretIdx > 0 && caretIdx < p.length - 1) {
+                            return <span key={j}>{p.slice(0, caretIdx)}<sup>{p.slice(caretIdx + 1)}</sup></span>;
+                          }
+                          return <span key={j}>{p}</span>;
+                        })}
                       </p>
                     );
                   })}

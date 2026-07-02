@@ -15,6 +15,7 @@ import (
 	"codemortem/internal/challenges"
 	_ "codemortem/internal/challenges/segment_tree"              // registers all segment tree challenges
 	_ "codemortem/internal/challenges/segment_tree_intermediate" // registers intermediate segment tree challenges
+	_ "codemortem/internal/challenges/hld"                       // registers all HLD challenges
 	_ "codemortem/internal/challenges/bit_manipulation"          // registers all bit manipulation challenges
 	_ "codemortem/internal/challenges/combinatorics"             // registers all combinatorics challenges
 	"codemortem/internal/codeforces"

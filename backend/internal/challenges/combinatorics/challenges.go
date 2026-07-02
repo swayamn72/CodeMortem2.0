@@ -30,6 +30,7 @@ func init() {
 
 	registerCoprimeCount()
 	registerQuantumRouting()
+	registerLegendarySpells()
 }
 
 // Standard whitespace-insensitive token checker.
@@ -1021,6 +1022,113 @@ int main() {
     }
     
     cout << totalPaths << "\n";
+    return 0;
+}
+`,
+
+		CheckerPy: tokenCheckerPy,
+	})
+}
+
+// ─── Challenge 16: Legendary Spells ──────────────────────────────────────────
+
+func registerLegendarySpells() {
+	challenges.Register(&challenges.Challenge{
+		ID:          "comb_legendary_spells",
+		Name:        "Legendary Spells",
+		CourseSlug:  "combinatorics",
+		NumTests:    20,
+		TimeLimitMs: 2000,
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    a = rng.randint(1, 4)
+    b = rng.randint(a + 1, 9)
+    n = rng.randint(1, 100)
+else:
+    a = rng.randint(1, 8)
+    b = rng.randint(a + 1, 9)
+    n = rng.randint(1000, 1000000)
+
+print(f"{a} {b} {n}")
+`,
+
+		ReferenceCpp: `
+#include <iostream>
+#include <vector>
+#include <cmath>
+
+using namespace std;
+using ll = long long;
+
+const int MOD = 1000000007;
+const int MAXN = 1000005;
+
+vector<ll> fact(MAXN);
+vector<ll> invFact(MAXN);
+
+ll power(ll base, ll exp) {
+    ll res = 1;
+    base %= MOD;
+    while (exp > 0) {
+        if (exp % 2 == 1) res = (res * base) % MOD;
+        base = (base * base) % MOD;
+        exp /= 2;
+    }
+    return res;
+}
+
+ll modInverse(ll n) {
+    return power(n, MOD - 2);
+}
+
+void precompute() {
+    fact[0] = 1;
+    for (int i = 1; i < MAXN; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+    
+    invFact[MAXN - 1] = modInverse(fact[MAXN - 1]);
+    for (int i = MAXN - 2; i >= 0; i--) {
+        invFact[i] = (invFact[i + 1] * (i + 1)) % MOD;
+    }
+}
+
+ll nCr(int n, int r) {
+    if (r < 0 || r > n) return 0;
+    return fact[n] * invFact[r] % MOD * invFact[n - r] % MOD;
+}
+
+bool isPerfectSquare(ll n) {
+    if (n < 0) return false;
+    ll root = round(sqrt(n));
+    return root * root == n;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    precompute();
+    
+    ll a, b, n;
+    if (!(cin >> a >> b >> n)) return 0;
+    
+    ll res = 0;
+    for (ll i = 0; i <= n; i++) {
+        ll total_mana = (i * a) + ((n - i) * b);
+        
+        if (isPerfectSquare(total_mana)) {
+            res = (res + nCr(n, i)) % MOD;
+        }
+    }
+    
+    cout << res << "\n";
     return 0;
 }
 `,

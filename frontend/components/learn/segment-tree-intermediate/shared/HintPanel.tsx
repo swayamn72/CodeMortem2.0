@@ -8,7 +8,7 @@ interface HintPanelProps {
 }
 
 export default function HintPanel({ hints }: HintPanelProps) {
-  const [openIdx, setOpenIdx] = useState<number | null>(null);
+  const [openIndices, setOpenIndices] = useState<Set<number>>(new Set());
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -22,12 +22,11 @@ export default function HintPanel({ hints }: HintPanelProps) {
           marginBottom: "4px",
         }}
       >
-        Hints — reveal one at a time
+        Hints
       </div>
 
       {hints.map((hint, idx) => {
-        const isOpen = openIdx === idx;
-        const isPast = openIdx !== null && idx < openIdx;
+        const isOpen = openIndices.has(idx);
         return (
           <div
             key={idx}
@@ -38,8 +37,6 @@ export default function HintPanel({ hints }: HintPanelProps) {
               border: `1px solid ${
                 isOpen
                   ? "rgba(0,240,255,0.2)"
-                  : isPast
-                  ? "rgba(0,255,136,0.15)"
                   : "rgba(255,255,255,0.07)"
               }`,
               borderRadius: "8px",
@@ -48,7 +45,12 @@ export default function HintPanel({ hints }: HintPanelProps) {
             }}
           >
             <button
-              onClick={() => setOpenIdx(isOpen ? null : idx)}
+              onClick={() => setOpenIndices(prev => {
+                const next = new Set(prev);
+                if (next.has(idx)) next.delete(idx);
+                else next.add(idx);
+                return next;
+              })}
               style={{
                 width: "100%",
                 padding: "12px 14px",
@@ -56,8 +58,6 @@ export default function HintPanel({ hints }: HintPanelProps) {
                 fontWeight: 600,
                 color: isOpen
                   ? "var(--text-primary)"
-                  : isPast
-                  ? "var(--cm-green)"
                   : "var(--text-secondary)",
                 background: "transparent",
                 border: "none",
@@ -70,7 +70,6 @@ export default function HintPanel({ hints }: HintPanelProps) {
               }}
             >
               <span>
-                {isPast && !isOpen ? "✓ " : ""}
                 {hint.title}
               </span>
               <span

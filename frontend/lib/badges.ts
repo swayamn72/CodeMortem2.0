@@ -45,6 +45,26 @@ export const BADGE_REGISTRY: BadgeDef[] = [
     secondaryColor: "#7b00b4",
     moduleId: "combinatorics-beginner",
   },
+  {
+    id: "segment-tree-medium",
+    name: "Augmented Architect",
+    subtitle: "Level II",
+    description: "Mastered augmented Segment Trees: (min, count) pairs and max-subarray under point updates — the two core intermediate patterns.",
+    icon: "🌲",
+    accentColor: "#ffd700",
+    secondaryColor: "#ff8c00",
+    moduleId: "segment-tree-medium",
+  },
+  {
+    id: "hld-hard",
+    name: "HLD Grandmaster",
+    subtitle: "Level III",
+    description: "Mastered Heavy-Light Decomposition: tree metrics, chain formation, path max/sum queries, edge weights, subtree operations, and lazy path range updates.",
+    icon: "🔥",
+    accentColor: "#ff2d55",
+    secondaryColor: "#c9003a",
+    moduleId: "hld-hard",
+  },
 ];
 
 /** Look up a badge definition by its id (= moduleId) */

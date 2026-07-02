@@ -18,7 +18,8 @@ const NEXT_LESSON: Record<string, string> = {
   challenge11: "lesson11",
   challenge12: "mcq2",
   challenge14: "badge",
-  challenge15: "badge",
+  challenge15: "challenge16",
+  challenge16: "badge",
 };
 
 const NEXT_LABEL: Record<string, string> = {
@@ -35,7 +36,8 @@ const NEXT_LABEL: Record<string, string> = {
   challenge11: "Next: DNA Sequences →",
   challenge12: "Checkpoint 2 →",
   challenge14: "🏆 Claim Your Badge",
-  challenge15: "Complete →",
+  challenge15: "Next: Legendary Spells →",
+  challenge16: "Complete →",
 };
 
 export const COMB_CHALLENGE_CONFIGS: Record<string, ChallengeConfig> = Object.fromEntries(
@@ -65,7 +67,7 @@ export const COMB_COURSE: CourseConfig = {
   moduleId: "combinatorics-beginner",
   title: "Combinatorics",
   icon: "∑",
-  subtitle: "Beginner · 20 steps",
+  subtitle: "Beginner · 21 steps",
   parts: [
     { number: 1, title: "Part 1: Modular Arithmetic" },
     { number: 2, title: "Part 2: Counting Principles" },
@@ -110,6 +112,7 @@ export const COMB_COURSE: CourseConfig = {
     { id: "badge",      title: "Completion Badge",             part: 5, type: "badge" },
     // Part 6
     { id: "challenge15",title: "Code: Quantum Routing",        part: 6, type: "challenge", premium: true },
+    { id: "challenge16",title: "Code: Legendary Spells",       part: 6, type: "challenge", premium: true },
   ],
   allLessonIds: [
     "lesson1", "challenge1",

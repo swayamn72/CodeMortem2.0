@@ -8,6 +8,7 @@ import { useProgressStore } from "@/stores/progressStore";
 import Navbar from "@/components/Navbar";
 import { getModuleAssignment } from "@/components/learn/moduleAssignments";
 import { SEGMENT_TREE_COURSE } from "@/components/learn/segment-tree/config";
+import { ALL_LESSON_IDS as HLD_LESSON_IDS } from "@/components/learn/hld/registry";
 import styles from "./page.module.css";
 
 interface Module {
@@ -134,6 +135,22 @@ const MODULES: Module[] = [
     lessons: 8,
     href: "#",
     available: false,
+  },
+  {
+    id: "hld-hard",
+    title: "Heavy-Light Decomposition",
+    subtitle: "Tree path queries, edge weights & lazy subtrees",
+    description:
+      "Master the most powerful tree data structure technique in competitive programming. Learn to decompose trees into chains, then use a Segment Tree to answer path queries, point updates, edge-weight queries, and lazy range updates — all in O(log² N).",
+    tag: "Hard",
+    tagColor: "#ff2d55",
+    icon: "🔥",
+    difficulty: "Hard",
+    level: "Advanced",
+    lessons: HLD_LESSON_IDS.length,
+    href: "/learn/hld",
+    available: true,
+    allLessonIds: HLD_LESSON_IDS,
   },
 ];
 
