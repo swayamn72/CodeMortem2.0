@@ -1087,3 +1087,20 @@ a:hover {
   background: var(--bg-glass-hover) !important;
   color: var(--text-primary) !important;
 }
+
+/* ── New Floating Navbar Hovers ── */
+.nav-link-item:hover {
+  color: #FFFFFF !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.nav-signin-btn:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #FFFFFF !important;
+}
+
+.nav-join-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 32px rgba(34, 211, 238, 0.4) !important;
+}
