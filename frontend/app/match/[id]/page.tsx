@@ -333,8 +333,8 @@ export default function MatchPage() {
             <aside className={styles.sidebar}>
           <div className={styles.sidebarTitle}>Questions</div>
           {store.questions.map((q) => {
-            const isMySolved = store.mySolved.has(q.questionIndex);
-            const isOppSolved = store.opponentSolved.has(q.questionIndex);
+            const isMySolved = !!store.mySolved[q.questionIndex];
+            const isOppSolved = !!store.opponentSolved[q.questionIndex];
             const isActive = q.questionIndex === store.activeQuestionIndex;
 
             let tabClass = styles.qTab;
@@ -361,7 +361,7 @@ export default function MatchPage() {
           <div className={styles.sidebarStats}>
             <div className={styles.sidebarStat}>
               <span className={styles.sidebarStatLabel}>Solved</span>
-              <span className={styles.sidebarStatValue}>{store.mySolved.size}/{store.isCF ? 5 : 7}</span>
+              <span className={styles.sidebarStatValue}>{Object.keys(store.mySolved).length}/{store.isCF ? 5 : 7}</span>
             </div>
             <div className={styles.sidebarStat}>
               <span className={styles.sidebarStatLabel}>Score</span>
@@ -410,11 +410,11 @@ export default function MatchPage() {
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleSubmit}
-                disabled={store.isSubmitting || store.status !== "active" || store.mySolved.has(store.activeQuestionIndex)}
+                disabled={store.isSubmitting || store.status !== "active" || !!store.mySolved[store.activeQuestionIndex]}
               >
-                {store.mySolved.has(store.activeQuestionIndex) ? "✓ Solved" : store.isCF ? "Submit on CF" : store.isSubmitting ? "Judging..." : "Submit"}
+                {store.mySolved[store.activeQuestionIndex] ? "✓ Solved" : store.isCF ? "Submit on CF" : store.isSubmitting ? "Judging..." : "Submit"}
               </button>
-              {store.mySolved.has(store.activeQuestionIndex) && (
+              {store.mySolved[store.activeQuestionIndex] && (
                 <SolutionExplainer questionIndex={store.activeQuestionIndex} />
               )}
             </div>

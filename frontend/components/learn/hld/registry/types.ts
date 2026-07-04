@@ -41,6 +41,8 @@ export interface ChallengeContent {
   starterCode: { cpp: string; python: string };
   /** Reference boilerplate shown when the user clicks "Refer Boilerplate". */
   referenceBoilerplate: { cpp: string; python: string };
+  /** Markdown text for the editorial, optionally containing code blocks. */
+  editorial?: string;
   /** Whether this challenge is premium-gated. */
   premium?: boolean;
 }

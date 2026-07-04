@@ -19,71 +19,7 @@ import { COMB_COURSE, COMB_CHALLENGE_CONFIGS, COMB_MCQ_1, COMB_MCQ_2 } from "./l
 
 import CodeEditor from "@/components/editor/CodeEditor";
 
-// ─── Shared layout helpers ────────────────────────────────────────────────────
-
-function LessonHeading({ num, title }: { num: string; title: string }) {
-  return (
-    <div style={{ marginBottom: "2rem" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "2px", textTransform: "uppercase", color: "var(--cm-purple)", marginBottom: "0.4rem", opacity: 0.8 }}>
-        {num}
-      </div>
-      <h1 style={{ fontSize: "1.9rem", fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.5px", lineHeight: 1.2, marginBottom: "0.5rem" }}>
-        {title}
-      </h1>
-      <div style={{ height: 3, width: 48, background: "linear-gradient(90deg, var(--cm-purple), transparent)", borderRadius: 4 }} />
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: "2.5rem" }}>
-      <h2 style={{ fontSize: "1.05rem", fontWeight: 700, color: "var(--cm-purple)", marginBottom: "1rem", display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ width: 4, height: 18, background: "var(--cm-purple)", borderRadius: 2, display: "inline-block", opacity: 0.7 }} />
-        {title}
-      </h2>
-      <div style={{ paddingLeft: 14 }}>{children}</div>
-    </div>
-  );
-}
-
-function P({ children }: { children: React.ReactNode }) {
-  return <p style={{ color: "var(--text-secondary)", lineHeight: 1.8, marginBottom: "0.85rem", fontSize: "0.96rem" }}>{children}</p>;
-}
-
-function CodeBlock({ code }: { code: string }) {
-  const lineCount = code.trim().split("\n").length;
-  return (
-    <div style={{ height: Math.min(lineCount * 21 + 24, 400), background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-purple)", borderRadius: "0 8px 8px 0", margin: "0.75rem 0 1.25rem", overflow: "hidden" }}>
-      <CodeEditor value={code.trim()} language="cpp" onChange={() => {}} readOnly={true} />
-    </div>
-  );
-}
-
-function Callout({ icon, color = "var(--cm-purple)", children }: { icon: string; color?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: "flex", gap: "0.75rem", padding: "0.85rem 1rem", background: `${color}0d`, borderRadius: 8, borderLeft: `3px solid ${color}`, marginBottom: "1rem", fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: 1.65 }}>
-      <span style={{ flexShrink: 0, fontSize: "1rem" }}>{icon}</span>
-      <span>{children}</span>
-    </div>
-  );
-}
-
-function MathBox({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ padding: "0.85rem 1.25rem", background: "rgba(170,0,230,0.06)", border: "1px solid rgba(170,0,230,0.2)", borderRadius: 10, fontFamily: "monospace", fontSize: "1rem", color: "var(--cm-purple)", fontWeight: 700, margin: "0.75rem 0 1.25rem", textAlign: "center" as const }}>
-      {children}
-    </div>
-  );
-}
-
-function NavBtn({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: "1.5rem", marginTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-      <button className="btn btn-primary" onClick={onClick}>{label}</button>
-    </div>
-  );
-}
+import { LessonHeading, Section, P, CodeBlock, Callout, MathBox, NavBtn } from "./learn/shared/LessonHelpers";
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 

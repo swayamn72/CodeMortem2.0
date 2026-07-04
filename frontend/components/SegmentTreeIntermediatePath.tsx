@@ -27,6 +27,7 @@ export default function SegmentTreeIntermediatePath() {
   const activeLessonConfig = ALL_LESSONS.find((l) => l.id === activeLesson);
   const isChallenge = activeLessonConfig?.content.type === "challenge";
   const isBadge = activeLesson === "badge";
+  const allCompleted = ALL_LESSONS.every((l) => isLessonComplete(MODULE_ID, l.id));
 
   // Auto-collapse sidebar on challenge/badge screens
   useEffect(() => {
@@ -35,10 +36,8 @@ export default function SegmentTreeIntermediatePath() {
 
   // Auto-mark badge as complete on arrival
   useEffect(() => {
-    if (isBadge) {
-      markLessonComplete(MODULE_ID, "badge");
-    }
-  }, [isBadge, markLessonComplete]);
+    if (isBadge && allCompleted) markLessonComplete(MODULE_ID, "badge");
+  }, [isBadge, allCompleted, markLessonComplete]);
 
   const badgeDef = getBadgeDef(MODULE_ID);
   const badgeEarnedAt = earnedBadges[MODULE_ID];
@@ -286,7 +285,17 @@ export default function SegmentTreeIntermediatePath() {
                 className={`${styles.lessonBtn} ${
                   activeLesson === "badge" ? styles.lessonActive : ""
                 }`}
-                onClick={() => setActiveLesson("badge")}
+                onClick={() => {
+                  if (allCompleted) setActiveLesson("badge");
+                }}
+                disabled={!allCompleted}
+                style={
+                  activeLesson === "badge"
+                    ? { borderLeftColor: "var(--cm-red)", color: "var(--cm-red)" }
+                    : !allCompleted
+                    ? { opacity: 0.5, cursor: "not-allowed" }
+                    : {}
+                }
               >
                 <span className={styles.iconWrap}>
                   {isLessonComplete(MODULE_ID, "badge") ? (
@@ -295,6 +304,8 @@ export default function SegmentTreeIntermediatePath() {
                     >
                       ✓
                     </span>
+                  ) : !allCompleted ? (
+                    "🔒"
                   ) : (
                     "🏆"
                   )}
@@ -346,8 +357,10 @@ export default function SegmentTreeIntermediatePath() {
               lessonId={activeLessonConfig.id}
               title={activeLessonConfig.title}
               content={activeLessonConfig.content.data}
-              onComplete={() => completeAndNavigate(activeLessonConfig.id, nextId)}
+              onComplete={() => markLessonComplete(MODULE_ID, activeLessonConfig.id)}
+              onNavigate={nextId ? () => setActiveLesson(nextId) : undefined}
               nextLabel={nextLabel}
+              isCompleted={isLessonComplete(MODULE_ID, activeLessonConfig.id)}
             />
           )}
 

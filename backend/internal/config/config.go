@@ -94,7 +94,8 @@ type RazorpayConfig struct {
 
 // Load reads configuration from environment variables.
 func Load() *Config {
-	return &Config{
+
+	cfg := &Config{
 		Server: ServerConfig{
 			Port:         getEnv("SERVER_PORT", "8080"),
 			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
@@ -157,6 +158,19 @@ func Load() *Config {
 			WebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
 		},
 	}
+
+	// Safety check: refuse to start in production with default/insecure secrets
+	if cfg.Server.Environment == "production" {
+		if cfg.JWT.AccessSecret == "codemortem-access-secret-change-me" ||
+			cfg.JWT.RefreshSecret == "codemortem-refresh-secret-change-me" {
+			panic("FATAL: JWT secrets must be set explicitly in production (JWT_ACCESS_SECRET / JWT_REFRESH_SECRET)")
+		}
+		if cfg.Database.Password == "codemortem" || cfg.Database.Password == "codemortem_dev_2026" {
+			panic("FATAL: Database password must be changed from default in production (DB_PASSWORD)")
+		}
+	}
+
+	return cfg
 }
 
 // DSN returns the PostgreSQL connection string.

@@ -24,48 +24,163 @@ if __name__ == "__main__":
     main()`;
 
 // ── Reference boilerplate: first DFS (tree metrics) ──────────────────────────
-const REFERENCE_CPP = `#include <bits/stdc++.h>
+const REFERENCE_CPP = `#include <iostream>
+#include <vector>
+
 using namespace std;
 
 const int MAXN = 100005;
 vector<int> adj[MAXN];
-int depth[MAXN], par[MAXN], sz[MAXN], heavy[MAXN];
 
-// Returns sz[u].
-int dfs(int u, int p, int d) {
+// Output arrays
+int depth[MAXN];
+int par[MAXN];
+int sz[MAXN];
+int heavy[MAXN];
+
+void dfs(int u, int p, int d) {
+    par[u] = p;
     depth[u] = d;
-    par[u]   = p;
-    sz[u]    = 1;
+    sz[u] = 1;
     heavy[u] = -1;
-    int maxChild = 0;
+    
+    int max_child_sz = -1;
+
     for (int v : adj[u]) {
-        if (v == p) continue;
-        sz[u] += dfs(v, u, d + 1);
-        if (sz[v] > maxChild) {
-            maxChild = sz[v];
+        if (v == p) continue; // Don't go back up to parent
+        
+        // Go down the tree
+        dfs(v, u, d + 1);
+        
+        // Come back up: add the child's subtree size to ours
+        sz[u] += sz[v];
+        
+        // Determine if this child is the heavy child
+        if (sz[v] > max_child_sz) {
+            max_child_sz = sz[v];
             heavy[u] = v;
+        } else if (sz[v] == max_child_sz) {
+            // Apply strict tie-breaker rule
+            if (heavy[u] == -1 || v < heavy[u]) {
+                heavy[u] = v;
+            }
         }
     }
-    return sz[u];
 }
 
 int main() {
-    ios_base::sync_with_stdio(false); cin.tie(NULL);
-    int n; cin >> n;
-    for (int i = 0; i < n - 1; i++) {
-        int u, v; cin >> u >> v;
+    // Fast I/O
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    int n;
+    cin >> n;
+    
+    for (int i = 0; i < n - 1; ++i) {
+        int u, v;
+        cin >> u >> v;
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
+    
+    // The problem specifies the tree is rooted at 1, 
+    // root has parent 0, and root has depth 0.
     dfs(1, 0, 0);
-
-    // Print: for each node 1..n: depth, parent, sz, heavy_child (-1 if leaf)
-    for (int u = 1; u <= n; u++) {
-        cout << u << ": depth=" << depth[u]
-             << " parent=" << par[u]
-             << " sz=" << sz[u]
-             << " heavy=" << heavy[u] << "\\n";
+    
+    // Output the metrics in order from node 1 to N
+    for (int i = 1; i <= n; ++i) {
+        cout << depth[i] << " " << par[i] << " " << sz[i] << " " << heavy[i] << "\\n";
     }
+    
+    return 0;
+}`;
+
+const REFERENCE_CPP_CHAIN = `#include <iostream>
+#include <vector>
+
+using namespace std;
+
+const int MAXN = 100005;
+vector<int> adj[MAXN];
+
+// Phase 1 arrays
+int depth[MAXN], par[MAXN], sz[MAXN], heavy[MAXN];
+// Phase 2 arrays
+int pos[MAXN], head[MAXN];
+
+int timer = 0;
+
+void dfs1(int u, int p, int d) {
+    par[u] = p;
+    depth[u] = d;
+    sz[u] = 1;
+    heavy[u] = -1;
+    
+    int max_sz = -1;
+
+    for (int v : adj[u]) {
+        if (v == p) continue;
+        
+        dfs1(v, u, d + 1);
+        sz[u] += sz[v];
+        
+        // Update heavy child with strict tie-breaker rules
+        if (sz[v] > max_sz) {
+            max_sz = sz[v];
+            heavy[u] = v;
+        } else if (sz[v] == max_sz) {
+            if (heavy[u] == -1 || v < heavy[u]) {
+                heavy[u] = v;
+            }
+        }
+    }
+}
+
+void dfs2(int u, int p, int h) {
+    head[u] = h;
+    pos[u] = timer++;
+    
+    // 1. Visit heavy child FIRST to maintain contiguous positions
+    if (heavy[u] != -1) {
+        dfs2(heavy[u], u, h);
+    }
+    
+    // 2. Visit light children
+    for (int v : adj[u]) {
+        if (v == p || v == heavy[u]) continue;
+        
+        // Light children start a new chain, so their head is themselves
+        dfs2(v, u, v);
+    }
+}
+
+int main() {
+    // Optimize standard I/O operations for competitive programming
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    
+    int n;
+    cin >> n;
+    
+    for (int i = 0; i < n - 1; ++i) {
+        int u, v;
+        cin >> u >> v;
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    
+    // Execute Phase 1: Compute metrics
+    dfs1(1, 0, 0);
+    
+    // Execute Phase 2: Form chains and assign positions
+    // Node 1 is the root, and the head of its own chain
+    dfs2(1, 0, 1);
+    
+    // Output Phase 2 results
+    for (int i = 1; i <= n; ++i) {
+        cout << pos[i] << " " << head[i] << "\\n";
+    }
+    
     return 0;
 }`;
 
@@ -164,18 +279,38 @@ export const PART1_SETUP: ProblemGroup = {
           ],
           hints: [
             {
-              title: "Hint 1 — DFS Structure",
-              body: "Write a DFS starting from root=1 with parent=0 and depth=0. For each unvisited neighbor v, recurse: dfs(v, u, depth+1). sz[u] starts at 1 and accumulates sz[v] for each child v.",
+              title: "Hint 1 — Structural DFS",
+              body: "Write a DFS starting from root = 1 with parent = 0 and depth = 0. As you go down, set the parent and depth. As you backtrack (return from the recursion), accumulate the sz of the current node by adding the sz of all its children.",
             },
             {
-              title: "Hint 2 — Finding the Heavy Child",
-              body: "After computing all children's sizes, heavy[u] is the child v that maximizes sz[v]. Initialize heavy[u] = -1 and maxSz = 0 before iterating children. Update if sz[v] > maxSz. For a tie, since you check sz[v] > maxSz (strict greater), the first maximum found wins.",
+              title: "Hint 2 — The Heavy Child & Tie-Breaker",
+              body: "After computing a child's size, check if it's the largest seen so far. If sz[v] > maxSz, update your heavy child. If sz[v] == maxSz, you must apply the tie-breaker: update the heavy child only if v is smaller than the current heavy child.",
             },
             {
-              title: "Hint 3 — Avoiding Stack Overflow",
-              body: "Recursive DFS may stack-overflow for N = 10^5 on a line graph. Use an iterative approach: push nodes onto a stack, record the DFS order, then process in reverse to compute sz and heavy bottom-up.",
+              title: "Hint 3 — Handling Stack Limits",
+              body: "For constraints up to 10^5, a recursive DFS might stack-overflow on a line graph if the environment's stack limit is small. If you hit a Runtime Error, rewrite the logic to use a standard BFS to get a topological order from root to leaves, then reverse that order to process nodes bottom-up.",
             },
           ],
+          editorial: `**The Goal:**
+This problem requires us to compute four fundamental properties for every node in a tree: depth, parent, subtree size, and the "heavy child". Identifying the heavy child is the critical first step in Heavy-Light Decomposition (HLD).
+
+**The Strategy:**
+A single Depth-First Search (DFS) can compute all four metrics simultaneously.
+
+*Top-Down (depth and par)*: When we first visit a node u from its parent p, we immediately know par[u] = p and depth[u] = depth[p] + 1.
+
+*Bottom-Up (sz and heavy)*: A node's subtree size relies on the sizes of its children. We initialize sz[u] = 1 (accounting for the node itself). After recursively calling the DFS on a child v, its entire subtree size sz[v] is completely computed. We then add sz[v] to sz[u].
+
+*Heavy Child Tie-Breaker*: While iterating through the children of u, we track the maximum child size seen so far. If a child v strictly exceeds this maximum, it becomes the new heavy[u]. If it exactly ties the maximum, we check if v < heavy[u]. If so, it overwrites the heavy child.
+
+**Complexity:**
+Every node and edge is visited exactly once.
+Time Complexity: O(N)
+Space Complexity: O(N) to store the adjacency list and the metric arrays.
+
+\`\`\`cpp
+${REFERENCE_CPP}
+\`\`\``,
           backendChallengeId: "hld_tree_metrics",
           sampleTestCases: [
             {
@@ -243,18 +378,39 @@ export const PART1_SETUP: ProblemGroup = {
           ],
           hints: [
             {
-              title: "Hint 1 — DFS signature",
-              body: "The second DFS takes (u, parent, chainHead, currentPos). Start with dfs2(1, 0, 1, 0). Set pos[u] = currentPos and head[u] = chainHead, then increment currentPos.",
+              title: "Hint 1 — Structural DFS",
+              body: "Start with a basic DFS from root = 1 (parent = 0, depth = 0). For each unvisited neighbor v, recurse down. A node's subtree size (sz[u]) starts at 1 and accumulates the sizes of all its children as the recursion unwinds.",
             },
             {
-              title: "Hint 2 — Visit heavy child first",
-              body: "After processing node u, recurse into heavy[u] first (if it exists) passing the SAME chainHead — it continues the current chain. Then recurse into every other (light) child passing v itself as the new chainHead.",
+              title: "Hint 2 — The Heavy Child & Tie-Breaker",
+              body: "After computing a child's size, check if it's the largest seen so far to update heavy[u]. Watch out for ties! If sz[v] equals your current maximum, you must explicitly check if v has a smaller node index than your current heavy child, updating it if so.",
             },
             {
-              title: "Hint 3 — Tracking positions",
-              body: "Use a shared counter (global int or reference) for the current position. Every node increments it exactly once. The heavy child gets the very next position (currentPos + 1), which is why chain nodes are contiguous.",
+              title: "Hint 3 — Chain Formation DFS",
+              body: "Write a second DFS to assign pos and head. The trick to keeping heavy chains contiguous in your 1D array is to always visit the heavy child first. Pass the current chain's head down to the heavy child, but pass the light child's own index as the new head when branching into light edges.",
+            },
+            {
+              title: "Hint 4 — Handling Stack Limits",
+              body: "A recursive DFS can cause a stack overflow for N = 10^5 if the tree is essentially a single straight line. If your environment doesn't allow expanding the stack limit, consider writing the first phase bottom-up using a BFS order reversed, and the second phase using an explicit stack or iterative loop.",
             },
           ],
+          editorial: `**The Goal:**
+We want to flatten a tree into a 1D array such that any path down a "heavy chain" occupies contiguous indices. This is the foundation that allows us to use standard segment trees to query tree paths in O(log² N) time.
+
+**The Strategy:**
+After running the first DFS to calculate depth, par, sz, and heavy, we run a second DFS (dfs2). We maintain a global timer (starting at 0) to assign positions. The most critical step is the traversal order inside dfs2.
+
+**For any given node u:**
+- *Assign current metrics*: Record its pos (from the timer) and its head (passed down from its parent).
+- *Visit the heavy child*: If heavy[u] exists, we recursively call dfs2(heavy[u], u, head). Because we do this immediately, the heavy child gets the very next pos index, ensuring the chain remains completely contiguous in memory.
+- *Visit the light children*: Iterate through the rest of the children. If a child v is neither the parent nor the heavy child, it must be a light child. Light edges always start a brand new chain. Therefore, we call dfs2(v, u, v), passing v itself as the new chain head.
+
+**Complexity:**
+Both dfs1 and dfs2 visit each node and edge exactly once. Therefore, the time complexity is strictly O(N). The space complexity is also O(N) to store the tree graph and the required arrays.
+
+\`\`\`cpp
+${REFERENCE_CPP_CHAIN}
+\`\`\``,
           backendChallengeId: "hld_chain_formation",
           sampleTestCases: [
             {
@@ -274,7 +430,7 @@ export const PART1_SETUP: ProblemGroup = {
             },
           ],
           starterCode: { cpp: STARTER_CPP, python: STARTER_PYTHON },
-          referenceBoilerplate: { cpp: REFERENCE_CPP, python: REFERENCE_PYTHON },
+          referenceBoilerplate: { cpp: REFERENCE_CPP_CHAIN, python: REFERENCE_PYTHON },
         },
       },
     },

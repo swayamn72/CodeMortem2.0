@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
 import type { LPTestResult } from "./types";
+import { getVerdictColor, getVerdictLabel } from "@/lib/verdicts";
+import SuccessModal from "@/components/shared/SuccessModal";
 import { BIT_CHALLENGES, SAMPLE_TEST_CASES } from "./constants";
 import styles from "@/app/learn/segment-tree/page.module.css";
 
@@ -215,23 +217,6 @@ export default function BitManipChallengeIde({
     }
   };
 
-  const verdictColor = (v: string) => {
-    if (v === "accepted") return "var(--cm-green)";
-    if (v === "pending") return "var(--text-secondary)";
-    if (v === "running") return "var(--cm-cyan)";
-    return "var(--cm-red)";
-  };
-  const verdictLabel = (v: string) => {
-    if (v === "accepted") return "✓ AC";
-    if (v === "pending") return "○ Pending";
-    if (v === "running") return "⟳ Running…";
-    if (v === "wrong_answer") return "✗ WA";
-    if (v === "compile_error") return "✗ CE";
-    if (v === "runtime_error") return "✗ RE";
-    if (v === "time_limit_exceeded") return "⏱ TLE";
-    return v;
-  };
-
   if (!challenge) return null;
 
   return (
@@ -378,8 +363,11 @@ export default function BitManipChallengeIde({
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {testResults.map((r, i) => (
                     <button key={i} onClick={() => setActiveTestCaseIdx(i)}
-                      style={{ padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, background: i === activeTestCaseIdx ? `${verdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)", border: `1px solid ${i === activeTestCaseIdx ? verdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`, color: verdictColor(r.verdict) }}>
-                      {verdictLabel(r.verdict)} {i + 1}
+                      style={{ padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700, 
+                        background: i === activeTestCaseIdx ? `${getVerdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)", 
+                        border: `1px solid ${i === activeTestCaseIdx ? getVerdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`, 
+                        color: getVerdictColor(r.verdict) }}>
+                      {getVerdictLabel(r.verdict)} {i + 1}
                     </button>
                   ))}
                   {testResults.length > 0 && (
@@ -387,7 +375,7 @@ export default function BitManipChallengeIde({
                       <div style={{ color: "var(--text-secondary)", marginBottom: 4 }}>Input: {testResults[activeTestCaseIdx]?.input}</div>
                       <div style={{ color: "var(--cm-green)" }}>Expected: {testResults[activeTestCaseIdx]?.expected}</div>
                       {testResults[activeTestCaseIdx]?.verdict !== "pending" && (
-                        <div style={{ color: verdictColor(testResults[activeTestCaseIdx].verdict) }}>
+                        <div style={{ color: getVerdictColor(testResults[activeTestCaseIdx].verdict) }}>
                           Got: {testResults[activeTestCaseIdx]?.output || testResults[activeTestCaseIdx]?.compileOutput || testResults[activeTestCaseIdx]?.stderr}
                         </div>
                       )}
@@ -407,16 +395,17 @@ export default function BitManipChallengeIde({
 
       {/* ── Success overlay ── */}
       {showSuccess && (
-        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div style={{ background: "var(--surface-color)", border: "1px solid var(--cm-green)", borderRadius: 16, padding: "2rem", textAlign: "center", maxWidth: 400 }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✓</div>
-            <h2 style={{ color: "var(--cm-green)", marginBottom: "0.5rem" }}>Accepted!</h2>
-            <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>All test cases passed.</p>
-            <button className="btn btn-primary" onClick={() => { setShowSuccess(false); setActiveLesson(NEXT_LESSON[activeLesson]); }}>
-              {NEXT_LABEL[activeLesson]}
-            </button>
-          </div>
-        </div>
+        <SuccessModal
+          title={challenge.title}
+          testCount={testResults.length}
+          passedCount={testResults.filter(r => r.verdict === "accepted").length}
+          onClose={() => setShowSuccess(false)}
+          onNext={() => {
+            setShowSuccess(false);
+            setActiveLesson(NEXT_LESSON[activeLesson]);
+          }}
+          nextLabel={NEXT_LABEL[activeLesson]}
+        />
       )}
     </div>
   );

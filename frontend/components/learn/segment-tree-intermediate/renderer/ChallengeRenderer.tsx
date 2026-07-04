@@ -6,6 +6,9 @@ import type { ChallengeContent, LPTestResult } from "../registry/types";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import CodeEditor from "@/components/editor/CodeEditor";
 import HintPanel from "../shared/HintPanel";
+import { getVerdictText } from "@/lib/verdicts";
+import SuccessModal from "@/components/shared/SuccessModal";
+import { useAuthStore } from "@/stores/authStore";
 
 // ── useCodeRunner hook ────────────────────────────────────────────────────────
 // Encapsulates all run / submit / state logic so ChallengeRenderer stays clean.
@@ -150,7 +153,7 @@ function useCodeRunner(
     }
   }, [code, language, content, isRunning, isSubmitting, onAccepted]);
 
-  return { testResults, isRunning, isSubmitting, showSuccess, run, submit };
+  return { testResults, isRunning, isSubmitting, showSuccess, setShowSuccess, run, submit };
 }
 
 // ── Verdict summary helper ────────────────────────────────────────────────────
@@ -172,13 +175,7 @@ function verdictSummary(
     (r) => !["pending", "running", "accepted"].includes(r.verdict)
   );
   if (failed) {
-    const map: Record<string, string> = {
-      wrong_answer: "Wrong Answer",
-      compile_error: "Compile Error",
-      runtime_error: "Runtime Error",
-      time_limit_exceeded: "Time Limit Exceeded",
-    };
-    return { text: map[failed.verdict] ?? "Failed", color: "var(--cm-red)" };
+    return { text: getVerdictText(failed.verdict), color: "var(--cm-red)" };
   }
   return { text: "Pending", color: "var(--text-muted)" };
 }
@@ -190,7 +187,9 @@ interface ChallengeRendererProps {
   title: string;
   content: ChallengeContent;
   onComplete: () => void;
+  onNavigate?: () => void;
   nextLabel?: string;
+  isCompleted?: boolean;
 }
 
 export default function ChallengeRenderer({
@@ -198,13 +197,19 @@ export default function ChallengeRenderer({
   title,
   content,
   onComplete,
+  onNavigate,
   nextLabel = "Continue →",
+  isCompleted = false,
 }: ChallengeRendererProps) {
+  const { user } = useAuthStore();
+  const isPremiumActive = user?.isPremium === true;
+
   const [language, setLanguage] = useState<"cpp" | "python">("cpp");
   const [code, setCode] = useState(content.starterCode.cpp);
-  const [leftTab, setLeftTab] = useState<"statement" | "hints">("statement");
+  const [leftTab, setLeftTab] = useState<"statement" | "hints" | "editorial">("statement");
   const [showReference, setShowReference] = useState(false);
   const [activeCase, setActiveCase] = useState(0);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   // Reset editor when language or challenge changes
   useEffect(() => {
@@ -212,6 +217,7 @@ export default function ChallengeRenderer({
       language === "cpp" ? content.starterCode.cpp : content.starterCode.python
     );
     setShowReference(false);
+    setHasSubmitted(false);
   }, [language, content.backendChallengeId]);
 
   // Drag-to-resize
@@ -265,9 +271,12 @@ export default function ChallengeRenderer({
     document.addEventListener("mouseup", up);
   }, []);
 
-  const { testResults, isRunning, isSubmitting, showSuccess, run, submit } =
-    useCodeRunner(content, language, code, onComplete);
-
+  // Use runner hook
+  const { testResults, isRunning, isSubmitting, showSuccess, setShowSuccess, run, submit } =
+    useCodeRunner(content, language, code, () => {
+      onComplete();
+      setHasSubmitted(true);
+    });
   const { text: verdictText, color: verdictColor } = verdictSummary(
     testResults,
     isRunning,
@@ -385,30 +394,32 @@ export default function ChallengeRenderer({
               flexShrink: 0,
             }}
           >
-            {(["statement", "hints"] as const).map((t) => (
+            {(["statement", "hints", ...(content.editorial ? ["editorial" as const] : [])] as const).map(t => {
+              const locked = t === "editorial" && !(hasSubmitted || isCompleted || isPremiumActive);
+              return (
               <button
                 key={t}
-                onClick={() => setLeftTab(t)}
+                onClick={() => !locked && setLeftTab(t)}
+                disabled={locked}
                 style={{
                   padding: "11px 20px",
                   fontSize: "13px",
                   fontWeight: 600,
-                  color:
-                    leftTab === t ? "var(--text-primary)" : "#6b7280",
+                  color: locked ? "var(--text-muted)" : leftTab === t ? "var(--text-primary)" : "#6b7280",
                   background: "transparent",
                   border: "none",
                   borderBottom:
                     leftTab === t
                       ? "2px solid var(--cm-cyan)"
                       : "2px solid transparent",
-                  cursor: "pointer",
+                  cursor: locked ? "not-allowed" : "pointer",
                   transition: "all 0.15s",
                   textTransform: "capitalize",
                 }}
               >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {locked ? "🔒 Editorial" : t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
-            ))}
+            )})}
           </div>
 
           {/* Panel body */}
@@ -576,6 +587,37 @@ export default function ChallengeRenderer({
 
             {/* HINTS TAB */}
             {leftTab === "hints" && <HintPanel hints={content.hints} />}
+
+            {/* EDITORIAL TAB */}
+            {leftTab === "editorial" && (hasSubmitted || isCompleted || isPremiumActive) && content.editorial && (
+              <div>
+                <h3 style={{ fontSize: "16px", marginBottom: "16px", color: "var(--cm-cyan)" }}>Editorial</h3>
+                {content.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
+                  if (i % 3 === 0) {
+                    if (part.trim()) {
+                      acc.push(
+                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap" }}>
+                          {part}
+                        </div>
+                      );
+                    }
+                  } else if (i % 3 === 2) {
+                    const lang = arr[i - 1] || "cpp";
+                    const cleanCode = part.trim();
+                    const lineCount = cleanCode.split("\\n").length;
+                    acc.push(
+                      <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cm-cyan)", letterSpacing: "0.5px", marginBottom: 4, textTransform: "uppercase" }}>{lang === "python" ? "Python" : "C++"}</div>
+                        <div style={{ height: Math.min(lineCount * 21 + 24, 400), background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-cyan)", borderRadius: "0 8px 8px 0", overflow: "hidden" }}>
+                          <CodeEditor value={cleanCode} language={lang as "cpp" | "python"} onChange={() => {}} readOnly={true} />
+                        </div>
+                      </div>
+                    );
+                  }
+                  return acc;
+                }, [])}
+              </div>
+            )}
           </div>
         </div>
 
@@ -623,44 +665,7 @@ export default function ChallengeRenderer({
                 <option value="python">Python</option>
               </select>
 
-              {/* Refer Boilerplate toggle */}
-              <button
-                onClick={() => {
-                  if (showReference) {
-                    setCode(
-                      language === "cpp"
-                        ? content.starterCode.cpp
-                        : content.starterCode.python
-                    );
-                  } else {
-                    setCode(
-                      language === "cpp"
-                        ? content.referenceBoilerplate.cpp
-                        : content.referenceBoilerplate.python
-                    );
-                  }
-                  setShowReference(!showReference);
-                }}
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  padding: "4px 12px",
-                  background: showReference
-                    ? "rgba(255,215,0,0.12)"
-                    : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${
-                    showReference
-                      ? "rgba(255,215,0,0.4)"
-                      : "rgba(255,255,255,0.1)"
-                  }`,
-                  borderRadius: "6px",
-                  color: showReference ? "var(--cm-yellow)" : "var(--text-muted)",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
-              >
-                {showReference ? "← Back to Scratch" : "Refer Boilerplate"}
-              </button>
+
             </div>
 
             <div style={{ display: "flex", gap: "8px" }}>
@@ -904,6 +909,20 @@ export default function ChallengeRenderer({
           </div>
         </div>
       </div>
+
+      {showSuccess && (
+        <SuccessModal
+          title={title}
+          testCount={testResults.length}
+          passedCount={testResults.filter(r => r.verdict === "accepted").length}
+          onClose={() => setShowSuccess(false)}
+          onNext={onNavigate ? () => {
+            setShowSuccess(false);
+            onNavigate();
+          } : undefined}
+          nextLabel={nextLabel}
+        />
+      )}
     </div>
   );
 }

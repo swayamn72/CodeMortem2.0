@@ -5,6 +5,8 @@ import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
 import type { ChallengeConfig } from "@/components/course/types";
 import type { LPTestResult } from "@/components/learn/bit-manipulation/types";
+import { getVerdictColor, getVerdictLabel } from "@/lib/verdicts";
+import SuccessModal from "@/components/shared/SuccessModal";
 
 interface PracticeChallengeIdeProps {
   challenge: ChallengeConfig;
@@ -174,22 +176,6 @@ export default function PracticeChallengeIde({
       setIsSubmitting(false);
     }
   };
-
-  const vcol = (v: string) =>
-    v === "accepted" ? "var(--cm-green)"
-    : v === "running" ? "var(--cm-cyan)"
-    : v === "pending" ? "var(--text-secondary)"
-    : "var(--cm-red)";
-
-  const vlabel = (v: string) =>
-    v === "accepted" ? "✓ AC"
-    : v === "pending" ? "○ Pending"
-    : v === "running" ? "⟳ Running…"
-    : v === "wrong_answer" ? "✗ WA"
-    : v === "compile_error" ? "✗ CE"
-    : v === "runtime_error" ? "✗ RE"
-    : v === "time_limit_exceeded" ? "⏱ TLE"
-    : v;
 
   return (
     <div ref={containerRef} style={{ display: "flex", flex: 1, minHeight: 0, overflow: "hidden", position: "relative" }}>
@@ -391,11 +377,11 @@ export default function PracticeChallengeIde({
                   {testResults.map((r, i) => (
                     <button key={i} onClick={() => setActiveTestIdx(i)} style={{
                       padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 700,
-                      background: i === activeTestIdx ? `${vcol(r.verdict)}18` : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${i === activeTestIdx ? vcol(r.verdict) : "rgba(255,255,255,0.1)"}`,
-                      color: vcol(r.verdict),
+                      background: i === activeTestIdx ? `${getVerdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${i === activeTestIdx ? getVerdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`,
+                      color: getVerdictColor(r.verdict),
                     }}>
-                      {vlabel(r.verdict)} {i + 1}
+                      {getVerdictLabel(r.verdict)} {i + 1}
                     </button>
                   ))}
                   {testResults.length > 0 && (
@@ -403,7 +389,7 @@ export default function PracticeChallengeIde({
                       <div style={{ color: "var(--text-secondary)", marginBottom: 4, whiteSpace: "pre-wrap" }}>Input: {testResults[activeTestIdx]?.input}</div>
                       <div style={{ color: "var(--cm-green)", marginBottom: 4 }}>Expected: {testResults[activeTestIdx]?.expected}</div>
                       {testResults[activeTestIdx]?.verdict !== "pending" && (
-                        <div style={{ color: vcol(testResults[activeTestIdx].verdict) }}>
+                        <div style={{ color: getVerdictColor(testResults[activeTestIdx].verdict) }}>
                           Got: {testResults[activeTestIdx]?.output || testResults[activeTestIdx]?.compileOutput || testResults[activeTestIdx]?.stderr}
                         </div>
                       )}
@@ -423,29 +409,17 @@ export default function PracticeChallengeIde({
 
       {/* Success overlay */}
       {showSuccess && (
-        <div style={{
-          position: "absolute", inset: 0, background: "rgba(0,0,0,0.82)",
-          display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-        }}>
-          <div style={{
-            background: "var(--surface-color)", border: "1px solid var(--cm-green)",
-            borderRadius: 16, padding: "2.5rem 2rem", textAlign: "center", maxWidth: 400,
-          }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>✓</div>
-            <h2 style={{ color: "var(--cm-green)", marginBottom: "0.5rem" }}>Accepted!</h2>
-            <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>All test cases passed.</p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-              <button className="btn btn-secondary" onClick={() => setShowSuccess(false)}>
-                Stay here
-              </button>
-              {challenge.nextLesson && onNavigate && (
-                <button className="btn btn-primary" onClick={() => { setShowSuccess(false); onNavigate(challenge.nextLesson); }}>
-                  {challenge.nextLabel ?? "Next →"}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <SuccessModal
+          title={challenge.title}
+          testCount={testResults.length}
+          passedCount={testResults.filter(r => r.verdict === "accepted").length}
+          onClose={() => setShowSuccess(false)}
+          onNext={challenge.nextLesson && onNavigate ? () => {
+            setShowSuccess(false);
+            onNavigate(challenge.nextLesson!);
+          } : undefined}
+          nextLabel={challenge.nextLabel ?? "Next →"}
+        />
       )}
     </div>
   );

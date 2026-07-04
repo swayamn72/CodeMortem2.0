@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import LineExplainer from "@/components/shared/LineExplainer";
+import { TEMPLATE_LINES } from "./registry/part5-template";
 
 // ═════════════════════════════════════════════════════════════════════════════
 // Shared tree data (10 nodes)
@@ -754,6 +756,7 @@ export function getHLDVisual(lessonId: string): React.ReactNode {
     case "hld-l4-edges":         return <HeavyLightTreeViz />;
     case "hld-l4-subtree":       return <ChainFlatteningViz />;
     case "hld-l4-range-updates": return <PathQueryViz />;
+    case "hld-l5-template":      return <LineExplainer lines={TEMPLATE_LINES} language="cpp" />;
     default: return null;
   }
 }

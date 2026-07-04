@@ -48,6 +48,8 @@ export interface ChallengeContent {
    * working generic template the student adapts.
    */
   referenceBoilerplate: { cpp: string; python: string };
+  /** Markdown text for the editorial, optionally containing code blocks. */
+  editorial?: string;
 }
 
 export type LessonContent =

@@ -112,7 +112,9 @@ func (sm *SessionManager) CreateSession(ctx context.Context, matchID, p1ID, p1Us
 	}
 
 	// Increment usage counter
-	sm.db.ExecContext(ctx, "UPDATE question_sets SET times_used = times_used + 1 WHERE id = $1", questionSetID)
+	if _, err := sm.db.ExecContext(ctx, "UPDATE question_sets SET times_used = times_used + 1 WHERE id = $1", questionSetID); err != nil {
+		log.Printf("[session] warning: failed to increment question set usage: %v", err)
+	}
 
 	session := &Session{
 		Match:     &match,
@@ -204,7 +206,9 @@ func (sm *SessionManager) CreateSoloSession(ctx context.Context, p1ID, p1User st
 	}
 
 	// Increment usage counter
-	sm.db.ExecContext(ctx, "UPDATE question_sets SET times_used = times_used + 1 WHERE id = $1", questionSetID)
+	if _, err := sm.db.ExecContext(ctx, "UPDATE question_sets SET times_used = times_used + 1 WHERE id = $1", questionSetID); err != nil {
+		log.Printf("[session] warning: failed to increment question set usage: %v", err)
+	}
 
 	session := &Session{
 		Match:     &match,
@@ -279,9 +283,11 @@ func (sm *SessionManager) RecordSolve(ctx context.Context, matchID, userID strin
 	points := mq.PointsValue
 
 	// Update DB
-	sm.db.ExecContext(ctx, `
+	if _, err := sm.db.ExecContext(ctx, `
 		UPDATE match_questions SET solved_by = $1, solved_at = $2 WHERE id = $3
-	`, userID, now, mq.ID)
+	`, userID, now, mq.ID); err != nil {
+		log.Printf("[session] warning: failed to update match_questions solved_by: %v", err)
+	}
 
 	// Update player score
 	player := session.GetPlayer(userID)
@@ -292,9 +298,11 @@ func (sm *SessionManager) RecordSolve(ctx context.Context, matchID, userID strin
 
 	// Update match scores in DB
 	if session.Player2 != nil {
-		sm.db.ExecContext(ctx, `
+		if _, err := sm.db.ExecContext(ctx, `
 			UPDATE matches SET player1_score = $1, player2_score = $2 WHERE id = $3
-		`, session.Player1.Score, session.Player2.Score, matchID)
+		`, session.Player1.Score, session.Player2.Score, matchID); err != nil {
+			log.Printf("[session] warning: failed to update match scores: %v", err)
+		}
 
 		// Notify opponent
 		sm.hub.SendToOpponent(matchID, userID, &ServerMessage{
@@ -305,9 +313,11 @@ func (sm *SessionManager) RecordSolve(ctx context.Context, matchID, userID strin
 			},
 		})
 	} else {
-		sm.db.ExecContext(ctx, `
+		if _, err := sm.db.ExecContext(ctx, `
 			UPDATE matches SET player1_score = $1 WHERE id = $2
-		`, session.Player1.Score, matchID)
+		`, session.Player1.Score, matchID); err != nil {
+			log.Printf("[session] warning: failed to update solo match score: %v", err)
+		}
 	}
 
 	log.Printf("[session] %s solved Q%d in match %s (+%d pts)", player.Username, questionIndex, matchID, points)
@@ -355,18 +365,22 @@ func (sm *SessionManager) EndMatch(ctx context.Context, matchID, reason string) 
 
 	if p2 == nil {
 		// Solo match logic
-		sm.db.ExecContext(ctx, `
+		if _, err := sm.db.ExecContext(ctx, `
 			UPDATE matches SET 
 				status = 'completed', ended_at = $1, player1_score = $2
 			WHERE id = $3
-		`, now, p1.Score, matchID)
+		`, now, p1.Score, matchID); err != nil {
+			log.Printf("[session] warning: failed to update solo match status: %v", err)
+		}
 
-		sm.db.ExecContext(ctx, `
+		if _, err := sm.db.ExecContext(ctx, `
 			UPDATE users SET 
 				solo_matches_played = solo_matches_played + 1,
 				solo_problems_solved = solo_problems_solved + $1
 			WHERE id = $2
-		`, len(p1.Solved), p1.UserID)
+		`, len(p1.Solved), p1.UserID); err != nil {
+			log.Printf("[session] warning: failed to update solo user stats: %v", err)
+		}
 
 		resultData := map[string]interface{}{
 			"matchId": matchID,
@@ -411,7 +425,7 @@ func (sm *SessionManager) EndMatch(ctx context.Context, matchID, reason string) 
 	delta1, delta2 := rating.CalculateMatch(rp1, rp2, p1Score)
 
 	// Update match in DB
-	sm.db.ExecContext(ctx, `
+	if _, err := sm.db.ExecContext(ctx, `
 		UPDATE matches SET 
 			status = $1, ended_at = $2, winner_id = $3,
 			player1_score = $4, player2_score = $5,
@@ -422,10 +436,12 @@ func (sm *SessionManager) EndMatch(ctx context.Context, matchID, reason string) 
 		p1.Score, p2.Score,
 		delta1.NewRating, delta1.Delta,
 		delta2.NewRating, delta2.Delta,
-		matchID)
+		matchID); err != nil {
+		log.Printf("[session] ERROR: failed to update match result: %v", err)
+	}
 
 	// Update user ratings
-	sm.db.ExecContext(ctx, `
+	if _, err := sm.db.ExecContext(ctx, `
 		UPDATE users SET rating = $1, rating_deviation = $2, volatility = $3,
 			matches_played = matches_played + 1,
 			matches_won = matches_won + $4,
@@ -433,28 +449,36 @@ func (sm *SessionManager) EndMatch(ctx context.Context, matchID, reason string) 
 			total_problems_solved = total_problems_solved + $6
 		WHERE id = $7
 	`, delta1.NewRating, delta1.NewDeviation, delta1.NewVolatility,
-		boolToInt(p1Score == 1.0), boolToInt(p1Score == 0.5), len(p1.Solved), p1.UserID)
+		boolToInt(p1Score == 1.0), boolToInt(p1Score == 0.5), len(p1.Solved), p1.UserID); err != nil {
+		log.Printf("[session] ERROR: failed to update player1 rating: %v", err)
+	}
 
-	sm.db.ExecContext(ctx, `
+	if _, err := sm.db.ExecContext(ctx, `
 		UPDATE users SET rating = $1, rating_deviation = $2, volatility = $3,
 			matches_played = matches_played + 1,
-			matches_won = $4,
-			matches_drawn = $5,
+			matches_won = matches_won + $4,
+			matches_drawn = matches_drawn + $5,
 			total_problems_solved = total_problems_solved + $6
 		WHERE id = $7
 	`, delta2.NewRating, delta2.NewDeviation, delta2.NewVolatility,
-		boolToInt(p1Score == 0.0), boolToInt(p1Score == 0.5), len(p2.Solved), p2.UserID)
+		boolToInt(p1Score == 0.0), boolToInt(p1Score == 0.5), len(p2.Solved), p2.UserID); err != nil {
+		log.Printf("[session] ERROR: failed to update player2 rating: %v", err)
+	}
 
 	// Insert rating history
-	sm.db.ExecContext(ctx, `
+	if _, err := sm.db.ExecContext(ctx, `
 		INSERT INTO rating_history (user_id, match_id, rating_before, rating_after, rd_before, rd_after, delta)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, p1.UserID, matchID, p1.Rating, delta1.NewRating, p1.RD, delta1.NewDeviation, delta1.Delta)
+	`, p1.UserID, matchID, p1.Rating, delta1.NewRating, p1.RD, delta1.NewDeviation, delta1.Delta); err != nil {
+		log.Printf("[session] warning: failed to insert p1 rating history: %v", err)
+	}
 
-	sm.db.ExecContext(ctx, `
+	if _, err := sm.db.ExecContext(ctx, `
 		INSERT INTO rating_history (user_id, match_id, rating_before, rating_after, rd_before, rd_after, delta)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, p2.UserID, matchID, p2.Rating, delta2.NewRating, p2.RD, delta2.NewDeviation, delta2.Delta)
+	`, p2.UserID, matchID, p2.Rating, delta2.NewRating, p2.RD, delta2.NewDeviation, delta2.Delta); err != nil {
+		log.Printf("[session] warning: failed to insert p2 rating history: %v", err)
+	}
 
 	// Broadcast match end
 	resultData := map[string]interface{}{
@@ -499,6 +523,16 @@ func (s *Session) RemainingTime() time.Duration {
 	return remaining
 }
 
+// RLock acquires a read lock on the session state.
+func (s *Session) RLock() {
+	s.mu.RLock()
+}
+
+// RUnlock releases a read lock on the session state.
+func (s *Session) RUnlock() {
+	s.mu.RUnlock()
+}
+
 func boolToInt(b bool) int {
 	if b {
 		return 1
@@ -531,26 +565,56 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 		oppScore = &opponent.Score
 	}
 
-	// Build questions payload with details
+	// Build questions payload with details — batch load all questions in one query
 	ctx := context.Background()
+
+	type questionRow struct {
+		ID           string         `db:"id"`
+		Title        string         `db:"title"`
+		Statement    string         `db:"statement"`
+		InputFormat  string         `db:"input_format"`
+		OutputFormat string         `db:"output_format"`
+		Constraints  string         `db:"constraints"`
+		Examples     []byte         `db:"examples"`
+		Difficulty   int            `db:"difficulty"`
+		Tags         pq.StringArray `db:"tags"`
+		Source       string         `db:"source"`
+		CFContestID  *int           `db:"cf_contest_id"`
+		CFIndex      *string        `db:"cf_index"`
+		CFURL        *string        `db:"cf_url"`
+		CFRating     *int           `db:"cf_rating"`
+	}
+
+	// Collect all question IDs
+	qIDs := make([]interface{}, len(session.Questions))
+	for i, mq := range session.Questions {
+		qIDs[i] = mq.QuestionID
+	}
+
+	// Batch query with IN clause
+	queryStr, args, err := sqlx.In(
+		"SELECT id, title, statement, input_format, output_format, constraints, examples, difficulty, tags, source, cf_contest_id, cf_index, cf_url, cf_rating FROM questions WHERE id IN (?)",
+		qIDs,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("build IN query: %w", err)
+	}
+	queryStr = sm.db.Rebind(queryStr)
+
+	var qRows []questionRow
+	if err := sm.db.SelectContext(ctx, &qRows, queryStr, args...); err != nil {
+		log.Printf("[session] warning: failed to batch load questions: %v", err)
+	}
+
+	// Map by ID for O(1) lookup
+	qMap := make(map[string]*questionRow, len(qRows))
+	for i := range qRows {
+		qMap[qRows[i].ID] = &qRows[i]
+	}
+
 	questions := make([]map[string]interface{}, len(session.Questions))
 	for i, mq := range session.Questions {
-		var q struct {
-			Title        string         `db:"title"`
-			Statement    string         `db:"statement"`
-			InputFormat  string         `db:"input_format"`
-			OutputFormat string         `db:"output_format"`
-			Constraints  string         `db:"constraints"`
-			Examples     []byte         `db:"examples"`
-			Difficulty   int            `db:"difficulty"`
-			Tags         pq.StringArray `db:"tags"`
-			Source       string         `db:"source"`
-			CFContestID  *int           `db:"cf_contest_id"`
-			CFIndex      *string        `db:"cf_index"`
-			CFURL        *string        `db:"cf_url"`
-			CFRating     *int           `db:"cf_rating"`
-		}
-		sm.db.GetContext(ctx, &q, "SELECT title, statement, input_format, output_format, constraints, examples, difficulty, tags, source, cf_contest_id, cf_index, cf_url, cf_rating FROM questions WHERE id = $1", mq.QuestionID)
+		q := qMap[mq.QuestionID]
 
 		solvedBy := ""
 		if mq.SolvedBy != nil {
@@ -561,39 +625,47 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 			}
 		}
 
-		// Unmarshal examples to avoid returning as string
-		var examples interface{}
-		if len(q.Examples) > 0 {
-			json.Unmarshal(q.Examples, &examples)
+		var qData map[string]interface{}
+		if q != nil {
+			// Unmarshal examples to avoid returning as string
+			var examples interface{}
+			if len(q.Examples) > 0 {
+				json.Unmarshal(q.Examples, &examples)
+			} else {
+				examples = []interface{}{}
+			}
+
+			qData = map[string]interface{}{
+				"id":           mq.QuestionID,
+				"title":        q.Title,
+				"statement":    q.Statement,
+				"inputFormat":  q.InputFormat,
+				"outputFormat": q.OutputFormat,
+				"constraints":  q.Constraints,
+				"examples":     examples,
+				"difficulty":   q.Difficulty,
+				"tags":         []string(q.Tags),
+				"source":       q.Source,
+			}
+
+			// Add CF-specific fields
+			if q.CFURL != nil {
+				qData["cfUrl"] = *q.CFURL
+			}
+			if q.CFRating != nil {
+				qData["cfRating"] = *q.CFRating
+			}
+			if q.CFContestID != nil {
+				qData["cfContestId"] = *q.CFContestID
+			}
+			if q.CFIndex != nil {
+				qData["cfIndex"] = *q.CFIndex
+			}
 		} else {
-			examples = []interface{}{}
-		}
-
-		qData := map[string]interface{}{
-			"id":           mq.QuestionID,
-			"title":        q.Title,
-			"statement":    q.Statement,
-			"inputFormat":  q.InputFormat,
-			"outputFormat": q.OutputFormat,
-			"constraints":  q.Constraints,
-			"examples":     examples,
-			"difficulty":   q.Difficulty,
-			"tags":         []string(q.Tags),
-			"source":       q.Source,
-		}
-
-		// Add CF-specific fields
-		if q.CFURL != nil {
-			qData["cfUrl"] = *q.CFURL
-		}
-		if q.CFRating != nil {
-			qData["cfRating"] = *q.CFRating
-		}
-		if q.CFContestID != nil {
-			qData["cfContestId"] = *q.CFContestID
-		}
-		if q.CFIndex != nil {
-			qData["cfIndex"] = *q.CFIndex
+			qData = map[string]interface{}{
+				"id":    mq.QuestionID,
+				"title": "Question not found",
+			}
 		}
 
 		questions[i] = map[string]interface{}{
@@ -822,9 +894,11 @@ func (sm *SessionManager) startCFVerificationPoller(matchID string) {
 							player.Username, mq.QuestionIndex, subID, matchID)
 
 						// Update DB
-						sm.db.ExecContext(context.Background(), `
+						if _, err := sm.db.ExecContext(context.Background(), `
 							UPDATE match_questions SET cf_verified = true, cf_submission_id = $1 WHERE id = $2
-						`, subID, mq.ID)
+						`, subID, mq.ID); err != nil {
+							log.Printf("[cf-poller] warning: failed to update cf_verified: %v", err)
+						}
 
 						// Record solve
 						points, err := sm.RecordSolve(context.Background(), matchID, player.UserID, mq.QuestionIndex)

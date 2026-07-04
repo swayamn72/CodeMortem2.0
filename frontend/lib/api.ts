@@ -1,3 +1,5 @@
+import { useAuthStore } from "@/stores/authStore";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 class ApiClient {
@@ -10,29 +12,19 @@ class ApiClient {
   private getToken(): string | null {
     if (typeof window === "undefined") return null;
     try {
-      const stored = localStorage.getItem("codemortem-auth");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed?.state?.tokens?.accessToken ?? null;
-      }
+      return useAuthStore.getState().tokens?.accessToken ?? null;
     } catch {
       return null;
     }
-    return null;
   }
 
   private getRefreshToken(): string | null {
     if (typeof window === "undefined") return null;
     try {
-      const stored = localStorage.getItem("codemortem-auth");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed?.state?.tokens?.refreshToken ?? null;
-      }
+      return useAuthStore.getState().tokens?.refreshToken ?? null;
     } catch {
       return null;
     }
-    return null;
   }
 
   private async request(method: string, path: string, body?: unknown) {
@@ -64,16 +56,12 @@ class ApiClient {
           if (refreshRes.ok) {
             const newTokens = await refreshRes.json();
 
-            // Update localStorage
-            const stored = localStorage.getItem("codemortem-auth");
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              parsed.state.tokens = newTokens;
-              localStorage.setItem("codemortem-auth", JSON.stringify(parsed));
-
-              // Trigger storage event so Zustand can pick up the new state potentially
-              window.dispatchEvent(new Event("storage"));
-            }
+            // Update the Zustand store directly (single source of truth)
+            const currentState = useAuthStore.getState();
+            useAuthStore.setState({
+              ...currentState,
+              tokens: newTokens,
+            });
 
             // Retry original request with new token
             headers["Authorization"] = `Bearer ${newTokens.accessToken}`;
@@ -83,19 +71,11 @@ class ApiClient {
               body: body ? JSON.stringify(body) : undefined,
             });
           } else {
-            // Refresh failed, clear auth and force login
-            const stored = localStorage.getItem("codemortem-auth");
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              parsed.state.tokens = null;
-              parsed.state.user = null;
-              parsed.state.isAuthenticated = false;
-              localStorage.setItem("codemortem-auth", JSON.stringify(parsed));
-              window.dispatchEvent(new Event("storage"));
+            // Refresh failed — clear auth and force login
+            useAuthStore.getState().logout();
 
-              if (typeof window !== "undefined") {
-                window.location.href = "/login";
-              }
+            if (typeof window !== "undefined") {
+              window.location.href = "/login";
             }
           }
         } catch (e) {

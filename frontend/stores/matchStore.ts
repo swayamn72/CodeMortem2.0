@@ -130,11 +130,11 @@ interface MatchState {
   consoleOutput: string;
   consoleType: "info" | "success" | "error";
 
-  // Solved tracking
-  mySolved: Set<number>;
-  opponentSolved: Set<number>;
+  // Solved tracking (Record instead of Set for JSON-serializability)
+  mySolved: Record<number, boolean>;
+  opponentSolved: Record<number, boolean>;
 
-  // WebSocket
+  // WebSocket (runtime-only, not serializable — never persist this store)
   ws: WebSocket | null;
 
   // Codeforces Verification
@@ -262,8 +262,8 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   matchEndData: null,
   consoleOutput: "Ready. Write your solution and click Run or Submit.",
   consoleType: "info",
-  mySolved: new Set(),
-  opponentSolved: new Set(),
+  mySolved: {},
+  opponentSolved: {},
   ws: null,
   cfVerificationStatus: {},
   hints: {},
@@ -341,16 +341,12 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
   recordMySolve: (questionIndex, points) =>
     set((state) => {
-      const newSolved = new Set(state.mySolved);
-      newSolved.add(questionIndex);
-      return { mySolved: newSolved, myScore: state.myScore + points };
+      return { mySolved: { ...state.mySolved, [questionIndex]: true }, myScore: state.myScore + points };
     }),
 
   recordOpponentSolve: (questionIndex, opponentScore) =>
     set((state) => {
-      const newSolved = new Set(state.opponentSolved);
-      newSolved.add(questionIndex);
-      return { opponentSolved: newSolved, opponentScore };
+      return { opponentSolved: { ...state.opponentSolved, [questionIndex]: true }, opponentScore };
     }),
 
   setMatchEnd: (matchEndData) => set({ matchEndData, status: "ended" }),
@@ -398,8 +394,8 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     matchEndData: null,
     consoleOutput: "Ready. Write your solution and click Run or Submit.",
     consoleType: "info",
-    mySolved: new Set(),
-    opponentSolved: new Set(),
+    mySolved: {},
+    opponentSolved: {},
     ws: null,
     cfVerificationStatus: {},
     hints: {},

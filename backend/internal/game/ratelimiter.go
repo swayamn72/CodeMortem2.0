@@ -5,23 +5,28 @@ import (
 	"time"
 )
 
-// SubmissionRateLimiter tracks submission rate limits per user per match.
+// SubmissionRateLimiter tracks submission rate limits per user using a sliding window.
 type SubmissionRateLimiter struct {
-	// Map of userID -> last submission time
-	submissions map[string]time.Time
-	mu          sync.RWMutex
-	// Max submissions per minute
-	maxPerMinute int
+	// Map of userID -> submission timestamps within the current window
+	submissions map[string][]time.Time
+	mu          sync.Mutex
+	// Max submissions per window
+	maxPerWindow int
 	// Time window
 	window time.Duration
+	// Minimum cooldown between consecutive submissions
+	cooldown time.Duration
 }
 
 // NewSubmissionRateLimiter creates a new submission rate limiter.
+// maxPerMinute sets the maximum submissions allowed per minute.
+// Each submission also has a minimum 3-second cooldown from the previous one.
 func NewSubmissionRateLimiter(maxPerMinute int) *SubmissionRateLimiter {
 	limiter := &SubmissionRateLimiter{
-		submissions:  make(map[string]time.Time),
-		maxPerMinute: maxPerMinute,
+		submissions:  make(map[string][]time.Time),
+		maxPerWindow: maxPerMinute,
 		window:       1 * time.Minute,
+		cooldown:     3 * time.Second,
 	}
 
 	// Cleanup goroutine to remove old entries
@@ -37,37 +42,57 @@ func NewSubmissionRateLimiter(maxPerMinute int) *SubmissionRateLimiter {
 }
 
 // IsAllowed checks if a user can make a submission now.
-// It tracks the last submission time and enforces rate limiting.
+// Enforces both: (1) a minimum 3-second cooldown between submissions, and
+// (2) a maximum of maxPerWindow submissions within the sliding window.
 func (rl *SubmissionRateLimiter) IsAllowed(userID string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
 	now := time.Now()
-	lastSubmission, exists := rl.submissions[userID]
+	cutoff := now.Add(-rl.window)
 
-	if !exists {
-		rl.submissions[userID] = now
-		return true
+	// Prune old timestamps outside the window
+	timestamps := rl.submissions[userID]
+	valid := timestamps[:0]
+	for _, t := range timestamps {
+		if t.After(cutoff) {
+			valid = append(valid, t)
+		}
+	}
+	rl.submissions[userID] = valid
+
+	// Check cooldown: last submission must be at least 3 seconds ago
+	if len(valid) > 0 && now.Sub(valid[len(valid)-1]) < rl.cooldown {
+		return false
 	}
 
-	// Allow one submission per 3 seconds (20 submissions per minute max)
-	if now.Sub(lastSubmission) >= 3*time.Second {
-		rl.submissions[userID] = now
-		return true
+	// Check window limit
+	if len(valid) >= rl.maxPerWindow {
+		return false
 	}
 
-	return false
+	// Record this submission
+	rl.submissions[userID] = append(valid, now)
+	return true
 }
 
-// cleanup removes entries older than the time window
+// cleanup removes all entries for users with no recent submissions
 func (rl *SubmissionRateLimiter) cleanup() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	now := time.Now()
-	for userID, lastSubmission := range rl.submissions {
-		if now.Sub(lastSubmission) > rl.window {
+	cutoff := time.Now().Add(-rl.window)
+	for userID, timestamps := range rl.submissions {
+		valid := timestamps[:0]
+		for _, t := range timestamps {
+			if t.After(cutoff) {
+				valid = append(valid, t)
+			}
+		}
+		if len(valid) == 0 {
 			delete(rl.submissions, userID)
+		} else {
+			rl.submissions[userID] = valid
 		}
 	}
 }

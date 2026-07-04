@@ -149,6 +149,12 @@ func (q *Queue) StartMatcher(ctx context.Context) {
 
 // tryMatch attempts to find and create matches from the queue.
 func (q *Queue) tryMatch(ctx context.Context) {
+	// Fast-path: skip the full scan if fewer than 2 players in queue
+	count, err := q.rdb.ZCard(ctx, q.queueKey).Result()
+	if err != nil || count < 2 {
+		return
+	}
+
 	// Get all players in queue sorted by rating
 	members, err := q.rdb.ZRangeWithScores(ctx, q.queueKey, 0, -1).Result()
 	if err != nil || len(members) < 2 {

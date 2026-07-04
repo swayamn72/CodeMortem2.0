@@ -4,6 +4,7 @@ import { PART1_SETUP } from "./part1-setup";
 import { PART2_STATIC_QUERIES } from "./part2-static-queries";
 import { PART3_DYNAMIC } from "./part3-dynamic";
 import { PART4_ADVANCED } from "./part4-advanced";
+import { PART5_TEMPLATE } from "./part5-template";
 
 /**
  * Ordered list of all problem groups in the HLD module.
@@ -15,6 +16,7 @@ export const PROBLEMS: ProblemGroup[] = [
   PART2_STATIC_QUERIES,
   PART3_DYNAMIC,
   PART4_ADVANCED,
+  PART5_TEMPLATE,
 ];
 
 /**

@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
 import type { ChallengeConfig, LPTestResult } from "./types";
+import { getVerdictColor, getVerdictLabel } from "@/lib/verdicts";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import { useAuthStore } from "@/stores/authStore";
+import SuccessModal from "@/components/shared/SuccessModal";
 
 // ── Starter templates shown in the editor on load ─────────────────────────────
 const TEMPLATES: Record<"cpp" | "python", string> = {
@@ -32,13 +34,6 @@ interface ChallengeIdeProps {
   navigate: (lessonId: string) => void;
 }
 
-const verdictColor = (v: string) => {
-  if (v === "accepted") return "var(--cm-green)";
-  if (v === "pending") return "var(--text-secondary)";
-  if (v === "idle") return "var(--text-muted)";
-  if (v === "running") return "var(--cm-cyan)";
-  return "var(--cm-red)";
-};
 function renderMarkdownText(text: string) {
   if (!text) return null;
 
@@ -93,21 +88,6 @@ function renderMarkdownText(text: string) {
     });
   });
 }
-
-const verdictLabel = (v: string) => {
-  const map: Record<string, string> = {
-    accepted: "✓ AC",
-    pending: "○ Queued",
-    idle: "○ Ready",
-    running: "⟳ Running…",
-    wrong_answer: "✗ WA",
-    compile_error: "✗ CE",
-    runtime_error: "✗ RE",
-    time_limit_exceeded: "⏱ TLE",
-    memory_limit_exceeded: "🪣 MLE",
-  };
-  return map[v] ?? v;
-};
 
 export default function ChallengeIde({ challenge, onComplete, navigate }: ChallengeIdeProps) {
   const { user } = useAuthStore();
@@ -170,7 +150,6 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [hintsRevealed, setHintsRevealed] = useState(1);
   const [consoleError, setConsoleError] = useState("");
   const [testResults, setTestResults] = useState<LPTestResult[]>([]);
   const [activeCaseIdx, setActiveCaseIdx] = useState(0);
@@ -183,7 +162,6 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
     const defaultTemplate = challenge.templates?.[lang] || TEMPLATES[lang];
     setCode(defaultTemplate);
     setHasSubmitted(false);
-    setHintsRevealed(1);
     setShowSuccess(false);
     setConsoleError("");
     setLeftTab("statement");
@@ -492,9 +470,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
               <div>
                 <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--cm-cyan)" }}>Editorial</h3>
                 {challenge.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
-                  // Every 3rd chunk starting at index 1 is the language, index 2 is the code
                   if (i % 3 === 0) {
-                    // Plain text segment
                     if (part.trim()) {
                       acc.push(
                         <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)" }}>
@@ -503,7 +479,6 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                       );
                     }
                   } else if (i % 3 === 2) {
-                    // Code segment
                     const lang = arr[i - 1] || "cpp";
                     const cleanCode = part.trim();
                     const lineCount = cleanCode.split("\n").length;
@@ -578,19 +553,6 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                 Refer Template
               </button>
             )}
-            <button
-              onClick={() => setResetType("starter")}
-              style={{
-                padding: "3px 12px", borderRadius: 6,
-                cursor: "pointer", fontSize: 12, fontWeight: 700,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "var(--text-secondary)",
-                marginLeft: 8,
-              }}
-            >
-              Reset
-            </button>
             <div style={{ flex: 1 }} />
             <button
               onClick={handleRun}
@@ -685,12 +647,12 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                           style={{
                             padding: "4px 12px", borderRadius: 6,
                             cursor: "pointer", fontSize: 12, fontWeight: 700,
-                            background: i === activeCaseIdx ? `${verdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)",
-                            border: `1px solid ${i === activeCaseIdx ? verdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`,
-                            color: verdictColor(r.verdict),
+                            background: i === activeCaseIdx ? `${getVerdictColor(r.verdict)}18` : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${i === activeCaseIdx ? getVerdictColor(r.verdict) : "rgba(255,255,255,0.1)"}`,
+                            color: getVerdictColor(r.verdict),
                           }}
                         >
-                          {isHidden ? "🔒" : ""}{verdictLabel(r.verdict)} {i + 1}
+                          {isHidden ? "🔒" : ""}{getVerdictLabel(r.verdict)} {i + 1}
                         </button>
                       );
                     })}
@@ -709,8 +671,8 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                           }}
                         >
                           <span style={{ fontSize: 22 }}>🔒</span>
-                          <div style={{ color: verdictColor(activeResult.verdict), fontWeight: 700, fontSize: 13 }}>
-                            {verdictLabel(activeResult.verdict)}
+                          <div style={{ color: getVerdictColor(activeResult.verdict), fontWeight: 700, fontSize: 13 }}>
+                            {getVerdictLabel(activeResult.verdict)}
                           </div>
                           <div style={{ color: "var(--text-muted)", fontSize: 11, lineHeight: 1.6 }}>
                             {activeResult.verdict === "accepted" ? "Passed" : "Failed on"} hidden test case #{activeCaseIdx + 1}.<br />
@@ -734,7 +696,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
                           Expected: {activeResult.expected}
                         </div>
                         {activeResult.verdict !== "pending" && (
-                          <div style={{ color: verdictColor(activeResult.verdict) }}>
+                          <div style={{ color: getVerdictColor(activeResult.verdict) }}>
                             Got: {activeResult.output || activeResult.compileOutput || activeResult.stderr}
                           </div>
                         )}
@@ -761,121 +723,17 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
 
       {/* ★ SUCCESS MODAL ★ */}
       {showSuccess && (
-        <div
-          onClick={() => setShowSuccess(false)}
-          style={{
-            position: "fixed", inset: 0,
-            background: "rgba(0,0,0,0.78)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            zIndex: 9999,
-            animation: "fadeIn 0.25s ease",
+        <SuccessModal
+          title={challenge.title}
+          testCount={testResults.length}
+          passedCount={testResults.filter(r => r.verdict === "accepted").length}
+          onClose={() => setShowSuccess(false)}
+          onNext={() => {
+            setShowSuccess(false);
+            navigate(challenge.nextLesson);
           }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: "relative",
-              background: "linear-gradient(135deg, #0d0d18 0%, #111122 100%)",
-              border: "1px solid rgba(0,240,255,0.25)",
-              borderRadius: "20px",
-              padding: "48px 40px 36px",
-              width: "min(480px, 90vw)",
-              boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(0,240,255,0.08)",
-              animation: "slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1)",
-              textAlign: "center",
-              overflow: "hidden",
-            }}
-          >
-            {/* Background glow orbs */}
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: "-40px", right: "-40px", width: "180px", height: "180px", borderRadius: "50%", background: "radial-gradient(circle, rgba(0,240,255,0.1) 0%, transparent 70%)" }} />
-              <div style={{ position: "absolute", bottom: "-40px", left: "-40px", width: "160px", height: "160px", borderRadius: "50%", background: "radial-gradient(circle, rgba(0,255,136,0.07) 0%, transparent 70%)" }} />
-            </div>
-
-            {/* Mascot with pulse ring */}
-            <div style={{ position: "relative", display: "inline-block", marginBottom: "24px" }}>
-              <div style={{
-                position: "absolute", inset: "-12px",
-                borderRadius: "50%",
-                border: "2px solid rgba(0,240,255,0.4)",
-                animation: "ping 1.4s ease-out infinite",
-              }} />
-              <div style={{
-                fontSize: "72px", lineHeight: 1,
-                filter: "drop-shadow(0 0 20px rgba(0,240,255,0.6))",
-                animation: "slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both",
-              }}>
-                💀
-              </div>
-            </div>
-
-            {/* Headline */}
-            <h2 style={{
-              fontSize: "26px", fontWeight: 800, color: "var(--text-primary)",
-              margin: "0 0 6px", letterSpacing: "-0.5px",
-            }}>
-              Challenge Complete!
-            </h2>
-            <p style={{ fontSize: "14px", color: "var(--text-muted)", margin: "0 0 8px" }}>
-              {challenge.title}
-            </p>
-
-            {/* Pass rate badge */}
-            <div style={{ marginBottom: "28px" }}>
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: "6px",
-                background: "rgba(0,255,136,0.1)", border: "1px solid rgba(0,255,136,0.3)",
-                borderRadius: "999px", padding: "4px 14px",
-                fontSize: "13px", fontWeight: 700, color: "var(--cm-green)",
-              }}>
-                ✓ {testResults.filter(r => r.verdict === "accepted").length}/{testResults.length} test cases passed
-              </span>
-            </div>
-
-            {/* Action buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <button
-                onClick={() => { setShowSuccess(false); navigate(challenge.nextLesson); }}
-                style={{
-                  width: "100%", padding: "13px",
-                  background: "linear-gradient(135deg, var(--cm-cyan), #00b3cc)",
-                  border: "none", borderRadius: "10px",
-                  color: "#000", fontSize: "14px", fontWeight: 800,
-                  cursor: "pointer", letterSpacing: "0.3px",
-                  boxShadow: "0 4px 20px rgba(0,240,255,0.35)",
-                  transition: "transform 0.15s ease, box-shadow 0.15s ease",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 28px rgba(0,240,255,0.5)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,240,255,0.35)"; }}
-              >
-                {challenge.nextLabel}
-              </button>
-              <button
-                onClick={() => setShowSuccess(false)}
-                style={{
-                  width: "100%", padding: "11px",
-                  background: "transparent",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: "10px",
-                  color: "var(--text-secondary)", fontSize: "13px", fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "border-color 0.15s, color 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)"; e.currentTarget.style.color = "var(--text-primary)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
-              >
-                Stay &amp; Explore Solution
-              </button>
-            </div>
-
-            {/* Dismiss hint */}
-            <p style={{ marginTop: "16px", fontSize: "11px", color: "var(--text-muted)" }}>
-              Click anywhere outside to dismiss
-            </p>
-          </div>
-        </div>
+          nextLabel={challenge.nextLabel}
+        />
       )}
 
       {/* ★ TEMPLATE MODAL ★ */}
