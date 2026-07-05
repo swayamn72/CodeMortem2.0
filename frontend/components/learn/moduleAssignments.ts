@@ -110,14 +110,14 @@ export const MODULE_ASSIGNMENTS: Record<string, ModuleAssignment> = {
       {
         id: "bm-q3",
         prompt: "How many subsets does an n-element set have?",
-        options: ["n", "2n", "2^n", "n!"],
+        options: ["n", "2n", "2ⁿ", "n!"],
         answerIndex: 2,
-        explanation: "Each element can be either included or excluded, so the total is 2^n.",
+        explanation: "Each element can be either included or excluded, so the total is 2ⁿ.",
       },
       {
         id: "bm-q4",
         prompt: "Which condition correctly checks whether x is a power of two?",
-        options: ["x > 0 and (x & (x - 1)) == 0", "x % 2 == 0", "x & 1 == 1", "x == 2^k for some k"],
+        options: ["x > 0 and (x & (x - 1)) == 0", "x % 2 == 0", "x & 1 == 1", "x == 2ᵏ for some k"],
         answerIndex: 0,
         explanation: "A positive power of two has exactly one set bit, so x & (x - 1) becomes 0.",
       },

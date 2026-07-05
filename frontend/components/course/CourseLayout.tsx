@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProgressStore } from "@/stores/progressStore";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import type { CourseConfig } from "./types";
@@ -35,6 +35,15 @@ export default function CourseLayout({
   // We auto-collapse when entering a challenge so the IDE gets full width,
   // but the toggle button ALWAYS works — even inside a challenge.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const contentRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    // Scroll both the main window and the content pane to the top instantly on lesson change
+    window.scrollTo(0, 0);
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [activeLesson]);
 
   useEffect(() => {
     setSidebarCollapsed(isChallenge);
@@ -226,6 +235,7 @@ export default function CourseLayout({
 
       {/* ── Content / Challenge pane ── */}
       <section
+        ref={contentRef}
         className={styles.contentPane}
         style={
           isChallenge

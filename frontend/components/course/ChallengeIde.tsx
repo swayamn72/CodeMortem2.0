@@ -32,6 +32,7 @@ interface ChallengeIdeProps {
   challenge: ChallengeConfig;
   onComplete: () => void;
   navigate: (lessonId: string) => void;
+  nextLabelOverride?: string;
 }
 
 function renderMarkdownText(text: string) {
@@ -89,7 +90,7 @@ function renderMarkdownText(text: string) {
   });
 }
 
-export default function ChallengeIde({ challenge, onComplete, navigate }: ChallengeIdeProps) {
+export default function ChallengeIde({ challenge, onComplete, navigate, nextLabelOverride }: ChallengeIdeProps) {
   const { user } = useAuthStore();
   const isPremiumActive = user?.isPremium && (!user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date());
 
@@ -732,7 +733,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate }: Challe
             setShowSuccess(false);
             navigate(challenge.nextLesson);
           }}
-          nextLabel={challenge.nextLabel}
+          nextLabel={nextLabelOverride || challenge.nextLabel}
         />
       )}
 

@@ -50,14 +50,14 @@ export const MCQ_PART_1: MCQQuestion[] = [
     id: 5,
     question: "For a positive integer n, what does n >> k compute?",
     options: [
-      "n multiplied by 2^k",
-      "n divided by 2^k (floor division)",
-      "n XOR 2^k",
-      "n modulo 2^k",
+      "n multiplied by 2ᵏ",
+      "n divided by 2ᵏ (floor division)",
+      "n XOR 2ᵏ",
+      "n modulo 2ᵏ",
     ],
     answer: 1,
     explanation:
-      "Right-shifting by k is equivalent to dividing by 2^k and discarding the remainder (floor division), as long as n is non-negative.",
+      "Right-shifting by k is equivalent to dividing by 2ᵏ and discarding the remainder (floor division), as long as n is non-negative.",
   },
 ];
 
@@ -79,7 +79,7 @@ export const MCQ_PART_2: MCQQuestion[] = [
     options: ["3", "7", "5", "0"],
     answer: 1,
     explanation:
-      "3^3 = 0, 5^5 = 0, leaving only 7. XOR is commutative and associative, and a^a = 0 always.",
+      "3³ = 0, 5⁵ = 0, leaving only 7. XOR is commutative and associative, and a^a = 0 always.",
   },
   {
     id: 8,
@@ -89,14 +89,7 @@ export const MCQ_PART_2: MCQQuestion[] = [
     explanation:
       "Each iteration of the loop clears exactly one set bit (using n & (n-1)), so it runs exactly as many times as there are set bits.",
   },
-  {
-    id: 9,
-    question: "Given mask = 0b10110, the classic submask enumeration loop `for(int s = mask; s > 0; s = (s-1) & mask)` produces how many values of s (including mask itself)?",
-    options: ["4", "8", "3", "5"],
-    answer: 0,
-    explanation:
-      "mask = 10110 has 3 set bits, so it has 2^3 = 8 submasks total. Excluding the empty submask (0), the loop produces 4 non-zero submasks: 10110, 10100, 00110, 00100.",
-  },
+
   {
     id: 10,
     question: "n & (n-1) has what effect on the binary representation of n?",
@@ -120,14 +113,14 @@ export const SAMPLE_TEST_CASES: Record<string, SampleCase[]> = {
     { input: "4",  expected: "even", label: "N = 4" },
     { input: "0",  expected: "even", label: "N = 0" },
     { input: "-3", expected: "odd",  label: "N = -3" },
-    { input: "1000000000", expected: "even", label: "N = 10^9" },
+    { input: "1000000000", expected: "even", label: "N = 10⁹" },
   ],
   challenge2: [
     { input: "8",  expected: "yes", label: "N = 8" },
     { input: "6",  expected: "no",  label: "N = 6" },
     { input: "0",  expected: "no",  label: "N = 0 (edge case)" },
-    { input: "1",  expected: "yes", label: "N = 1 = 2^0" },
-    { input: "1073741824", expected: "yes", label: "N = 2^30" },
+    { input: "1",  expected: "yes", label: "N = 1 = 2⁰" },
+    { input: "1073741824", expected: "yes", label: "N = 2³⁰" },
   ],
   challenge3: [
     { input: "29 1 3", expected: "19",  label: "N=29, L=1, R=3" },
@@ -181,7 +174,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
     diffColor: "var(--cm-green)",
     statement:
       "Given an integer N, print \"odd\" if N is odd, or \"even\" if N is even. You may not use the modulo (%) or division (/) operator.",
-    constraints: "-10^9 ≤ N ≤ 10^9",
+    constraints: "-10⁹ ≤ N ≤ 10⁹",
     inputFormat: "A single integer N.",
     outputFormat: "Print \"odd\" or \"even\" (without quotes).",
     hints: [
@@ -190,7 +183,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
       "If (N & 1) equals 1, the number is odd. If it equals 0, it's even.",
     ],
     editorial:
-      "The least significant bit of any integer is 1 if the number is odd and 0 if even. This follows directly from binary place values: 2^0 = 1, and all higher powers of 2 are even. So (N & 1) gives the parity in a single CPU instruction — no division or modulo needed.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long n; cin >> n;\n    cout << ((n & 1) ? \"odd\" : \"even\") << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\nn = int(input())\nprint(\"odd\" if n & 1 else \"even\")\n```",
+      "The least significant bit of any integer is 1 if the number is odd and 0 if even. This follows directly from binary place values: 2⁰ = 1, and all higher powers of 2 are even. So (N & 1) gives the parity in a single CPU instruction — no division or modulo needed.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long n; cin >> n;\n    cout << ((n & 1) ? \"odd\" : \"even\") << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\nn = int(input())\nprint(\"odd\" if n & 1 else \"even\")\n```",
   },
   {
     id: "challenge2",
@@ -200,7 +193,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
     diffColor: "var(--cm-green)",
     statement:
       "Given a non-negative integer N, determine if it is a power of two. Print \"yes\" or \"no\".",
-    constraints: "0 ≤ N ≤ 10^9",
+    constraints: "0 ≤ N ≤ 10⁹",
     inputFormat: "A single integer N.",
     outputFormat: "Print \"yes\" or \"no\" (without quotes).",
     hints: [
@@ -219,7 +212,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
     diffColor: "var(--cm-yellow)",
     statement:
       "Given an integer N and two 0-indexed bit positions L and R (0 = rightmost bit), flip all bits in N from position L to position R inclusive. Print the resulting integer.",
-    constraints: "0 ≤ N ≤ 10^9, 0 ≤ L ≤ R ≤ 30",
+    constraints: "0 ≤ N ≤ 10⁹, 0 ≤ L ≤ R ≤ 30",
     inputFormat: "A single line containing three integers: N L R.",
     outputFormat: "Print the resulting integer after flipping bits L through R.",
     hints: [
@@ -238,16 +231,16 @@ export const BIT_CHALLENGES: ChallengeData[] = [
     diffColor: "var(--cm-yellow)",
     statement:
       "Given an array of N integers where every element appears exactly twice except for one element which appears exactly once, find and print the element that appears only once.",
-    constraints: "1 ≤ N ≤ 10^5, N is always odd, 1 ≤ values ≤ 10^9",
+    constraints: "1 ≤ N ≤ 10⁵, N is always odd, 1 ≤ values ≤ 10⁹",
     inputFormat: "First line: N. Second line: N space-separated integers.",
     outputFormat: "Print the single non-duplicate element.",
     hints: [
       "Think about what XOR does when you apply it to two identical numbers.",
-      "Since a ^ a = 0 and a ^ 0 = a, what happens if you XOR every number in the array together?",
+      "Since `a ^ a = 0` and `a ^ 0 = a`, what happens if you XOR every number in the array together?",
       "All pairs cancel out to 0. The only number left is the one that appeared once. XOR all elements together and that is your answer.",
     ],
     editorial:
-      "XOR is commutative and associative, and a ^ a = 0 for any integer a. XORing the entire array together causes every duplicate pair to cancel out, leaving only the single non-duplicate element. This solution runs in O(N) time with O(1) extra space — far better than sorting (O(N log N)) or a hash map (O(N) space).",
+      "XOR is commutative and associative, and a ^ a = 0 for any integer a. XORing the entire array together causes every duplicate pair to cancel out, leaving only the single non-duplicate element. This solution runs in O(N) time with O(1) extra space — far better than sorting (O(N log N)) or a hash map (O(N) space).\n\nC++ Solution:\n```cpp\n#include <iostream>\n\nusing namespace std;\n\nint main() {\n    int n;\n    cin >> n;\n    \n    int ans = 0;\n    for (int i = 0; i < n; ++i) {\n        int x;\n        cin >> x;\n        ans ^= x;\n    }\n    \n    cout << ans << \"\\n\";\n    return 0;\n}\n```\n\nPython Solution:\n```python\nimport sys\n\ndata = sys.stdin.read().split()\nn = int(data[0])\nans = 0\n\nfor i in range(1, n + 1):\n    ans ^= int(data[i])\n    \nprint(ans)\n```",
   },
   {
     id: "challenge5",
@@ -257,16 +250,16 @@ export const BIT_CHALLENGES: ChallengeData[] = [
     diffColor: "var(--cm-green)",
     statement:
       "Given an array of N-1 integers, where each element is a distinct integer from the range [1, N], find the one missing number.",
-    constraints: "2 ≤ N ≤ 10^5\nAll values are distinct and in the range [1, N]",
+    constraints: "2 ≤ N ≤ 10⁵\nAll values are distinct and in the range [1, N]",
     inputFormat: "First line: N. Second line: N-1 space-separated integers.",
     outputFormat: "Print the missing integer.",
     hints: [
-      "XOR has the property x ^ x = 0 and x ^ 0 = x. What happens if you XOR all numbers from 1 to N together with all elements in the array?",
-      "Compute X = 1 ^ 2 ^ 3 ^ ... ^ N. This is the XOR of the complete set. Now XOR X with every element in the array. What cancels out?",
-      "X ^ (all array elements) = (1 ^ 2 ^ ... ^ N) ^ (all array elements). Every number 1..N appears exactly twice in this expression except the missing number. Since x ^ x = 0, all pairs cancel, and the missing number is what remains.",
+      "XOR has the property `x ^ x = 0` and `x ^ 0 = x`. What happens if you XOR all numbers from 1 to N together with all elements in the array?",
+      "Compute `X = 1 ^ 2 ^ 3 ^ ... ^ N`. This is the XOR of the complete set. Now XOR X with every element in the array. What cancels out?",
+      "`X ^ (all array elements) = (1 ^ 2 ^ ... ^ N) ^ (all array elements)`. Every number 1..N appears exactly twice in this expression except the missing number. Since `x ^ x = 0`, all pairs cancel, and the missing number is what remains.",
     ],
     editorial:
-      "XOR every number from 1 to N together, then XOR in every element of the array. Each number from 1 to N appears exactly twice in the combined sequence (once from the [1..N] XOR, once from the array) except the missing number, which appears only once. Since x ^ x = 0 for any x, all pairs cancel and the missing number is left. Time: O(N). Space: O(1). This is a clean demonstration of XOR cancellation — the same technique as Single Number, but you must construct the expected XOR yourself.",
+      "XOR every number from 1 to N together, then XOR in every element of the array. Each number from 1 to N appears exactly twice in the combined sequence (once from the [1..N] XOR, once from the array) except the missing number, which appears only once. Since x ^ x = 0 for any x, all pairs cancel and the missing number is left. Time: O(N). Space: O(1). This is a clean demonstration of XOR cancellation — the same technique as Single Number, but you must construct the expected XOR yourself.\n\nAlternatively, you can solve this using the mathematical sum formula:\n\nC++ Solution:\n```cpp\n#include <iostream>\n\nusing namespace std;\n\nint main() {\n    long long n;\n    cin >> n;\n    \n    // Calculate the expected sum of 1 to N\n    long long total = n * (n + 1) / 2;\n    \n    // Subtract each given number from the total\n    for (int i = 0; i < n - 1; ++i) {\n        long long x;\n        cin >> x;\n        total -= x;\n    }\n    \n    cout << total << \"\\n\";\n    return 0;\n}\n```\n\nPython Solution:\nPython handles arbitrarily large integers automatically, so we don't need to worry about overflow here.\n\n```python\nimport sys\n\ndata = sys.stdin.read().split()\nn = int(data[0])\n\n# Calculate the expected sum using integer division\ntotal = n * (n + 1) // 2\n\n# Subtract each given number from the total\nfor i in range(1, n):\n    total -= int(data[i])\n    \nprint(total)\n```",
   },
   {
     id: "challenge6",
@@ -275,7 +268,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
     difficulty: "Hard",
     diffColor: "var(--cm-red)",
     statement: "You are a network engineer configuring a transmission tower. You need to broadcast a calibrated signal X to sync with a master server's signal S. Due to strict power regulations, your calibrated signal X must use exactly K units of power. A signal's power usage is equal to the number of set bits (1s) in its binary representation. To minimize network interference, you must choose X such that the bitwise XOR difference between your signal and the master signal (X \u2295 S) is as small as possible. Find and print the integer X.",
-    constraints: "1 ≤ S ≤ 10^9\n1 ≤ K ≤ 30",
+    constraints: "1 ≤ S ≤ 10⁹\n1 ≤ K ≤ 30",
     inputFormat: "A single line containing two space-separated integers: S and K.",
     outputFormat: "Print a single integer: the optimal calibrated signal X.",
     hints: [
@@ -283,7 +276,7 @@ export const BIT_CHALLENGES: ChallengeData[] = [
       "Phase 1: Read the bits of S from MSB (bit 30) down to LSB (bit 0). If a bit is 1 in S, and you still have power (K > 0), set that bit in X and decrease K.",
       "Phase 2: What if you matched all the 1s in S, but you still have extra power (K > 0) left over? You must turn on more bits in X. To keep the XOR penalty minimal, start turning on the 0s starting from the LSB (bit 0) going up."
     ],
-    editorial: "This is a classic Greedy problem. The goal is to construct X to be as close to S as possible. In binary, higher bit positions carry exponentially more weight (2^30 > 2^29 + ... + 2^0). Therefore, canceling out the highest bits of S via XOR is our absolute priority.\n\nWe can solve this in two simple greedy passes over the 30 bits:\n\n**Phase 1: Greedily Match 1s (MSB to LSB)**\nWe iterate from bit 30 down to 0. If S has a 1 at the current position, we also place a 1 in X at this position, provided we still have bits left to place (K > 0). This ensures the largest values in S become 0 in our XOR result.\n\n**Phase 2: Greedily Fill 0s (LSB to MSB)**\nIf we finish Phase 1 and still need to place more 1s (because K was larger than the number of set bits in S), we have to introduce \"bad\" bits that will increase our XOR penalty. To minimize this penalty, we place these leftover 1s in the lowest possible unset positions of X, starting from bit 0 going upwards.\n\n**Time Complexity**: O(log S) — specifically, exactly 60 constant-time bit operations, which is O(1).\n**Space Complexity**: O(1).\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long s, k;\n    cin >> s >> k;\n    long long x = 0;\n    // Phase 1: match set bits of s from MSB to LSB\n    for (int bit = 30; bit >= 0 && k > 0; bit--) {\n        if ((s >> bit) & 1) {\n            x |= (1LL << bit);\n            k--;\n        }\n    }\n    // Phase 2: fill remaining 1s from LSB upwards\n    for (int bit = 0; bit <= 30 && k > 0; bit++) {\n        if (!((x >> bit) & 1)) {\n            x |= (1LL << bit);\n            k--;\n        }\n    }\n    cout << x << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\ns, k = map(int, input().split())\nx = 0\n# Phase 1: match set bits from MSB to LSB\nfor bit in range(30, -1, -1):\n    if k > 0 and (s >> bit) & 1:\n        x |= (1 << bit)\n        k -= 1\n# Phase 2: fill remaining 1s from LSB\nfor bit in range(31):\n    if k > 0 and not ((x >> bit) & 1):\n        x |= (1 << bit)\n        k -= 1\nprint(x)\n```"
+    editorial: "This is a classic Greedy problem. The goal is to construct X to be as close to S as possible. In binary, higher bit positions carry exponentially more weight (2³⁰ > 2²⁹ + ... + 2⁰). Therefore, canceling out the highest bits of S via XOR is our absolute priority.\n\nWe can solve this in two simple greedy passes over the 30 bits:\n\n**Phase 1: Greedily Match 1s (MSB to LSB)**\nWe iterate from bit 30 down to 0. If S has a 1 at the current position, we also place a 1 in X at this position, provided we still have bits left to place (K > 0). This ensures the largest values in S become 0 in our XOR result.\n\n**Phase 2: Greedily Fill 0s (LSB to MSB)**\nIf we finish Phase 1 and still need to place more 1s (because K was larger than the number of set bits in S), we have to introduce \"bad\" bits that will increase our XOR penalty. To minimize this penalty, we place these leftover 1s in the lowest possible unset positions of X, starting from bit 0 going upwards.\n\n**Time Complexity**: O(log S) — specifically, exactly 60 constant-time bit operations, which is O(1).\n**Space Complexity**: O(1).\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nint main() {\n    long long s, k;\n    cin >> s >> k;\n    long long x = 0;\n    // Phase 1: match set bits of s from MSB to LSB\n    for (int bit = 30; bit >= 0 && k > 0; bit--) {\n        if ((s >> bit) & 1) {\n            x |= (1LL << bit);\n            k--;\n        }\n    }\n    // Phase 2: fill remaining 1s from LSB upwards\n    for (int bit = 0; bit <= 30 && k > 0; bit++) {\n        if (!((x >> bit) & 1)) {\n            x |= (1LL << bit);\n            k--;\n        }\n    }\n    cout << x << \"\\n\";\n}\n```\n\nPython Solution:\n```python\nimport sys\ninput = sys.stdin.readline\ns, k = map(int, input().split())\nx = 0\n# Phase 1: match set bits from MSB to LSB\nfor bit in range(30, -1, -1):\n    if k > 0 and (s >> bit) & 1:\n        x |= (1 << bit)\n        k -= 1\n# Phase 2: fill remaining 1s from LSB\nfor bit in range(31):\n    if k > 0 and not ((x >> bit) & 1):\n        x |= (1 << bit)\n        k -= 1\nprint(x)\n```"
   },
 ];
 
@@ -316,7 +309,7 @@ export const BIT_PATTERNS: BitPattern[] = [
     title: "Round up to next power of 2",
     expression: "if(n && !(n&(n-1))) return n; // already power of 2\n--n; n|=n>>1; n|=n>>2; n|=n>>4; n|=n>>8; n|=n>>16; return ++n;",
     example: "n=5: after OR-shifts → 0111 (7), then +1 → 8.",
-    explanation: "First handle the exact power-of-2 case. Otherwise, OR with right-shifted versions sets all bits below the highest, giving 2^k - 1. Adding 1 carries all the way to give 2^k.",
+    explanation: "First handle the exact power-of-2 case. Otherwise, OR with right-shifted versions sets all bits below the highest, giving 2ᵏ - 1. Adding 1 carries all the way to give 2ᵏ.",
   },
   {
     id: "count_set_bits",
@@ -343,10 +336,10 @@ export const WALKTHROUGH_LINES_CPP: WalkthroughLine[] = [
   { lineNum: 4, code: "int main() {", explanation: "Entry point of the program.", type: "keyword" },
   { lineNum: 5, code: "    ios_base::sync_with_stdio(false); cin.tie(NULL);", explanation: "Disables sync between C-style and C++-style I/O for faster input. Essential for large inputs.", type: "highlight" },
   { lineNum: 6, code: "    int n; cin >> n;", explanation: "Read the array size N.", type: "normal" },
-  { lineNum: 7, code: "    vector<long long> a(n);", explanation: "Use long long to safely hold values up to 2^31 - 1 without overflow.", type: "highlight" },
+  { lineNum: 7, code: "    vector<long long> a(n);", explanation: "Use long long to safely hold values up to 2³¹ - 1 without overflow.", type: "highlight" },
   { lineNum: 8, code: "    for (auto& x : a) cin >> x;", explanation: "Read all N elements into the array.", type: "normal" },
   { lineNum: 9, code: "    long long ans = 0;", explanation: "Will accumulate the maximum XOR bit by bit, starting from 0.", type: "highlight" },
-  { lineNum: 10, code: "    for (int bit = 30; bit >= 0; bit--) {", explanation: "Iterate from the most significant bit (2^30 ≈ 10^9) down to bit 0. We try to set each bit greedily.", type: "keyword" },
+  { lineNum: 10, code: "    for (int bit = 30; bit >= 0; bit--) {", explanation: "Iterate from the most significant bit (2³⁰ ≈ 10⁹) down to bit 0. We try to set each bit greedily.", type: "keyword" },
   { lineNum: 11, code: "        long long candidate = ans | (1LL << bit);", explanation: "Tentatively set this bit in the answer. We will check if it is achievable.", type: "highlight" },
   { lineNum: 12, code: "        long long mask = (1LL << (bit + 1)) - 1;", explanation: "Create a mask covering bits 0 through 'bit'. This extracts the prefix of each number at the current resolution.", type: "highlight" },
   { lineNum: 13, code: "        set<long long> prefixes;", explanation: "Store the masked prefix of every number. Using a set enables O(log N) lookup.", type: "normal" },

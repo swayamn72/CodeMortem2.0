@@ -103,3 +103,22 @@ export function NavBtn({ label, onClick }: { label: string; onClick: () => void 
     </div>
   );
 }
+
+export function ExampleBox({ text }: { text: string }) {
+  return (
+    <div style={{
+      background: "rgba(255,255,255,0.03)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 8,
+      padding: "1rem",
+      margin: "0.75rem 0 1.25rem",
+      fontFamily: "monospace",
+      fontSize: "0.85rem",
+      color: "var(--text-secondary)",
+      whiteSpace: "pre-wrap",
+      lineHeight: 1.6
+    }}>
+      {text}
+    </div>
+  );
+}

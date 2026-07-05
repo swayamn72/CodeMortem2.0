@@ -273,7 +273,7 @@ export const PART1_SETUP: ProblemGroup = {
           sampleOutput:
             "0 0 7 2\n1 1 3 4\n1 1 3 6\n2 2 1 -1\n2 2 1 -1\n2 3 1 -1\n2 3 1 -1",
           constraints: [
-            "1 ≤ N ≤ 10^5",
+            "1 ≤ N ≤ 10⁵",
             "The graph is guaranteed to be a valid tree (connected, N-1 edges, no cycles)",
             "Nodes are 1-indexed",
           ],
@@ -288,7 +288,7 @@ export const PART1_SETUP: ProblemGroup = {
             },
             {
               title: "Hint 3 — Handling Stack Limits",
-              body: "For constraints up to 10^5, a recursive DFS might stack-overflow on a line graph if the environment's stack limit is small. If you hit a Runtime Error, rewrite the logic to use a standard BFS to get a topological order from root to leaves, then reverse that order to process nodes bottom-up.",
+              body: "For constraints up to 10⁵, a recursive DFS might stack-overflow on a line graph if the environment's stack limit is small. If you hit a Runtime Error, rewrite the logic to use a standard BFS to get a topological order from root to leaves, then reverse that order to process nodes bottom-up.",
             },
           ],
           editorial: `**The Goal:**
@@ -372,7 +372,7 @@ ${REFERENCE_CPP}
           sampleInput: "7\n1 2\n1 3\n2 4\n2 5\n3 6\n3 7",
           sampleOutput: "0 1\n1 1\n4 3\n2 1\n3 5\n5 3\n6 7",
           constraints: [
-            "1 ≤ N ≤ 10^5",
+            "1 ≤ N ≤ 10⁵",
             "Valid tree rooted at 1",
             "Nodes are 1-indexed",
           ],
@@ -391,7 +391,7 @@ ${REFERENCE_CPP}
             },
             {
               title: "Hint 4 — Handling Stack Limits",
-              body: "A recursive DFS can cause a stack overflow for N = 10^5 if the tree is essentially a single straight line. If your environment doesn't allow expanding the stack limit, consider writing the first phase bottom-up using a BFS order reversed, and the second phase using an explicit stack or iterative loop.",
+              body: "A recursive DFS can cause a stack overflow for N = 10⁵ if the tree is essentially a single straight line. If your environment doesn't allow expanding the stack limit, consider writing the first phase bottom-up using a BFS order reversed, and the second phase using an explicit stack or iterative loop.",
             },
           ],
           editorial: `**The Goal:**

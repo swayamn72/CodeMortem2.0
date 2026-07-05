@@ -183,11 +183,11 @@ export const MCQ_PART_1: MCQQuestion[] = [
     },
     {
         id: 2,
-        question: "Which of these scenarios would make the naive approach time out (standard 1.0s limit, ~10^8 operations)?",
+        question: "Which of these scenarios would make the naive approach time out (standard 1.0s limit, ~10⁸ operations)?",
         options: ["N = 100, Q = 100", "N = 10,000, Q = 50", "N = 100,000, Q = 100,000", "N = 500, Q = 1,000"],
         answer: 2,
         explanation:
-            "Correct! When N = 10^5 and Q = 10^5, O(N · Q) results in 10^10 operations, which is way above the standard CPU threshold of ~10^8 operations per second, leading to a Time Limit Exceeded (TLE).",
+            "Correct! When N = 10⁵ and Q = 10⁵, O(N · Q) results in 10¹⁰ operations, which is way above the standard CPU threshold of ~10⁸ operations per second, leading to a Time Limit Exceeded (TLE).",
     },
 ];
 
@@ -1144,7 +1144,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     inputFormat: "N Q\nA[0] A[1] ... A[N-1]\n(Q lines of queries)",
     outputFormat: "Output for each query",
     hints: [
-      "**Hint 1 — Reading the code**\n\nThis challenge is **read-only**. Your goal is to understand the three parts: the `build`, `update`, and `query` functions. Identify what each does before moving on.",
+      "**Hint 1 — Reading the code**\n\nYour goal is to understand the three parts: the `build`, `update`, and `query` functions. Identify what each does before moving on.",
       "**Hint 2 — The merge step**\n\nThe key is the merge line inside both `build` and `update`: `tree[node] = tree[2*node] + tree[2*node+1]`. Every other segment tree problem only changes this one line and the identity value.",
       "**Hint 3 — Submitting**\n\nWhen you are ready, press **Submit**. The solution is already complete — all tests should pass without any edits."
     ],
@@ -1226,11 +1226,11 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement: `Players join a matchmaking queue one by one. Each has a unique, hidden **skill rating** (a permutation of 1 to N). A player's **anomaly score** is the number of players **ahead of them in the queue** with a **strictly higher rating**.\n\nGiven the sequence of skill ratings from front to back, print the anomaly score for every player.`,
-    constraints: "1 ≤ N ≤ 10⁵\nR is a permutation of integers 1 to N\nTime limit: 1.0 s — O(N²) brute force will **TLE**\nMemory limit: 1024 MB",
+    constraints: "1 ≤ N ≤ 10⁵\nR is a permutation of integers 1 to N\nTime limit: 1.0 s\nMemory limit: 1024 MB",
     inputFormat: "N\nR[0] R[1] ... R[N-1]",
     outputFormat: "N space-separated integers (the anomaly score for each player)",
     hints: [
-      "**Hint 1 — Read the solution structure**\n\nThis challenge is **read-only**. Focus on the two critical lines per player: the `query(1, 1, n, r[i]+1, n)` call (how many inserted elements are greater?) and the `add(1, 1, n, r[i], 1)` call (inserting the current rating).",
+      "**Hint 1 — Read the solution structure**\n\nFocus on the two critical lines per player: the `query(1, 1, n, r[i]+1, n)` call (how many inserted elements are greater?) and the `add(1, 1, n, r[i], 1)` call (inserting the current rating).",
       "**Hint 2 — Why query [R+1, N]?**\n\nThe tree tracks how many times each rating has been inserted so far. Querying `[R+1, N]` counts exactly the previously-seen ratings that are **strictly greater** than the current player's rating _R_. This is the inversion count ending at position _i_.",
       "**Hint 3 — Why O(N²) TLEs**\n\nA naive brute-force loops over all prior players for each player, giving O(N²) total work. With N = 10⁵, that is 10¹⁰ operations — 100× over the 10⁸ CPU limit. The Segment Tree reduces each query and insert to O(log N), making the total O(N log N) — well under 1 second."
     ],
@@ -1252,7 +1252,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     inputFormat: "N\nA[0] A[1] ... A[N-1]",
     outputFormat: "N space-separated integers — the original rating sequence",
     hints: [
-      "**Hint 1 — Work backwards**\n\nThis challenge is **read-only**. Start from the last player. They have no one behind them, so their anomaly score directly tells you how many of all N ratings are larger. Process right to left — at each step you know exactly _i+1_ ratings remain unassigned.",
+      "**Hint 1 — Work backwards**\n\nStart from the last player. They have no one behind them, so their anomaly score directly tells you how many of all N ratings are larger. Process right to left — at each step you know exactly _i+1_ ratings remain unassigned.",
       "**Hint 2 — The k-th rank formula**\n\nAt position _i_ (0-indexed), there are _i+1_ available ratings. If _A[i]_ of them are larger, then the current rating is the **(i+1 − A[i])-th smallest** available. For example: if 3 available remain and A[i]=1, the rating is the 2nd smallest of those 3.",
       "**Hint 3 — findAndRemove traversal**\n\nInitialise your range-sum structure with all 1s (every rating available). **findAndRemove(k)** starts at root: if left child sum ≥ k, go left; else subtract left sum from k and go right. At a leaf, set it to 0 and return its index. O(log N) per step."
     ],
@@ -1274,7 +1274,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     inputFormat: "N\nlog[0] log[1] ... log[2N-1]",
     outputFormat: "N space-separated integers — nested count for each ship 1..N",
     hints: [
-      "**Hint 1 — What counts as nested?**\n\nThis challenge is **read-only**. Ship Y is nested inside Ship X if Y _docks after X docks_ AND _departs before X departs_. In the event log, Y's two positions are both strictly between X's two positions.",
+      "**Hint 1 — What counts as nested?**\n\nShip Y is nested inside Ship X if Y _docks after X docks_ AND _departs before X departs_. In the event log, Y's two positions are both strictly between X's two positions.",
       "**Hint 2 — Process events left to right**\n\nWhen you see ship _id_ for the first time at position _L_, just record _L_. When you see it again at _R_, its stay _[L, R]_ is complete. Any ship that is nested must have _both_ events between _L_ and _R_, meaning it was fully completed earlier — so it's already marked in your structure.",
       "**Hint 3 — Range query + point update**\n\nUse a structure supporting range-sum queries and point updates. When ship X departs at R: **query [L+1, R-1]** for the count of completed ships nested inside. Then **add 1 at position L** to mark X as completed. O(log N) per event → O(N log N) total."
     ],
@@ -1296,7 +1296,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     inputFormat: "Same format as Problem C",
     outputFormat: "N space-separated integers — partial overlaps count for each ship 1..N",
     hints: [
-      "**Hint 1 — Categorise by event count**\n\nThis challenge is **read-only**. For Ship X with stay _[L, R]_, count how many events fall strictly inside: that's _R − L − 1_. Each event belongs to exactly one other ship. A ship that **encompasses** X contributes 0 events, a **nested** ship contributes 2, and an **intersecting** ship contributes exactly 1.",
+      "**Hint 1 — Categorise by event count**\n\nFor Ship X with stay _[L, R]_, count how many events fall strictly inside: that's _R − L − 1_. Each event belongs to exactly one other ship. A ship that **encompasses** X contributes 0 events, a **nested** ship contributes 2, and an **intersecting** ship contributes exactly 1.",
       "**Hint 2 — The arithmetic formula**\n\nWe know: `eventsInside = 2×nested + 1×intersecting`. We already know _eventsInside_ (trivially) and _nested_ (from Problem C). Rearranging: **intersecting = eventsInside − 2×nested**. No extra data structure needed!",
       "**Hint 3 — Combine both results**\n\nThe code for Problem D is identical to Problem C except for one extra line: after computing _nested_ with the range query, calculate _eventsInside = R − L − 1_ and set _ans = eventsInside − 2×nested_. The range-sum structure update stays exactly the same."
     ],
@@ -1318,7 +1318,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     inputFormat: "N\nC[1] C[2] ... C[N]\nM\n(M lines of operations)",
     outputFormat: "Output for each query",
     hints: [
-      "**Hint 1 — The alternating-sign problem**\n\nThis challenge is **read-only**. A naïve loop for each query is O(N) — too slow. The sign of each element in the alternating sum depends on its distance from the starting index _L_, making direct range queries tricky. Think about pre-baking the signs into the array itself.",
+      "**Hint 1 — The alternating-sign problem**\n\nA naïve loop for each query is O(N) — too slow. The sign of each element in the alternating sum depends on its distance from the starting index _L_, making direct range queries tricky. Think about pre-baking the signs into the array itself.",
       "**Hint 2 — The sign-transform**\n\nDefine array _B_: `B[i] = +C[i]` if _i_ is odd (1-based), `B[i] = −C[i]` if _i_ is even. Store _B_ in a range-sum structure. Now **sum(B[l..r])** is the alternating sum starting with a _+_ at odd positions. Updates just flip the stored sign.",
       "**Hint 3 — Fix the parity**\n\nIf _l_ is **odd**: the standard sum of _B[l..r]_ matches the alternating formula directly — output it as-is. If _l_ is **even**: _B[l]_ is _−C[l]_, so the sum is the negative of what we want — multiply by **−1**. That's the entire fix!"
     ],

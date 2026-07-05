@@ -236,8 +236,8 @@ export const PART2_STATIC_QUERIES: ProblemGroup = {
             "7\n1 5 3 8 2 7 4\n1 2\n1 3\n2 4\n2 5\n3 6\n3 7\n3\n4 6\n1 5\n7 4",
           sampleOutput: "8\n5\n8",
           constraints: [
-            "1 ≤ N, Q ≤ 10^5",
-            "1 ≤ val[u] ≤ 10^9",
+            "1 ≤ N, Q ≤ 10⁵",
+            "1 ≤ val[u] ≤ 10⁹",
             "Valid tree, 1-indexed, rooted at 1",
           ],
           hints: [

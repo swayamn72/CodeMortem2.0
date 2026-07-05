@@ -10,7 +10,7 @@ const NEXT_LESSON: Record<string, string> = {
   challenge1: "lesson3",
   challenge2: "mcq1",
   challenge3: "lesson5",
-  challenge4: "lesson7",
+  challenge4: "mcq2",
   challenge5: "challenge6",
   challenge6: "badge",
 };
@@ -19,7 +19,7 @@ const NEXT_LABEL: Record<string, string> = {
   challenge1: "Next: Shifts & Pitfalls →",
   challenge2: "Checkpoint 1 →",
   challenge3: "Next: Isolating Bits →",
-  challenge4: "Next: Subset Enumeration →",
+  challenge4: "Next: Checkpoint 2 →",
   challenge5: "Next: Signal Calibration →",
   challenge6: "🏆 Claim Your Badge",
 };
@@ -72,11 +72,11 @@ export const BIT_MANIP_COURSE: CourseConfig = {
     { id: "lesson5",    title: "Isolating & Counting Bits",   part: 2, type: "lesson" },
     { id: "lesson6",    title: "XOR Properties",              part: 2, type: "lesson" },
     { id: "challenge4", title: "Code: Single Number",         part: 2, type: "challenge" },
-    { id: "lesson7",    title: "Subset Enumeration",          part: 2, type: "lesson" },
+
     { id: "mcq2",       title: "Checkpoint 2",                part: 2, type: "mcq" },
     // Part 3
     { id: "lesson8",    title: "Pattern Recognition",         part: 3, type: "lesson" },
-    { id: "lesson9",    title: "Masks as Sets",               part: 3, type: "lesson" },
+
     { id: "lesson10",   title: "Common Beginner Bugs",        part: 3, type: "lesson" },
     { id: "lesson11",   title: "Builtins & std::bitset",      part: 3, type: "lesson" },
     { id: "challenge5", title: "Code: Missing Number",        part: 3, type: "challenge" },
@@ -88,8 +88,8 @@ export const BIT_MANIP_COURSE: CourseConfig = {
     "lesson3", "challenge2", "mcq1",
     "lesson4", "challenge3",
     "lesson5", "lesson6", "challenge4",
-    "lesson7", "mcq2",
-    "lesson8", "lesson9", "lesson10", "lesson11",
+    "mcq2",
+    "lesson8", "lesson10", "lesson11",
     "challenge5", "challenge6",
     "badge",
   ],

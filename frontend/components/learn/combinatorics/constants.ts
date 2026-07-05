@@ -5,16 +5,16 @@ import type { MCQQuestion, SampleCase } from "./types";
 export const MCQ_PART_1: MCQQuestion[] = [
   {
     id: 1,
-    question: "Why do competitive programming problems use modulo 10^9^+7 as their modulus?",
+    question: "Why do competitive programming problems use modulo 10+7 as their modulus?",
     options: [
       "It is the smallest prime number",
       "It is a large prime, fits in a 32-bit integer, and its square fits in a 64-bit integer without overflow",
       "It makes addition faster",
-      "It is exactly 10^9^",
+      "It is exactly 10",
     ],
     answer: 1,
     explanation:
-      "10^9^+7 is prime (Fermat's Little Theorem requires this), fits in an int32 (< 2³¹), and (10^9^+7)² ≈ 10^18^ fits in a 64-bit long long. This combination makes it the standard choice in competitive programming.",
+      "10+7 is prime (Fermat's Little Theorem requires this), fits in an int32 (< 2³¹), and (10+7)² ≈ 10 fits in a 64-bit long long. This combination makes it the standard choice in competitive programming.",
   },
   {
     id: 2,
@@ -22,7 +22,7 @@ export const MCQ_PART_1: MCQQuestion[] = [
     options: ["O(B)", "O(√B)", "O(log B)", "O(1)"],
     answer: 2,
     explanation:
-      "Binary Exponentiation repeatedly squares the base and halves the exponent, making it O(log B) — exponentially faster than the naive O(B) loop, which would TLE for B up to 10^18^.",
+      "Binary Exponentiation repeatedly squares the base and halves the exponent, making it O(log B) — exponentially faster than the naive O(B) loop, which would TLE for B up to 10.",
   },
   {
     id: 3,
@@ -34,20 +34,20 @@ export const MCQ_PART_1: MCQQuestion[] = [
   },
   {
     id: 4,
-    question: "You need to compute (A / B) mod (10^9^+7). B = 3 and 10^9^+7 is prime. What do you compute?",
+    question: "You need to compute (A / B) mod (10+7). B = 3 and 10+7 is prime. What do you compute?",
     options: [
-      "A * 3 mod (10^9^+7)",
-      "A * power(3, 10^9^+5, 10^9^+7) mod (10^9^+7)",
+      "A * 3 mod (10+7)",
+      "A * power(3, 10+5, 10+7) mod (10+7)",
       "A / 3 directly",
       "floor(A / 3)",
     ],
     answer: 1,
     explanation:
-      "The modular inverse of B=3 is 3^(P-2) = 3^(10^9^+5) mod P. So A/B mod P = A * 3^(10^9^+5) mod P. Regular division is impossible under modular arithmetic because remainders don't form a division ring — only multiplication by the inverse works.",
+      "The modular inverse of B=3 is 3⁽P⁻²⁾ = 3⁺⁵⁾ mod P. So A/B mod P = A * 3⁺⁵⁾ mod P. Regular division is impossible under modular arithmetic because remainders don't form a division ring — only multiplication by the inverse works.",
   },
   {
     id: 5,
-    question: "What is the result of (10^9^ × 10^9^) mod (10^9^+7) if computed naively as a 32-bit integer multiplication?",
+    question: "What is the result of (10 × 10) mod (10+7) if computed naively as a 32-bit integer multiplication?",
     options: [
       "The correct answer",
       "0 due to unsigned overflow",
@@ -56,7 +56,7 @@ export const MCQ_PART_1: MCQQuestion[] = [
     ],
     answer: 2,
     explanation:
-      "10^9^ × 10^9^ = 10^18^, which exceeds INT_MAX (≈ 2.1 × 10^9^). In C++, signed 32-bit overflow is undefined behaviour. Always cast to `long long` before multiplying: `(long long)a * b % MOD`.",
+      "10 × 10 = 10, which exceeds INT_MAX (≈ 2.1 × 10). In C++, signed 32-bit overflow is undefined behaviour. Always cast to `long long` before multiplying: `(long long)a * b % MOD`.",
   },
 ];
 
@@ -121,11 +121,11 @@ export const SAMPLE_TEST_CASES: Record<string, SampleCase[]> = {
   challenge1: [
     { input: "3\n2 3 4",        expected: "24",         label: "[2,3,4] → 24" },
     { input: "1\n1000000000",   expected: "1000000000", label: "Single large value" },
-    { input: "4\n1000000000 1000000000 1000000000 1000000000", expected: "2401", label: "4 × 10^9^ — overflow test, needs modulo" },
+    { input: "4\n1000000000 1000000000 1000000000 1000000000", expected: "2401", label: "4 × 10 — overflow test, needs modulo" },
   ],
   challenge2: [
     { input: "3\n2 10 1000000007\n3 3 7\n0 100 13", expected: "1024\n6\n0", label: "Three queries" },
-    { input: "1\n2 62 1000000007", expected: "145586002", label: "2^62^ mod 10^9^+7" },
+    { input: "1\n2 62 1000000007", expected: "145586002", label: "2 mod 10+7" },
   ],
   challenge3: [
     { input: "3\n10 2\n15 3\n100 4", expected: "5\n5\n25", label: "Three division queries" },
@@ -204,10 +204,10 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Easy",
     diffColor: "var(--cm-green)",
     statement:
-      "Given an array of N integers, find the product of all elements modulo 10^9^+7. Direct multiplication will overflow a 64-bit integer — you must apply the modulo at each step.",
-    constraints: "1 ≤ N ≤ 10^5^\n1 ≤ Aᵢ ≤ 10^9^",
+      "Given an array of N integers, find the product of all elements modulo 10+7. Direct multiplication will overflow a 64-bit integer — you must apply the modulo at each step.",
+    constraints: "1 ≤ N ≤ 10\n1 ≤ Aᵢ ≤ 10",
     inputFormat: "First line: N. Second line: N space-separated integers.",
-    outputFormat: "A single integer: the product of all elements mod 10^9^+7.",
+    outputFormat: "A single integer: the product of all elements mod 10+7.",
     hints: [
       "If you multiply all numbers first and then mod, you will get integer overflow. What if you apply % after each multiplication instead?",
     ],
@@ -221,12 +221,12 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Easy",
     diffColor: "var(--cm-green)",
     statement:
-      "Given T test cases, each containing X, Y, and P, compute `X^Y^` mod P. Y can be up to 10^18^, so a naive loop will TLE. You must use Binary Exponentiation.",
-    constraints: "1 ≤ T ≤ 10^5^\n0 ≤ X ≤ 10^9^\n0 ≤ Y ≤ 10^18^\n2 ≤ P ≤ 10^9^",
+      "Given T test cases, each containing X, Y, and P, compute `X^Y^` mod P. Y can be up to 10, so a naive loop will TLE. You must use Binary Exponentiation.",
+    constraints: "1 ≤ T ≤ 10\n0 ≤ X ≤ 10\n0 ≤ Y ≤ 10\n2 ≤ P ≤ 10",
     inputFormat: "First line: T. Next T lines: three integers X Y P.",
     outputFormat: "T lines, one answer per query.",
     hints: [
-      "A loop from 1 to Y is O(Y) which is O(10^18^) — impossible. Think about how to break the problem in half each step.",
+      "A loop from 1 to Y is O(Y) which is O(10) — impossible. Think about how to break the problem in half each step.",
       "If Y is even: X^Y^ = (X^2^)^(Y/2)^. If Y is odd: X^Y^ = X × X^(Y-1)^. This halves Y each step → O(log Y).",
       "Use the iterative version: while exp > 0, if exp is odd multiply result by base, then square base and halve exp.",
     ],
@@ -240,17 +240,17 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Easy-Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "Given Q queries, each with integers A and B, output A/B mod (10^9^+7). Since 10^9^+7 is prime, you can use Fermat's Little Theorem: A/B ≡ A × B^(P-2) (mod P).",
-    constraints: "1 ≤ Q ≤ 10^5^\n1 ≤ A, B < 10^9^+7\nB is guaranteed to not be divisible by 10^9^+7",
+      "Given Q queries, each with integers A and B, output A/B mod (10+7). Since 10+7 is prime, you can use Fermat's Little Theorem: A/B ≡ A × B^(P-2) (mod P).",
+    constraints: "1 ≤ Q ≤ 10\n1 ≤ A, B < 10+7\nB is guaranteed to not be divisible by 10+7",
     inputFormat: "First line: Q. Next Q lines: two integers A B.",
     outputFormat: "Q lines, one result per query.",
     hints: [
       "You can't do floor(A/B) here — this is division under modular arithmetic. You need the modular inverse of B.",
       "Fermat's Little Theorem: for prime P, B^(P-1) ≡ 1 (mod P). So B × B^(P-2) ≡ 1 (mod P), meaning B^(P-2) is the inverse of B.",
-      "Answer = (A mod P) * power(B, P-2, P) mod P. Call your binary exponentiation function with exp = 10^9^+5.",
+      "Answer = (A mod P) * power(B, P-2, P) mod P. Call your binary exponentiation function with exp = 10+5.",
     ],
     editorial:
-      "Since P = 10^9^+7 is prime and B is not divisible by P, Fermat's Little Theorem guarantees B^(P-1) ≡ 1 (mod P). Therefore B^(P-2) is the modular inverse of B.\n\nA/B mod P = A × B^(P-2) mod P.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\ntypedef long long ll;\nconst ll MOD = 1e9 + 7;\nll power(ll b, ll e, ll m){ ll r=1; b%=m; while(e>0){if(e&1)r=r*b%m;b=b*b%m;e>>=1;} return r; }\nint main(){\n    int q; cin>>q;\n    while(q--){ ll a,b; cin>>a>>b; cout<<(a%MOD)*power(b,MOD-2,MOD)%MOD<<\"\\n\"; }\n}\n```",
+      "Since P = 10+7 is prime and B is not divisible by P, Fermat's Little Theorem guarantees B^(P-1) ≡ 1 (mod P). Therefore B^(P-2) is the modular inverse of B.\n\nA/B mod P = A × B^(P-2) mod P.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\ntypedef long long ll;\nconst ll MOD = 1e9 + 7;\nll power(ll b, ll e, ll m){ ll r=1; b%=m; while(e>0){if(e&1)r=r*b%m;b=b*b%m;e>>=1;} return r; }\nint main(){\n    int q; cin>>q;\n    while(q--){ ll a,b; cin>>a>>b; cout<<(a%MOD)*power(b,MOD-2,MOD)%MOD<<\"\\n\"; }\n}\n```",
   },
   {
     id: "challenge4",
@@ -259,17 +259,17 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Easy",
     diffColor: "var(--cm-green)",
     statement:
-      "You have N distinct tasks that must all be completed in some order. Count the total number of unique sequences (permutations) to complete all tasks modulo 10^9^+7. The answer is simply N!.",
-    constraints: "0 ≤ N ≤ 10^6^",
+      "You have N distinct tasks that must all be completed in some order. Count the total number of unique sequences (permutations) to complete all tasks modulo 10+7. The answer is simply N!.",
+    constraints: "0 ≤ N ≤ 10",
     inputFormat: "A single integer N.",
-    outputFormat: "A single integer: N! mod 10^9^+7.",
+    outputFormat: "A single integer: N! mod 10+7.",
     hints: [
       "There are N choices for the first task, then N-1 for the second, and so on. This gives N × (N-1) × ... × 1 = N!.",
       "A loop from 1 to N multiplying and taking mod at each step is perfectly fast enough here.",
       "Be careful: 0! = 1 by mathematical convention. Handle this edge case.",
     ],
     editorial:
-      "N! is just the product 1 × 2 × ... × N, applied modulo 10^9^+7 at each step.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nconst long long MOD = 1e9 + 7;\nint main(){\n    long long n; cin >> n;\n    long long ans = 1;\n    for(long long i = 2; i <= n; i++) ans = ans * i % MOD;\n    cout << ans << \"\\n\";\n}\n```",
+      "N! is just the product 1 × 2 × ... × N, applied modulo 10+7 at each step.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\nconst long long MOD = 1e9 + 7;\nint main(){\n    long long n; cin >> n;\n    long long ans = 1;\n    for(long long i = 2; i <= n; i++) ans = ans * i % MOD;\n    cout << ans << \"\\n\";\n}\n```",
   },
   {
     id: "challenge5",
@@ -297,13 +297,13 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Easy",
     diffColor: "var(--cm-green)",
     statement:
-      "Answer Q queries. Each query asks: what is X! mod (10^9^+7)? X can be up to 10^6^, and Q can be up to 10^5^. Precompute a fact[] array once in O(N) time, then answer each query in O(1).",
-    constraints: "1 ≤ Q ≤ 10^5^\n0 ≤ X ≤ 10^6^",
+      "Answer Q queries. Each query asks: what is X! mod (10+7)? X can be up to 10, and Q can be up to 10. Precompute a fact[] array once in O(N) time, then answer each query in O(1).",
+    constraints: "1 ≤ Q ≤ 10\n0 ≤ X ≤ 10",
     inputFormat: "First line: Q. Next Q lines: a single integer X.",
     outputFormat: "Q lines, one factorial value per query.",
     hints: [
-      "If you compute X! from scratch for each query, it is O(X × Q) ≈ 10^11^ — too slow. You need to precompute.",
-      "Build an array fact[] of size 10^6^+1 where fact[0]=1 and fact[i] = fact[i-1] * i % MOD.",
+      "If you compute X! from scratch for each query, it is O(X × Q) ≈ 10 — too slow. You need to precompute.",
+      "Build an array fact[] of size 10+1 where fact[0]=1 and fact[i] = fact[i-1] * i % MOD.",
       "Once the array is built, each query is just cout << fact[X].",
     ],
     editorial:
@@ -316,8 +316,8 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "Precompute an invFact[] array up to N = 10^6^, where invFact[i] = (i!)⁻¹ mod (10^9^+7). Given Q queries asking for invFact[X], answer each in O(1).\n\nKey insight: only one modular exponentiation is needed — compute invFact[N] = power(fact[N], P-2, P), then fill the rest using invFact[i] = invFact[i+1] × (i+1) mod P.",
-    constraints: "1 ≤ N ≤ 10^6^\n1 ≤ Q ≤ N",
+      "Precompute an invFact[] array up to N = 10, where invFact[i] = (i!)⁻¹ mod (10+7). Given Q queries asking for invFact[X], answer each in O(1).\n\nKey insight: only one modular exponentiation is needed — compute invFact[N] = power(fact[N], P-2, P), then fill the rest using invFact[i] = invFact[i+1] × (i+1) mod P.",
+    constraints: "1 ≤ N ≤ 10\n1 ≤ Q ≤ N",
     inputFormat: "First line: N Q. Next Q lines: a single integer X (0 ≤ X ≤ N).",
     outputFormat: "Q lines, one invFact value per query.",
     hints: [
@@ -388,12 +388,12 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "Given Q queries, each with N and K, output C(N, K) mod (10^9^+7). N can be up to 10^6^ and Q can be up to 10^5^. Using the precomputed fact[] and invFact[] arrays, each query is just 3 lookups: fact[n] × invFact[k] × invFact[n-k] mod P.",
-    constraints: "1 ≤ Q ≤ 10^5^\n0 ≤ K ≤ N ≤ 10^6^",
+      "Given Q queries, each with N and K, output C(N, K) mod (10+7). N can be up to 10 and Q can be up to 10. Using the precomputed fact[] and invFact[] arrays, each query is just 3 lookups: fact[n] × invFact[k] × invFact[n-k] mod P.",
+    constraints: "1 ≤ Q ≤ 10\n0 ≤ K ≤ N ≤ 10",
     inputFormat: "First line: Q. Next Q lines: two integers N K.",
     outputFormat: "Q lines, one C(N,K) value per query.",
     hints: [
-      "Precompute fact[0..10^6^] and invFact[0..10^6^] before reading queries.",
+      "Precompute fact[0..10] and invFact[0..10] before reading queries.",
       "nCr(n, k) = fact[n] * invFact[k] % MOD * invFact[n-k] % MOD.",
       "Edge cases: if K < 0 or K > N, the answer is 0.",
     ],
@@ -459,17 +459,17 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "A robot starts at (0,0) and must reach (X, Y) on an infinite grid, moving only right (+1 to column) or down (+1 to row). Count the number of unique paths mod (10^9^+7).",
-    constraints: "0 ≤ X, Y ≤ 10^5^",
+      "A robot starts at (0,0) and must reach (X, Y) on an infinite grid, moving only right (+1 to column) or down (+1 to row). Count the number of unique paths mod (10+7).",
+    constraints: "0 ≤ X, Y ≤ 10",
     inputFormat: "Two integers X Y on a single line.",
-    outputFormat: "A single integer: the number of unique paths mod 10^9^+7.",
+    outputFormat: "A single integer: the number of unique paths mod 10+7.",
     hints: [
       "The robot makes exactly X right moves and Y down moves. The total path length is X+Y moves.",
       "You need to choose which X of those X+Y moves are 'right' moves — the rest are automatically 'down' moves.",
       "The answer is C(X+Y, X) = (X+Y)! / (X! × Y!). Use your precomputed fact and invFact arrays.",
     ],
     editorial:
-      "Answer = C(X+Y, X). Precompute factorials and inverse factorials up to 2×10^5^.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\n\ntypedef long long ll;\nconst ll MOD = 1e9 + 7;\n// MAXN must cover X + Y (100,000 + 100,000)\nconst int MAXN = 200005;\n\nll fact[MAXN], inv_fact[MAXN];\n\nll power(ll b, ll e, ll m) {\n    ll r = 1;\n    b %= m;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % m;\n        b = (b * b) % m;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) {\n        fact[i] = (fact[i - 1] * i) % MOD;\n    }\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2, MOD);\n    for (int i = MAXN - 2; i >= 0; i--) {\n        inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n    }\n}\n\nll nCr(int n, int k) {\n    if (k < 0 || k > n) return 0;\n    return fact[n] * inv_fact[k] % MOD * inv_fact[n - k] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    precompute();\n\n    int x, y;\n    cin >> x >> y;\n    cout << nCr(x + y, x) << \"\\n\";\n\n    return 0;\n}\n```",
+      "Answer = C(X+Y, X). Precompute factorials and inverse factorials up to 2×10.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\n\ntypedef long long ll;\nconst ll MOD = 1e9 + 7;\n// MAXN must cover X + Y (100,000 + 100,000)\nconst int MAXN = 200005;\n\nll fact[MAXN], inv_fact[MAXN];\n\nll power(ll b, ll e, ll m) {\n    ll r = 1;\n    b %= m;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % m;\n        b = (b * b) % m;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) {\n        fact[i] = (fact[i - 1] * i) % MOD;\n    }\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2, MOD);\n    for (int i = MAXN - 2; i >= 0; i--) {\n        inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n    }\n}\n\nll nCr(int n, int k) {\n    if (k < 0 || k > n) return 0;\n    return fact[n] * inv_fact[k] % MOD * inv_fact[n - k] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    precompute();\n\n    int x, y;\n    cin >> x >> y;\n    cout << nCr(x + y, x) << \"\\n\";\n\n    return 0;\n}\n```",
   },
   {
     id: "challenge10",
@@ -478,17 +478,17 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "A Mars rover starts at coordinates (0,0) and must reach the main base at (X, Y). The rover can only move Right (+1 to the X-coordinate) or Up (+1 to the Y-coordinate).\n\nHowever, the rover's battery is degraded. It must pass through a specific solar relay station located at (A, B) to recharge before continuing its journey to the main base.\n\nHow many unique valid paths exist from the start to the main base that pass exactly through the relay station? Output it modulo 10^9^+7.",
-    constraints: "1 ≤ Q ≤ 10^5^\n0 ≤ A ≤ X ≤ 10^5^\n0 ≤ B ≤ Y ≤ 10^5^",
+      "A Mars rover starts at coordinates (0,0) and must reach the main base at (X, Y). The rover can only move Right (+1 to the X-coordinate) or Up (+1 to the Y-coordinate).\n\nHowever, the rover's battery is degraded. It must pass through a specific solar relay station located at (A, B) to recharge before continuing its journey to the main base.\n\nHow many unique valid paths exist from the start to the main base that pass exactly through the relay station? Output it modulo 10+7.",
+    constraints: "1 ≤ Q ≤ 10\n0 ≤ A ≤ X ≤ 10\n0 ≤ B ≤ Y ≤ 10",
     inputFormat: "First line: Q. Next Q lines: four integers X, Y, A, B.",
-    outputFormat: "Q lines, one integer per query: the total paths mod 10^9^+7.",
+    outputFormat: "Q lines, one integer per query: the total paths mod 10+7.",
     hints: [
       "Do not try to solve the entire grid at once. Break the rover's journey into two completely independent missions: Leg 1 is getting to the station, and Leg 2 is getting from the station to the base.",
       "Leg 1 is standard: paths from (0,0) to (A,B) is simply C(A+B, A). For Leg 2, treat the relay station as a brand new (0,0) starting point! The remaining distance to travel is exactly (X-A) units right and (Y-B) units up.",
       "Once you calculate the total paths for Leg 1 and Leg 2 separately, multiply them using the Rule of Product.",
     ],
     editorial:
-      "The \"Aha!\" Moment:\nWhen a problem forces a path to pass through a specific coordinate, it essentially slices the grid into two independent rectangles.\n\nBecause the choice of how you get to the relay station does not restrict how you leave it, these are independent events. We calculate the combinations for each leg separately and multiply them using the Rule of Product.\n\nLeg 1 (Start to Relay):\nTotal moves = A + B.\nPaths = C(A+B, A).\n\nLeg 2 (Relay to Base):\nThe remaining X-distance is X - A.\nThe remaining Y-distance is Y - B.\nPaths = C((X-A) + (Y-B), X-A).\n\nTotal Paths = ( C(A+B, A) × C((X-A) + (Y-B), X-A) ) mod 10^9^+7.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\n\ntypedef long long ll;\nconst ll MOD = 1e9 + 7;\nconst int MAXN = 200005;\n\nll fact[MAXN], inv_fact[MAXN];\n\nll power(ll b, ll e, ll m) {\n    ll r = 1;\n    b %= m;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % m;\n        b = (b * b) % m;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) {\n        fact[i] = (fact[i - 1] * i) % MOD;\n    }\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2, MOD);\n    for (int i = MAXN - 2; i >= 0; i--) {\n        inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n    }\n}\n\nll nCr(int n, int k) {\n    if (k < 0 || k > n) return 0;\n    return fact[n] * inv_fact[k] % MOD * inv_fact[n - k] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    precompute();\n\n    int q;\n    cin >> q;\n    while (q--) {\n        int x, y, a, b;\n        cin >> x >> y >> a >> b;\n        \n        ll paths_to_relay = nCr(a + b, a);\n        ll paths_to_base = nCr((x - a) + (y - b), x - a);\n        ll total_paths = (paths_to_relay * paths_to_base) % MOD;\n        \n        cout << total_paths << \"\\n\";\n    }\n\n    return 0;\n}\n```",
+      "The \"Aha!\" Moment:\nWhen a problem forces a path to pass through a specific coordinate, it essentially slices the grid into two independent rectangles.\n\nBecause the choice of how you get to the relay station does not restrict how you leave it, these are independent events. We calculate the combinations for each leg separately and multiply them using the Rule of Product.\n\nLeg 1 (Start to Relay):\nTotal moves = A + B.\nPaths = C(A+B, A).\n\nLeg 2 (Relay to Base):\nThe remaining X-distance is X - A.\nThe remaining Y-distance is Y - B.\nPaths = C((X-A) + (Y-B), X-A).\n\nTotal Paths = ( C(A+B, A) × C((X-A) + (Y-B), X-A) ) mod 10+7.\n\nC++ Solution:\n```cpp\n#include <bits/stdc++.h>\nusing namespace std;\n\ntypedef long long ll;\nconst ll MOD = 1e9 + 7;\nconst int MAXN = 200005;\n\nll fact[MAXN], inv_fact[MAXN];\n\nll power(ll b, ll e, ll m) {\n    ll r = 1;\n    b %= m;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % m;\n        b = (b * b) % m;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) {\n        fact[i] = (fact[i - 1] * i) % MOD;\n    }\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2, MOD);\n    for (int i = MAXN - 2; i >= 0; i--) {\n        inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n    }\n}\n\nll nCr(int n, int k) {\n    if (k < 0 || k > n) return 0;\n    return fact[n] * inv_fact[k] % MOD * inv_fact[n - k] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    precompute();\n\n    int q;\n    cin >> q;\n    while (q--) {\n        int x, y, a, b;\n        cin >> x >> y >> a >> b;\n        \n        ll paths_to_relay = nCr(a + b, a);\n        ll paths_to_base = nCr((x - a) + (y - b), x - a);\n        ll total_paths = (paths_to_relay * paths_to_base) % MOD;\n        \n        cout << total_paths << \"\\n\";\n    }\n\n    return 0;\n}\n```",
   },
   {
     id: "challenge11",
@@ -497,17 +497,17 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "You have N identical candies to distribute among K children. Each child can receive 0 or more candies. Count the number of ways to distribute them mod (10^9^+7).",
-    constraints: "0 ≤ N ≤ 10^5^\n1 ≤ K ≤ 10^5^",
+      "You have N identical candies to distribute among K children. Each child can receive 0 or more candies. Count the number of ways to distribute them mod (10+7).",
+    constraints: "0 ≤ N ≤ 10\n1 ≤ K ≤ 10",
     inputFormat: "Two integers N K on a single line.",
-    outputFormat: "A single integer: the number of ways mod 10^9^+7.",
+    outputFormat: "A single integer: the number of ways mod 10+7.",
     hints: [
       "Think of the N candies as stars (★★★★★) and K-1 dividers (|) between groups. How many total symbols are there?",
       "You have N + (K-1) = N+K-1 total positions, and you need to choose K-1 of them to be dividers.",
-      "Answer = C(N+K-1, K-1). Your MAXN needs to be at least N+K, which is up to 2×10^5^.",
+      "Answer = C(N+K-1, K-1). Your MAXN needs to be at least N+K, which is up to 2×10.",
     ],
     editorial:
-      "Stars and Bars: C(N+K-1, K-1). Precompute factorials up to 2×10^5^.\n\nC++ Solution:\n```cpp\n// output nCr(n+k-1, k-1)\n```",
+      "Stars and Bars: C(N+K-1, K-1). Precompute factorials up to 2×10.\n\nC++ Solution:\n```cpp\n// output nCr(n+k-1, k-1)\n```",
   },
   {
     id: "challenge12",
@@ -516,10 +516,10 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
     statement:
-      "Given a DNA string of length N consisting of characters 'A', 'C', 'G', 'T', count the number of distinct strings formed by rearranging its characters, modulo 10^9^+7.",
-    constraints: "1 ≤ N ≤ 2×10^5^\nString contains only 'A', 'C', 'G', 'T'",
+      "Given a DNA string of length N consisting of characters 'A', 'C', 'G', 'T', count the number of distinct strings formed by rearranging its characters, modulo 10+7.",
+    constraints: "1 ≤ N ≤ 2×10\nString contains only 'A', 'C', 'G', 'T'",
     inputFormat: "A single string S.",
-    outputFormat: "A single integer: the number of distinct rearrangements mod 10^9^+7.",
+    outputFormat: "A single integer: the number of distinct rearrangements mod 10+7.",
     hints: [
       "Count the frequency of each of the 4 characters: fA, fC, fG, fT.",
       "The formula for permutations with repetitions is N! / (fA! × fC! × fG! × fT!).",
@@ -535,8 +535,8 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     difficulty: "Hard",
     diffColor: "var(--cm-red)",
     statement:
-      "Given an integer X (up to 10^18^), count how many integers in the range [1, X] are divisible by 2, 3, or 5.",
-    constraints: "1 ≤ X ≤ 10^18^",
+      "Given an integer X (up to 10), count how many integers in the range [1, X] are divisible by 2, 3, or 5.",
+    constraints: "1 ≤ X ≤ 10",
     inputFormat: "A single integer X.",
     outputFormat: "A single integer: count of integers in [1, X] divisible by 2, 3, or 5.",
     hints: [
@@ -555,17 +555,17 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     diffColor: "var(--cm-red)",
     premium: true,
     statement:
-      "In the year 2142, you are a network architect managing data streams across a massive 2D quantum grid. A critical data packet must be sent from the Source Node located at (0, 0) to the Mainframe Server located at (X, Y).\n\nBecause the grid's connections only flow in specific directions to prevent data backwash, the packet can only move Right (+1 to X) or Up (+1 to Y).\n\nTo ensure the packet is properly encrypted, it must pass through exactly K specific Security Firewalls (waypoints) located at various coordinates on the grid. If the packet misses even one firewall, or if the arrangement of firewalls makes the journey physically impossible, the packet is destroyed.\n\nCalculate the total number of unique valid paths the packet can take, modulo 10^9^+7.",
-    constraints: "1 ≤ X, Y ≤ 10^5^\n0 ≤ K ≤ 10^5^\n0 ≤ A_i ≤ 10^5^, 0 ≤ B_i ≤ 10^5^\nNo two firewalls overlap, none start at (0,0)",
+      "In the year 2142, you are a network architect managing data streams across a massive 2D quantum grid. A critical data packet must be sent from the Source Node located at (0, 0) to the Mainframe Server located at (X, Y).\n\nBecause the grid's connections only flow in specific directions to prevent data backwash, the packet can only move Right (+1 to X) or Up (+1 to Y).\n\nTo ensure the packet is properly encrypted, it must pass through exactly K specific Security Firewalls (waypoints) located at various coordinates on the grid. If the packet misses even one firewall, or if the arrangement of firewalls makes the journey physically impossible, the packet is destroyed.\n\nCalculate the total number of unique valid paths the packet can take, modulo 10+7.",
+    constraints: "1 ≤ X, Y ≤ 10\n0 ≤ K ≤ 10\n0 ≤ A_i ≤ 10, 0 ≤ B_i ≤ 10\nNo two firewalls overlap, none start at (0,0)",
     inputFormat: "First line: X Y K. Next K lines: A_i B_i.",
-    outputFormat: "A single integer: valid paths mod 10^9^+7.",
+    outputFormat: "A single integer: valid paths mod 10+7.",
     hints: [
       "Break the journey into smaller, independent segments. The total number of valid paths is simply the product of the number of paths between each consecutive pair of required nodes.",
       "In what order must the nodes be visited? A packet can only move right and up. Sort the firewall coordinates primarily by their X-coordinate, and secondarily by their Y-coordinate, to find the mandatory visitation order.",
       "If any firewall requires the packet to move negatively (left or down) from the previous firewall, the answer is instantly 0. To calculate the paths quickly, precompute factorials and their inverses.",
     ],
     editorial:
-      "This problem is an advanced variation of the classic \"Grid Paths\" combinatorial problem.\n\n1. The Mathematics of a Single Segment\nTo travel from (X1, Y1) to (X2, Y2), the packet must move horizontal dx = X2 - X1 and vertical dy = Y2 - Y1. Number of paths is C(dx + dy, dx).\n\n2. Handling Multiple Nodes\nAppend the start point (0,0) and target (X,Y) to the list of firewalls, and then sort the entire list by X, then Y.\n\n3. Validation and Multiplication\nIterate through consecutive pairs. If dx < 0 or dy < 0, a backwards movement is required. The path is impossible, output 0.\nOtherwise, calculate C(dx + dy, dx) for that segment and multiply into a running total, taking modulo 10^9^+7.\n\nC++ Solution:\n```cpp\n#include <iostream>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n\nconst int MOD = 1e9 + 7;\nconst int MAXN = 200005;\nlong long fact[MAXN], inv_fact[MAXN];\n\nlong long power(long long b, long long e) {\n    long long r = 1;\n    b %= MOD;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % MOD;\n        b = (b * b) % MOD;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) fact[i] = (fact[i - 1] * i) % MOD;\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2);\n    for (int i = MAXN - 2; i >= 0; i--) inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n}\n\nlong long nCr(int n, int r) {\n    if (r < 0 || r > n) return 0;\n    return fact[n] * inv_fact[r] % MOD * inv_fact[n - r] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false); cin.tie(NULL);\n    precompute();\n    int X, Y, K; if (!(cin >> X >> Y >> K)) return 0;\n    \n    vector<pair<int, int>> nodes;\n    for (int i = 0; i < K; i++) {\n        int a, b; cin >> a >> b;\n        nodes.push_back({a, b});\n    }\n    sort(nodes.begin(), nodes.end());\n    \n    vector<pair<int, int>> path;\n    path.push_back({0, 0});\n    for (auto node : nodes) path.push_back(node);\n    path.push_back({X, Y});\n    \n    long long total = 1;\n    for (size_t i = 0; i < path.size() - 1; i++) {\n        int dx = path[i+1].first - path[i].first;\n        int dy = path[i+1].second - path[i].second;\n        if (dx < 0 || dy < 0) { total = 0; break; }\n        total = (total * nCr(dx + dy, dx)) % MOD;\n    }\n    \n    cout << total << \"\\n\";\n    return 0;\n}\n```",
+      "This problem is an advanced variation of the classic \"Grid Paths\" combinatorial problem.\n\n1. The Mathematics of a Single Segment\nTo travel from (X1, Y1) to (X2, Y2), the packet must move horizontal dx = X2 - X1 and vertical dy = Y2 - Y1. Number of paths is C(dx + dy, dx).\n\n2. Handling Multiple Nodes\nAppend the start point (0,0) and target (X,Y) to the list of firewalls, and then sort the entire list by X, then Y.\n\n3. Validation and Multiplication\nIterate through consecutive pairs. If dx < 0 or dy < 0, a backwards movement is required. The path is impossible, output 0.\nOtherwise, calculate C(dx + dy, dx) for that segment and multiply into a running total, taking modulo 10+7.\n\nC++ Solution:\n```cpp\n#include <iostream>\n#include <vector>\n#include <algorithm>\nusing namespace std;\n\nconst int MOD = 1e9 + 7;\nconst int MAXN = 200005;\nlong long fact[MAXN], inv_fact[MAXN];\n\nlong long power(long long b, long long e) {\n    long long r = 1;\n    b %= MOD;\n    while (e > 0) {\n        if (e % 2 == 1) r = (r * b) % MOD;\n        b = (b * b) % MOD;\n        e /= 2;\n    }\n    return r;\n}\n\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) fact[i] = (fact[i - 1] * i) % MOD;\n    inv_fact[MAXN - 1] = power(fact[MAXN - 1], MOD - 2);\n    for (int i = MAXN - 2; i >= 0; i--) inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;\n}\n\nlong long nCr(int n, int r) {\n    if (r < 0 || r > n) return 0;\n    return fact[n] * inv_fact[r] % MOD * inv_fact[n - r] % MOD;\n}\n\nint main() {\n    ios_base::sync_with_stdio(false); cin.tie(NULL);\n    precompute();\n    int X, Y, K; if (!(cin >> X >> Y >> K)) return 0;\n    \n    vector<pair<int, int>> nodes;\n    for (int i = 0; i < K; i++) {\n        int a, b; cin >> a >> b;\n        nodes.push_back({a, b});\n    }\n    sort(nodes.begin(), nodes.end());\n    \n    vector<pair<int, int>> path;\n    path.push_back({0, 0});\n    for (auto node : nodes) path.push_back(node);\n    path.push_back({X, Y});\n    \n    long long total = 1;\n    for (size_t i = 0; i < path.size() - 1; i++) {\n        int dx = path[i+1].first - path[i].first;\n        int dy = path[i+1].second - path[i].second;\n        if (dx < 0 || dy < 0) { total = 0; break; }\n        total = (total * nCr(dx + dy, dx)) % MOD;\n    }\n    \n    cout << total << \"\\n\";\n    return 0;\n}\n```",
   },
   {
     id: "challenge16",
@@ -576,15 +576,15 @@ export const COMB_CHALLENGES: ChallengeData[] = [
     premium: true,
     statement:
       "Merlin the Wizard is crafting a new magical spell. A spell consists of a sequence of exactly N magical runes. Merlin only has access to two types of runes:\n\n- Fire Runes, which cost A mana each.\n- Ice Runes, which cost B mana each.\n\nThe total mana cost of a spell is simply the sum of the mana costs of all N runes used to craft it. Merlin is highly superstitious and believes a spell is only considered Legendary if its total mana cost is a perfect square (e.g., 9, 16, 25, 36).\n\nGiven A, B, and N, your task is to find out how many uniquely ordered Legendary spells Merlin can craft. Since the answer can be exceptionally large, print the remainder after dividing it by 1000000007.",
-    constraints: "1 ≤ A < B ≤ 9\n1 ≤ N ≤ 10^6^",
+    constraints: "1 ≤ A < B ≤ 9\n1 ≤ N ≤ 10",
     inputFormat: "The only line of input contains three integers: A, B, and N.",
     outputFormat: "A single integer — the total number of uniquely ordered Legendary spells modulo 1000000007.",
     hints: [
-      "The maximum number of runes N is 10^6^. You cannot generate or iterate through all possible sequences of spells. Instead of thinking about the exact sequence of the runes, think about the count of each rune.",
+      "The maximum number of runes N is 10. You cannot generate or iterate through all possible sequences of spells. Instead of thinking about the exact sequence of the runes, think about the count of each rune.",
       "If you choose to use exactly i Fire Runes, you are forced to use (N - i) Ice Runes. You can easily calculate the total mana cost for this specific combination. How can you check if this sum is a perfect square?",
       "If the total mana cost for i Fire Runes is a perfect square, you need to count how many valid sequences can be formed. The number of unique ways to arrange i identical Fire Runes and (N - i) identical Ice Runes is exactly \"N choose i\" (C(N, i)). You will need to use modular arithmetic and precomputed factorials to calculate this efficiently."
     ],
     editorial:
-      "To solve this problem efficiently, we must use Combinatorics and Modular Arithmetic.\n\n1. Iterating through possibilities:\nInstead of generating permutations, we can iterate over a single variable: `i`, representing the number of Fire Runes used. Since the total number of runes must be `N`, the number of Ice Runes will always be `(N - i)`. We loop `i` from `0` up to `N`.\n\n2. Validating the Mana Cost:\nFor any given `i`, the total mana cost is calculated as:\n`Sum = (i * A) + ((N - i) * B)`\nWe check if this `Sum` is a perfect square. Because the maximum possible sum is relatively small (9 × 10^6^), taking the square root, casting it to an integer, and squaring it to check against the original number takes O(1) time and avoids precision errors.\n\n3. Counting the Permutations:\nIf the `Sum` is a perfect square, we add the number of valid spell arrangements to our total answer. The number of ways to arrange `i` elements of one type and `(N-i)` of another is given by the binomial coefficient:\n`C(N, i) = N! / (i! * (N - i)!)`\n\n4. Handling Huge Numbers:\nBecause factorials grow astronomically fast, we must calculate the answer modulo 10^9^+7. Division under a modulo is not straightforward; instead, we multiply by the modular multiplicative inverse. Using Fermat's Little Theorem, the inverse of X modulo M is X^(M-2) mod M. We precompute the factorials and their modular inverses up to 10^6^ in O(N) time so that each C(N, i) lookup during our loop takes strict O(1) time.\n\nC++ Solution:\n```cpp\n#include <iostream>\n#include <vector>\n#include <cmath>\n\nusing namespace std;\nusing ll = long long;\n\nconst int MOD = 1000000007;\nconst int MAXN = 1000005;\n\nvector<ll> fact(MAXN);\nvector<ll> invFact(MAXN);\n\n// Function to calculate (base^exp) % MOD\nll power(ll base, ll exp) {\n    ll res = 1;\n    base %= MOD;\n    while (exp > 0) {\n        if (exp % 2 == 1) res = (res * base) % MOD;\n        base = (base * base) % MOD;\n        exp /= 2;\n    }\n    return res;\n}\n\n// Fermat's Little Theorem for modular inverse\nll modInverse(ll n) {\n    return power(n, MOD - 2);\n}\n\n// Precompute factorials and inverse factorials in O(N)\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) {\n        fact[i] = (fact[i - 1] * i) % MOD;\n    }\n    \n    invFact[MAXN - 1] = modInverse(fact[MAXN - 1]);\n    for (int i = MAXN - 2; i >= 0; i--) {\n        invFact[i] = (invFact[i + 1] * (i + 1)) % MOD;\n    }\n}\n\n// O(1) Binomial Coefficient lookup\nll nCr(int n, int r) {\n    if (r < 0 || r > n) return 0;\n    return fact[n] * invFact[r] % MOD * invFact[n - r] % MOD;\n}\n\n// O(1) Perfect Square check\nbool isPerfectSquare(ll n) {\n    if (n < 0) return false;\n    ll root = round(sqrt(n));\n    return root * root == n;\n}\n\nint main() {\n    // Fast I/O\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    \n    // Precompute required math arrays\n    precompute();\n    \n    ll a, b, n;\n    if (!(cin >> a >> b >> n)) return 0;\n    \n    ll res = 0;\n    for (ll i = 0; i <= n; i++) {\n        ll total_mana = (i * a) + ((n - i) * b);\n        \n        if (isPerfectSquare(total_mana)) {\n            res = (res + nCr(n, i)) % MOD;\n        }\n    }\n    \n    cout << res << \"\\n\";\n    return 0;\n}\n```"
+      "To solve this problem efficiently, we must use Combinatorics and Modular Arithmetic.\n\n1. Iterating through possibilities:\nInstead of generating permutations, we can iterate over a single variable: `i`, representing the number of Fire Runes used. Since the total number of runes must be `N`, the number of Ice Runes will always be `(N - i)`. We loop `i` from `0` up to `N`.\n\n2. Validating the Mana Cost:\nFor any given `i`, the total mana cost is calculated as:\n`Sum = (i * A) + ((N - i) * B)`\nWe check if this `Sum` is a perfect square. Because the maximum possible sum is relatively small (9 × 10), taking the square root, casting it to an integer, and squaring it to check against the original number takes O(1) time and avoids precision errors.\n\n3. Counting the Permutations:\nIf the `Sum` is a perfect square, we add the number of valid spell arrangements to our total answer. The number of ways to arrange `i` elements of one type and `(N-i)` of another is given by the binomial coefficient:\n`C(N, i) = N! / (i! * (N - i)!)`\n\n4. Handling Huge Numbers:\nBecause factorials grow astronomically fast, we must calculate the answer modulo 10+7. Division under a modulo is not straightforward; instead, we multiply by the modular multiplicative inverse. Using Fermat's Little Theorem, the inverse of X modulo M is X^(M-2) mod M. We precompute the factorials and their modular inverses up to 10 in O(N) time so that each C(N, i) lookup during our loop takes strict O(1) time.\n\nC++ Solution:\n```cpp\n#include <iostream>\n#include <vector>\n#include <cmath>\n\nusing namespace std;\nusing ll = long long;\n\nconst int MOD = 1000000007;\nconst int MAXN = 1000005;\n\nvector<ll> fact(MAXN);\nvector<ll> invFact(MAXN);\n\n// Function to calculate (base^exp) % MOD\nll power(ll base, ll exp) {\n    ll res = 1;\n    base %= MOD;\n    while (exp > 0) {\n        if (exp % 2 == 1) res = (res * base) % MOD;\n        base = (base * base) % MOD;\n        exp /= 2;\n    }\n    return res;\n}\n\n// Fermat's Little Theorem for modular inverse\nll modInverse(ll n) {\n    return power(n, MOD - 2);\n}\n\n// Precompute factorials and inverse factorials in O(N)\nvoid precompute() {\n    fact[0] = 1;\n    for (int i = 1; i < MAXN; i++) {\n        fact[i] = (fact[i - 1] * i) % MOD;\n    }\n    \n    invFact[MAXN - 1] = modInverse(fact[MAXN - 1]);\n    for (int i = MAXN - 2; i >= 0; i--) {\n        invFact[i] = (invFact[i + 1] * (i + 1)) % MOD;\n    }\n}\n\n// O(1) Binomial Coefficient lookup\nll nCr(int n, int r) {\n    if (r < 0 || r > n) return 0;\n    return fact[n] * invFact[r] % MOD * invFact[n - r] % MOD;\n}\n\n// O(1) Perfect Square check\nbool isPerfectSquare(ll n) {\n    if (n < 0) return false;\n    ll root = round(sqrt(n));\n    return root * root == n;\n}\n\nint main() {\n    // Fast I/O\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n    \n    // Precompute required math arrays\n    precompute();\n    \n    ll a, b, n;\n    if (!(cin >> a >> b >> n)) return 0;\n    \n    ll res = 0;\n    for (ll i = 0; i <= n; i++) {\n        ll total_mana = (i * a) + ((n - i) * b);\n        \n        if (isPerfectSquare(total_mana)) {\n            res = (res + nCr(n, i)) % MOD;\n        }\n    }\n    \n    cout << res << \"\\n\";\n    return 0;\n}\n```"
   }
 ];

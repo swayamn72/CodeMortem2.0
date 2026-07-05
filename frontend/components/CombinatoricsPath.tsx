@@ -211,7 +211,7 @@ long long divide(long long a, long long b) {
           <P>How many ways can you arrange N distinct items in a row? Think of it as placing people in chairs. For the first chair, you have N choices. For the second chair, someone is already seated, so you have N-1 choices. For the third, N-2 choices, and so on.</P>
           <P>By the Rule of Product, we multiply these choices together:</P>
           <MathBox>P(N) = N! = N × (N-1) × (N-2) × ... × 2 × 1</MathBox>
-          <CodeBlock code={`// N! mod 10^9+7
+          <CodeBlock code={`// N! mod 10⁹+7
 long long factorial(long long n) {
     long long result = 1;
     for (long long i = 2; i <= n; i++)
@@ -391,7 +391,7 @@ ll nCr(int n, int k) {
 
         <Section title="The Formula">
           <P>Since the total sequence has X + Y blank slots, and you must place exactly X 'R's into those slots (the rest automatically become 'D's), the problem is simply: "Out of X+Y positions, choose X."</P>
-          <MathBox>Paths(X, Y) = C(X + Y, X) = (X+Y)! / (X! × Y!)  (mod 10^9+7)</MathBox>
+          <MathBox>Paths(X, Y) = C(X + Y, X) = (X+Y)! / (X! × Y!)  (mod 10⁹+7)</MathBox>
           <P><small>(Note: You could also choose to place the 'D's first using C(X+Y, Y). Because of the symmetry of combinations, the answer is exactly the same!)</small></P>
         </Section>
 
@@ -485,7 +485,7 @@ ll nCr(int n, int k) {
         <Section title="Application: Divisibility Queries">
           <P>A classic competitive programming question asks: <em>"How many integers between 1 and X are divisible by 2, 3, or 5?"</em></P>
           <P>The number of multiples of D in the range [1, X] is simply <code>floor(X / D)</code>. We can use PIE to combine them. Note that the intersection of "multiples of 2" and "multiples of 3" is "multiples of LCM(2, 3) = 6".</P>
-          <CodeBlock code={`long long x;\ncin >> x;\n\n// Singles: 2, 3, 5\nlong long singles = x/2 + x/3 + x/5;\n\n// Pairs: lcm(2,3)=6, lcm(2,5)=10, lcm(3,5)=15\nlong long pairs = x/6 + x/10 + x/15;\n\n// Triples: lcm(2,3,5)=30\nlong long triples = x/30;\n\n// Combine using PIE (+ singles, - pairs, + triples)\ncout << singles - pairs + triples << "\\n";\n// This works flawlessly even for X up to 10^18!`} />
+          <CodeBlock code={`long long x;\ncin >> x;\n\n// Singles: 2, 3, 5\nlong long singles = x/2 + x/3 + x/5;\n\n// Pairs: lcm(2,3)=6, lcm(2,5)=10, lcm(3,5)=15\nlong long pairs = x/6 + x/10 + x/15;\n\n// Triples: lcm(2,3,5)=30\nlong long triples = x/30;\n\n// Combine using PIE (+ singles, - pairs, + triples)\ncout << singles - pairs + triples << "\\n";\n// This works flawlessly even for X up to 10¹⁸!`} />
         </Section>
 
         <InclusionExclusionVenn />

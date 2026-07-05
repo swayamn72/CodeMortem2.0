@@ -122,8 +122,8 @@ export const PART0_PHILOSOPHY: ProblemGroup = {
         type: "conceptual",
         data: {
           narrations: [
-            "You have a tree with 10^5 nodes. Each node has a value. You need to answer 10^5 queries, each asking: 'What is the maximum value on the path between node u and node v?'",
-            "The naive approach is BFS or DFS for every query: walk from u up to the LCA, then down to v, tracking the maximum. This is O(N) per query. With 10^5 queries that's 10^10 operations — guaranteed TLE.",
+            "You have a tree with 10⁵ nodes. Each node has a value. You need to answer 10⁵ queries, each asking: 'What is the maximum value on the path between node u and node v?'",
+            "The naive approach is BFS or DFS for every query: walk from u up to the LCA, then down to v, tracking the maximum. This is O(N) per query. With 10⁵ queries that's 10¹⁰ operations — guaranteed TLE.",
             "If this were a simple 1D array, you'd use a Segment Tree. O(log N) per query, problem solved. But a tree isn't linear. It branches. Paths wind up, zigzag across the LCA, and come back down.",
             "The dream would be: if only we could somehow flatten the tree into a 1D array, we could just run a Segment Tree on it. Heavy-Light Decomposition (HLD) is exactly that dream, made real.",
             "HLD's core philosophy is simple: chop the tree into a set of vertical 'chains' (sequences of nodes going downward). Then cleverly assign contiguous indices in a 1D array to each chain. Any path query on the tree becomes a series of range queries on this 1D array — and a Segment Tree handles those in O(log N) each.",
@@ -163,7 +163,7 @@ export const PART0_PHILOSOPHY: ProblemGroup = {
             "The key mathematical insight: every time you cross a 'light' edge going upward toward the root, the subtree size at least doubles. If you're at node v and take a light edge up to parent p, then by definition sz[v] ≤ sz[p]/2 (v wasn't the heavy child, so it has a smaller subtree than the heavy child, which is at least sz[p]/2).",
             "Since the subtree size doubles with each light edge crossed, and the total tree has N nodes, you can cross at most log₂(N) light edges before the subtree size exceeds N. Therefore, any path from a node to the root passes through at most O(log N) distinct chains.",
             "This guarantee extends to any path u→v (via the LCA): since both u→LCA and v→LCA each cross O(log N) chains, the total path u→v also crosses O(log N) chains.",
-            "So for each query, we jump across at most O(log N) chains, and for each chain jump we do one Segment Tree query in O(log N). Total per query: O(log^2 N). This is fast enough for competitive programming — for N = 10^5, that's about (17)² ≈ 289 operations per query.",
+            "So for each query, we jump across at most O(log N) chains, and for each chain jump we do one Segment Tree query in O(log N). Total per query: O(log^2 N). This is fast enough for competitive programming — for N = 10⁵, that's about (17)² ≈ 289 operations per query.",
           ],
           takeaway:
             "Every light edge crossing at least doubles the subtree size, so any root-to-node path crosses at most O(log N) light edges (chain switches). This gives O(log^2 N) per query overall.",

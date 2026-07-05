@@ -180,8 +180,8 @@ export const PART4_ADVANCED: ProblemGroup = {
             "5\n1 2 3\n1 3 8\n2 4 1\n2 5 6\n4\nQ 4 3\nQ 2 3\nU 1 10\nQ 2 3",
           sampleOutput: "8\n8\n10",
           constraints: [
-            "1 ≤ N, Q ≤ 10^5",
-            "1 ≤ w ≤ 10^9",
+            "1 ≤ N, Q ≤ 10⁵",
+            "1 ≤ w ≤ 10⁹",
             "Valid tree, 1-indexed, rooted at 1",
             "Edge indices are 0-indexed in input order",
           ],
@@ -260,8 +260,8 @@ export const PART4_ADVANCED: ProblemGroup = {
             "5\n1 2 3 4 5\n1 2\n1 3\n2 4\n2 5\n5\nS 1\nA 2 10\nS 1\nS 2\nQ 4 3",
           sampleOutput: "15\n35\n26\n20",
           constraints: [
-            "1 ≤ N, Q ≤ 10^5",
-            "1 ≤ val[u], x ≤ 10^4",
+            "1 ≤ N, Q ≤ 10⁵",
+            "1 ≤ val[u], x ≤ 10⁴",
             "Valid tree, 1-indexed, rooted at 1",
           ],
           hints: [
@@ -335,8 +335,8 @@ export const PART4_ADVANCED: ProblemGroup = {
             "5\n1 2\n1 3\n2 4\n2 5\n4\nA 4 3 5\nQ 4 3\nA 1 5 3\nQ 4 3",
           sampleOutput: "25\n34",
           constraints: [
-            "1 ≤ N, Q ≤ 10^5",
-            "1 ≤ x ≤ 10^4",
+            "1 ≤ N, Q ≤ 10⁵",
+            "1 ≤ x ≤ 10⁴",
             "Valid tree, 1-indexed, rooted at 1",
           ],
           hints: [

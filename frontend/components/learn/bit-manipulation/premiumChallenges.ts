@@ -16,24 +16,24 @@ Example: numbers 1 to 5:
   4 = 100 → 1 set bit
   5 = 101 → 2 set bits
 Total = 7`,
-    inputFormat: "A single integer N (1 ≤ N ≤ 10^9).",
+    inputFormat: "A single integer N (1 ≤ N ≤ 10⁹).",
     outputFormat: "A single integer — the total count of set bits from 1 to N.",
-    constraints: "1 ≤ N ≤ 10^9\nTime limit: O(log N)",
+    constraints: "1 ≤ N ≤ 10⁹\nTime limit: O(log N)",
     sampleCases: [
       { input: "5", expected: "7", label: "Example 1" },
       { input: "7", expected: "12", label: "Example 2" },
     ],
     hints: [
       "Think about each bit position independently.",
-      "For bit position k, how many numbers from 1..N have bit k set? It follows a pattern of 2^k.",
-      "Count per bit: (N+1) / (2^(k+1)) full cycles plus min(N mod 2^(k+1), 2^k) remainder.",
+      "For bit position k, how many numbers from 1..N have bit k set? It follows a pattern of 2ᵏ.",
+      "Count per bit: (N+1) / (2⁽ᵏ⁺¹⁾) full cycles plus min(N mod 2⁽ᵏ⁺¹⁾, 2ᵏ) remainder.",
     ],
     editorial: `**Approach: Bit-by-bit contribution**
 
-For each bit position k, count how many numbers from 1 to N have that bit set. In every block of 2^(k+1) consecutive integers, exactly 2^k have bit k set.
+For each bit position k, count how many numbers from 1 to N have that bit set. In every block of 2⁽ᵏ⁺¹⁾ consecutive integers, exactly 2ᵏ have bit k set.
 
-- Full cycles: (N+1) / 2^(k+1), each contributing 2^k set bits
-- Remainder: max(0, (N+1) mod 2^(k+1) - 2^k)
+- Full cycles: (N+1) / 2⁽ᵏ⁺¹⁾, each contributing 2ᵏ set bits
+- Remainder: max(0, (N+1) mod 2⁽ᵏ⁺¹⁾ - 2ᵏ)
 
 Sum over all k from 0 to 30.
 
@@ -86,7 +86,7 @@ print(count_bits(n))
 Print the swapped values on a single line separated by a space.`,
     inputFormat: "Two integers A and B on a single line.",
     outputFormat: "Two integers B A (swapped) on a single line.",
-    constraints: "-10^9 ≤ A, B ≤ 10^9",
+    constraints: "-10⁹ ≤ A, B ≤ 10⁹",
     sampleCases: [
       { input: "3 5", expected: "5 3" },
       { input: "-7 12", expected: "12 -7" },
@@ -133,9 +133,9 @@ print(a, b)
 
 43261596 in binary is 00000010100101000001111010011100.
 Reversed: 00111001011110000010100101000000 = 964176192.`,
-    inputFormat: "A single non-negative integer N (0 ≤ N < 2^32).",
+    inputFormat: "A single non-negative integer N (0 ≤ N < 2³²).",
     outputFormat: "A single integer — the reversed-bits interpretation.",
-    constraints: "0 ≤ N < 2^32",
+    constraints: "0 ≤ N < 2³²",
     sampleCases: [
       { input: "43261596", expected: "964176192" },
     ],
@@ -181,9 +181,9 @@ print(result)
     statement: `Given an array of non-negative integers, find the maximum XOR value obtainable from any two elements in the array.
 
 Solve it in O(N × 32) time.`,
-    inputFormat: "First line: N (1 ≤ N ≤ 10^5)\nSecond line: N space-separated integers (0 ≤ a[i] ≤ 10^9).",
+    inputFormat: "First line: N (1 ≤ N ≤ 10⁵)\nSecond line: N space-separated integers (0 ≤ a[i] ≤ 10⁹).",
     outputFormat: "A single integer — the maximum XOR.",
-    constraints: "1 ≤ N ≤ 10^5\n0 ≤ a[i] ≤ 10^9",
+    constraints: "1 ≤ N ≤ 10⁵\n0 ≤ a[i] ≤ 10⁹",
     sampleCases: [
       { input: "4\n3 10 5 25", expected: "28", explanation: "25 XOR 5 = 28" },
       { input: "2\n0 0", expected: "0" },
@@ -240,9 +240,9 @@ print(ans)
     statement: `Given a non-negative integer N, find the length of the longest consecutive sequence of 1-bits in its binary representation.
 
 13 = 1101₂ — longest run is 2 (the top two bits).`,
-    inputFormat: "A single non-negative integer N (0 ≤ N ≤ 10^18).",
+    inputFormat: "A single non-negative integer N (0 ≤ N ≤ 10¹⁸).",
     outputFormat: "A single integer — the length of the longest run of 1s.",
-    constraints: "0 ≤ N ≤ 10^18",
+    constraints: "0 ≤ N ≤ 10¹⁸",
     sampleCases: [
       { input: "13", expected: "2" },
       { input: "255", expected: "8" },
@@ -286,11 +286,11 @@ print(count)
     title: "Power Set via Bitmask",
     difficulty: "Medium",
     diffColor: "#ffd700",
-    statement: `Given a set of N distinct integers, print all 2^N subsets. Each subset should be printed on a separate line, elements space-separated. Print an empty line for the empty subset.
+    statement: `Given a set of N distinct integers, print all 2ᴺ subsets. Each subset should be printed on a separate line, elements space-separated. Print an empty line for the empty subset.
 
-N ≤ 20 so 2^20 ≈ 1M subsets is acceptable.`,
+N ≤ 20 so 2²⁰ ≈ 1M subsets is acceptable.`,
     inputFormat: "First line: N\nSecond line: N distinct space-separated integers.",
-    outputFormat: "2^N lines (empty line for empty subset).",
+    outputFormat: "2ᴺ lines (empty line for empty subset).",
     constraints: "1 ≤ N ≤ 20",
     sampleCases: [
       {
@@ -300,11 +300,11 @@ N ≤ 20 so 2^20 ≈ 1M subsets is acceptable.`,
       },
     ],
     hints: [
-      "Iterate mask from 0 to 2^N - 1.",
+      "Iterate mask from 0 to 2ᴺ - 1.",
       "For each mask, bit i set means element i is included.",
       "Print elements whose corresponding bit is 1.",
     ],
-    editorial: `**Enumerate all 2^N masks**
+    editorial: `**Enumerate all 2ᴺ masks**
 
 \`\`\`cpp
 #include <bits/stdc++.h>

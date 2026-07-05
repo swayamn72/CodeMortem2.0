@@ -206,7 +206,7 @@ export const PART3_DYNAMIC: ProblemGroup = {
             "A point update on node u is simply a Segment Tree point update at index pos[u]. The HLD arrays (depth, par, sz, heavy, pos, head) don't change when values change — only the Segment Tree's internal state changes.",
             "The query (path sum instead of path max this time) uses the exact same routing loop: jump chains, accumulate, final query. The only difference is the Segment Tree stores sums instead of maxima.",
             "This illustrates a critical design principle: keep your Segment Tree struct completely separate from your HLD routing logic. The HLD code never needs to know whether the Seg Tree is computing max, min, sum, GCD, or anything else — it just calls st.query(l, r) and st.update(i, val).",
-            "The combined complexity: O(N log N) preprocessing + O(log^2 N) per query/update. For N = Q = 10^5, that's about 17^2 ≈ 289 Segment Tree operations per query — extremely fast.",
+            "The combined complexity: O(N log N) preprocessing + O(log^2 N) per query/update. For N = Q = 10⁵, that's about 17² ≈ 289 Segment Tree operations per query — extremely fast.",
           ],
           takeaway:
             "Point updates are trivial: just call st.update(pos[u], newVal). The HLD routing logic never changes, regardless of what the Segment Tree computes. Strict modularity is the key to writing clean HLD code.",
@@ -230,8 +230,8 @@ export const PART3_DYNAMIC: ProblemGroup = {
             "5\n1 2 3 4 5\n1 2\n1 3\n2 4\n2 5\n4\nQ 4 3\nU 2 10\nQ 4 3\nQ 1 5",
           sampleOutput: "10\n18\n16",
           constraints: [
-            "1 ≤ N, Q ≤ 10^5",
-            "1 ≤ val[u], x ≤ 10^9",
+            "1 ≤ N, Q ≤ 10⁵",
+            "1 ≤ val[u], x ≤ 10⁹",
             "Valid tree, 1-indexed, rooted at 1",
           ],
           hints: [
@@ -245,7 +245,7 @@ export const PART3_DYNAMIC: ProblemGroup = {
             },
             {
               title: "Hint 3 — Use long long",
-              body: "Path sums can be large: N = 10^5 nodes each with value 10^9 gives up to 10^14. Use long long (ll) for the Segment Tree and all sums.",
+              body: "Path sums can be large: N = 10⁵ nodes each with value 10⁹ gives up to 10¹⁴. Use long long (ll) for the Segment Tree and all sums.",
             },
           ],
           backendChallengeId: "hld_dynamic_path_sum",
