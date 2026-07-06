@@ -1,189 +1,176 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { motion, useInView, type Variants } from "framer-motion";
-import {
-  Zap, BookOpen, Swords, Timer, BarChart3, Link2,
-  ChevronRight, Check, Users, Trophy, Code2, ArrowRight,
-  Sparkles, Star, Crown
-} from "lucide-react";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import styles from "./page.module.css";
 
-// ─── Animation Variants ───────────────────────────────────────────────────────
+// ─── Review data ──────────────────────────────────────────────────────────────
 
-const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  visible: {
-    opacity: 1, y: 0,
-    transition: { duration: 0.65, ease: [0.21, 0.47, 0.32, 0.98] },
-  },
-};
+const REVIEWS = [
+  { name: "Aditya Raj",  handle: "@aditya_raj",   rating: 1847, color: "#818cf8", text: "Went from 1300 to 1700 in 3 weeks. The 1v1 pressure is unlike any other practice method." },
+  { name: "Saumya K.",   handle: "@saumya_k",     rating: 1623, color: "#22d3ee", text: "HLD finally clicked after 2 sessions. The interactive visualizers are genuinely helpful." },
+  { name: "Priya D.",    handle: "@priyanka_d",   rating: 1941, color: "#a78bfa", text: "My CF rating jumped from Expert to CM after 1 month on CodeMortem. The 1v1 format works." },
+  { name: "Harsh V.",    handle: "@harsh_v",      rating: 1582, color: "#34d399", text: "1v1s made my actual Codeforces rounds feel manageable. Q3 solves improved massively." },
+  { name: "Rohan M.",    handle: "@rohan_m",      rating: 2103, color: "#fb923c", text: "Judge0 execution is blazing fast. No more TLE surprises from a slow online judge." },
+  { name: "Ishaan P.",   handle: "@ishaan_p",     rating: 1389, color: "#f472b6", text: "Perfect for a student training for ICPC. The structured learning modules are gold." },
+  { name: "Nisha R.",    handle: "@nisha_r",      rating: 1765, color: "#22d3ee", text: "Competing against real people at my level is so much better than isolated LeetCode grind." },
+  { name: "Dev S.",      handle: "@dev_s",        rating: 1503, color: "#818cf8", text: "The rating system actually maps to Codeforces. First platform that feels honest." },
+  { name: "Arjun B.",    handle: "@arjun_b",      rating: 2248, color: "#fb923c", text: "Segment tree module is the best resource I've seen anywhere. Finished it in 2 days." },
+  { name: "Sneha T.",    handle: "@sneha_t",      rating: 1677, color: "#a78bfa", text: "Post-match editorials are what set CodeMortem apart. I learn more from losses." },
+  { name: "Karan G.",    handle: "@karan_g",      rating: 1432, color: "#34d399", text: "Finally a platform that treats competitive programming like a sport, not homework." },
+  { name: "Meera J.",    handle: "@meera_j",      rating: 1910, color: "#f472b6", text: "Codeforces integration is seamless. My ratings on both platforms now correlate." },
+];
 
-
-
-const stagger: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.09, delayChildren: 0.05 } },
-};
-
-// ─── Background ───────────────────────────────────────────────────────────────
-
-function Background() {
-  const particles = Array.from({ length: 50 }, (_, i) => ({
-    id: i,
-    left: `${((i * 37 + 13) % 100)}%`,
-    top: `${((i * 59 + 7) % 100)}%`,
-    delay: `${(i * 0.37) % 6}s`,
-    duration: `${3 + (i % 4)}s`,
-    size: i % 5 === 0 ? 2 : 1,
-    opacity: i % 3 === 0 ? 0.6 : 0.3,
-  }));
-
+function ReviewCard({ name, handle, rating, color, text }: typeof REVIEWS[0]) {
   return (
-    <div className={styles.background} aria-hidden="true">
-      <div className={styles.bgGrid} />
-      <div className={styles.bgRadial} />
-      <div className={styles.bgOrange} />
-      {particles.map(p => (
-        <div
-          key={p.id}
-          className={styles.particle}
-          style={{
-            left: p.left,
-            top: p.top,
-            animationDelay: p.delay,
-            animationDuration: p.duration,
-            width: p.size,
-            height: p.size,
-            opacity: p.opacity,
-          }}
-        />
-      ))}
+    <div className={styles.reviewCard}>
+      <div className={styles.reviewHeader}>
+        <div className={styles.reviewAvatar} style={{ background: color }}>{name[0]}</div>
+        <div>
+          <div className={styles.reviewName}>{name}</div>
+          <div className={styles.reviewHandle}>{handle}</div>
+        </div>
+        <div className={styles.reviewRating} style={{ color }}>{rating} ★</div>
+      </div>
+      <p className={styles.reviewText}>{text}</p>
     </div>
   );
 }
 
-// ─── Product Preview Mockup ───────────────────────────────────────────────────
+const ROW_CFG = [
+  { dur: 20, rev: true },
+  { dur: 30, rev: false },
+  { dur: 20, rev: true },
+  { dur: 30, rev: false },
+  { dur: 30, rev: false },
+];
 
-function ProductPreview() {
-  const [activeQ, setActiveQ] = useState(2);
+function getRow(i: number) {
+  const all = [...REVIEWS, ...REVIEWS, ...REVIEWS];
+  return all.slice(i * 2, i * 2 + 8);
+}
 
-  const problems = [
-    { num: 1, pts: 100, solved: true, color: "#22D3EE" },
-    { num: 2, pts: 200, solved: false, color: "#A78BFA" },
-    { num: 3, pts: 300, solved: false, color: "#A1A1AA" },
-    { num: 4, pts: 400, solved: false, color: "#A1A1AA" },
-    { num: 5, pts: 500, solved: false, color: "#A1A1AA" },
-    { num: 6, pts: 600, solved: false, color: "#A1A1AA" },
-    { num: 7, pts: 700, solved: false, color: "#A1A1AA" },
-  ];
+// ─── Border Beam ──────────────────────────────────────────────────────────────
 
-  const codeLines = [
-    { n: 1,  text: "#include <bits/stdc++.h>", color: "#22D3EE" },
-    { n: 2,  text: "using namespace std;",      color: "#818CF8" },
-    { n: 3,  text: "",                           color: "" },
-    { n: 4,  text: "int main() {",               color: "#F8FAFC" },
-    { n: 5,  text: "  ios_base::sync_with_stdio(false);", color: "#94A3B8" },
-    { n: 6,  text: "  cin.tie(NULL);",            color: "#94A3B8" },
-    { n: 7,  text: "",                            color: "" },
-    { n: 8,  text: "  int n;",                   color: "#F8FAFC" },
-    { n: 9,  text: "  cin >> n;",                color: "#F8FAFC" },
-    { n: 10, text: "  vector<int> a(n);",         color: "#F8FAFC" },
-    { n: 11, text: "  for (int i = 0; i < n; i++)", color: "#E879F9" },
-    { n: 12, text: "    cin >> a[i];",            color: "#F8FAFC" },
-    { n: 13, text: "",                            color: "" },
-    { n: 14, text: "  sort(a.begin(), a.end());", color: "#F8FAFC" },
-    { n: 15, text: "  cout << a[n/2] << '\\n';",  color: "#22D3EE" },
-    { n: 16, text: "  return 0;",                 color: "#94A3B8" },
-    { n: 17, text: "}",                           color: "#F8FAFC" },
+function BorderBeam() {
+  return (
+    <div className={styles.beamTrack}>
+      <div className={styles.beamTraveler} />
+    </div>
+  );
+}
+
+// ─── Arena hero mockup (replaces hero-dark.png) ───────────────────────────────
+
+function ArenaMockup() {
+  const code = [
+    { n: 1,  t: "#include <bits/stdc++.h>",          c: "#22d3ee" },
+    { n: 2,  t: "using namespace std;",               c: "#818cf8" },
+    { n: 3,  t: "",                                    c: "" },
+    { n: 4,  t: "int main() {",                       c: "#f8fafc" },
+    { n: 5,  t: "  ios::sync_with_stdio(0);",         c: "#94a3b8" },
+    { n: 6,  t: "  cin.tie(0);",                      c: "#94a3b8" },
+    { n: 7,  t: "",                                    c: "" },
+    { n: 8,  t: "  int n, k;",                        c: "#f8fafc" },
+    { n: 9,  t: "  cin >> n >> k;",                   c: "#f8fafc" },
+    { n: 10, t: "  vector<int> a(n);",                c: "#f8fafc" },
+    { n: 11, t: "  for (auto& x : a) cin >> x;",      c: "#e879f9" },
+    { n: 12, t: "",                                    c: "" },
+    { n: 13, t: "  sort(a.begin(), a.end());",         c: "#f8fafc" },
+    { n: 14, t: "  long long ans = 0;",               c: "#f8fafc" },
+    { n: 15, t: "  for (int i = 0; i < k; i++)",      c: "#e879f9" },
+    { n: 16, t: "    ans += a[i];",                   c: "#f8fafc" },
+    { n: 17, t: "  cout << ans << '\\n';",            c: "#22d3ee" },
+    { n: 18, t: "  return 0;",                        c: "#94a3b8" },
+    { n: 19, t: "}",                                  c: "#f8fafc" },
   ];
 
   return (
-    <div className={styles.preview}>
-      {/* Chrome bar */}
-      <div className={styles.previewChrome}>
-        <div className={styles.chromeDots}>
-          <span style={{ background: "#FF5F57" }} />
-          <span style={{ background: "#FFBD2E" }} />
-          <span style={{ background: "#28C840" }} />
-        </div>
-        <div className={styles.chromeUrl}>codemortem.gg/match/arena</div>
-        <div className={styles.chromeTimer}>
-          <Timer size={10} />
-          18:42
-        </div>
-      </div>
-
+    <div className={styles.arena}>
       {/* Score bar */}
-      <div className={styles.previewScorebar}>
-        <div className={styles.scorePlayer}>
-          <span className={styles.scoreHandle} style={{ color: "#22D3EE" }}>You</span>
-          <span className={styles.scorePoints}>320 pts</span>
+      <div className={styles.arenaBar}>
+        <div className={styles.arenaPlayer}>
+          <span className={styles.dot} style={{ background: "#22d3ee" }} />
+          <span style={{ color: "#22d3ee", fontWeight: 700, fontSize: 13 }}>swayam_v</span>
+          <span style={{ color: "#fff", fontSize: 22, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>320</span>
         </div>
-        <div className={styles.scoreVs}>VS</div>
-        <div className={`${styles.scorePlayer} ${styles.scorePlayerRight}`}>
-          <span className={styles.scoreHandle} style={{ color: "#FB923C" }}>tourist</span>
-          <span className={styles.scorePoints}>180 pts</span>
+        <div className={styles.arenaTimer}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <span>18:42</span>
+        </div>
+        <div className={styles.arenaPlayer} style={{ flexDirection: "row-reverse" }}>
+          <span className={styles.dot} style={{ background: "#fb923c" }} />
+          <span style={{ color: "#fb923c", fontWeight: 700, fontSize: 13 }}>tourist</span>
+          <span style={{ color: "#fff", fontSize: 22, fontWeight: 900, fontVariantNumeric: "tabular-nums" }}>180</span>
         </div>
       </div>
 
-      {/* Main layout */}
-      <div className={styles.previewBody}>
+      {/* Layout: sidebar | editor | right */}
+      <div className={styles.arenaLayout}>
         {/* Sidebar */}
-        <div className={styles.previewSidebar}>
-          <div className={styles.sidebarHeader}>Problems</div>
-          {problems.map(p => (
-            <button
-              key={p.num}
-              className={`${styles.qItem} ${p.num === activeQ ? styles.qItemActive : ""} ${p.solved ? styles.qItemSolved : ""}`}
-              onClick={() => setActiveQ(p.num)}
-            >
-              <span className={styles.qLabel}>Q{p.num}</span>
-              <span className={styles.qPts} style={{ color: p.num === activeQ ? "#22D3EE" : "#A1A1AA" }}>+{p.pts}</span>
-              {p.solved && <Check size={10} style={{ color: "#22D3EE", flexShrink: 0 }} />}
-            </button>
+        <div className={styles.arenaSide}>
+          <div className={styles.sideTitle}>Problems</div>
+          {[{n:1,p:100,s:true},{n:2,p:200,a:true},{n:3,p:300},{n:4,p:400},{n:5,p:500},{n:6,p:600},{n:7,p:700}].map(q => (
+            <div key={q.n} className={`${styles.qItem} ${q.a ? styles.qActive : ""}`}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: q.s ? "#22d3ee" : q.a ? "#fff" : "#52525b" }}>Q{q.n}</span>
+              <span style={{ fontSize: 10, color: q.a ? "#22d3ee" : "#3f3f46", marginLeft: "auto" }}>+{q.p}</span>
+              {q.s && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
+            </div>
           ))}
         </div>
 
-        {/* Code editor */}
-        <div className={styles.previewEditor}>
-          <div className={styles.editorTab}>
-            <Code2 size={11} />
-            solution.cpp
+        {/* Editor */}
+        <div className={styles.editorPane}>
+          <div className={styles.editorBar}>
+            <div className={styles.editorTab}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              solution.cpp
+            </div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <button className={styles.runBtn}>▶ Run</button>
+              <button className={styles.submitBtn}>Submit</button>
+            </div>
           </div>
-          <div className={styles.editorBody}>
-            {codeLines.map(line => (
-              <div key={line.n} className={styles.codeLine}>
-                <span className={styles.lineNum}>{line.n}</span>
-                <span style={{ color: line.color || "transparent", fontFamily: "monospace", fontSize: 11, whiteSpace: "pre" }}>
-                  {line.text}
-                </span>
+          <div className={styles.editorCode}>
+            {code.map(l => (
+              <div key={l.n} className={styles.codeLine}>
+                <span className={styles.lineNum}>{l.n}</span>
+                <span style={{ color: l.c || "transparent", fontFamily: "monospace", fontSize: 12, whiteSpace: "pre" }}>{l.t || "\u00A0"}</span>
               </div>
             ))}
-            <div className={styles.cursor} />
+            <div className={styles.codeLine}>
+              <span className={styles.lineNum}>20</span>
+              <span className={styles.cursor} />
+            </div>
           </div>
         </div>
 
-        {/* Right panel */}
-        <div className={styles.previewRight}>
-          <div className={styles.opponentCard}>
-            <div className={styles.opponentBadge} style={{ color: "#FB923C" }}>OPPONENT</div>
-            <div className={styles.opponentName}>tourist</div>
-            <div className={styles.opponentRating} style={{ color: "#FF5F57" }}>2847</div>
-            <div className={styles.opponentSolved}>
-              <Check size={9} style={{ color: "#22D3EE" }} /> Q1 solved
+        {/* Right */}
+        <div className={styles.arenaRight}>
+          <div>
+            <div className={styles.matchLabel}>OPPONENT</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fb923c" }}>tourist</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#ff5f57", letterSpacing: -1 }}>2847</div>
+            <div style={{ fontSize: 10, color: "#52525b", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>Q1 solved
             </div>
           </div>
-          <div className={styles.divider} />
-          <div className={styles.opponentCard}>
-            <div className={styles.opponentBadge} style={{ color: "#22D3EE" }}>YOU</div>
-            <div className={styles.opponentName}>Swayam</div>
-            <div className={styles.opponentRating} style={{ color: "#22D3EE" }}>1847</div>
-            <div className={styles.opponentSolved}>
-              <Check size={9} style={{ color: "#22D3EE" }} /> Q1 solved
+          <div className={styles.matchDiv} />
+          <div>
+            <div className={styles.matchLabel}>YOU</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#22d3ee" }}>swayam_v</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: "#22d3ee", letterSpacing: -1 }}>1847</div>
+            <div style={{ fontSize: 10, color: "#52525b", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>Q1 solved
             </div>
+          </div>
+          <div className={styles.matchDiv} />
+          <div>
+            <div className={styles.matchLabel}>VERDICT</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#22d3ee" }}>✓ Accepted</div>
+            <div style={{ fontSize: 10, color: "#52525b", marginTop: 2 }}>0ms · 4KB</div>
           </div>
         </div>
       </div>
@@ -191,578 +178,284 @@ function ProductPreview() {
   );
 }
 
-// ─── Hero Section ─────────────────────────────────────────────────────────────
+// ─── Arrow SVG ────────────────────────────────────────────────────────────────
+
+function ArrowRight({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 15 15" fill="none">
+      <path d="M8.14645 3.14645C8.34171 2.95118 8.65829 2.95118 8.85355 3.14645L12.8536 7.14645C13.0488 7.34171 13.0488 7.65829 12.8536 7.85355L8.85355 11.8536C8.65829 12.0488 8.34171 12.0488 8.14645 11.8536C7.95118 11.6583 7.95118 11.3417 8.14645 11.1464L11.2929 8H2.5C2.22386 8 2 7.77614 2 7.5C2 7.22386 2.22386 7 2.5 7H11.2929L8.14645 3.85355C7.95118 3.65829 7.95118 3.34171 8.14645 3.14645Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" className={styles.checkIcon}>
+      <path d="M11.4669 3.72684C11.7558 3.91574 11.8369 4.30308 11.648 4.59198L7.39799 11.092C7.29783 11.2452 7.13556 11.3467 6.95402 11.3699C6.77247 11.3931 6.58989 11.3355 6.45446 11.2124L3.70446 8.71241C3.44905 8.48022 3.43023 8.08494 3.66242 7.82953C3.89461 7.57412 4.28989 7.55529 4.5453 7.78749L6.75292 9.79441L10.6018 3.90792C10.7907 3.61902 11.178 3.53795 11.4669 3.72684Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"/>
+    </svg>
+  );
+}
+
+// ─── Hero ─────────────────────────────────────────────────────────────────────
 
 function HeroSection() {
   return (
-    <section className={styles.hero}>
-      <div className={styles.heroInner}>
-        {/* Badge */}
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          className={styles.heroBadge}
-        >
-          <Sparkles size={12} />
-          <span>Introducing Live 1v1 Coding Battles</span>
-          <ChevronRight size={12} />
-        </motion.div>
+    <section id="hero" className={styles.hero}>
+      {/* Shimmer badge — exact Magic UI */}
+      <div className={styles.badge} style={{ "--delay": "0ms" } as React.CSSProperties}>
+        <p className={styles.shimmer} style={{ "--shimmer-width": "100px" } as React.CSSProperties}>
+          <span>✨ Introducing Live 1v1 Coding Battles</span>
+          <span className={styles.badgeArrowWrap}><ArrowRight size={12} /></span>
+        </p>
+      </div>
 
-        {/* Headline */}
-        <motion.h1
-          className={styles.heroHeading}
-          initial="hidden"
-          animate="visible"
-          variants={stagger}
-        >
-          <motion.span variants={fadeUp} className={styles.heroLine}>
-            Code or be
-          </motion.span>{" "}
-          <motion.span variants={fadeUp} className={styles.heroLineAccent}>
-            Coded.
-          </motion.span>
-        </motion.h1>
+      {/* H1 — font-medium, tracking-tighter, leading-none, gradient */}
+      <h1 className={styles.heroH1} style={{ "--delay": "200ms" } as React.CSSProperties}>
+        CodeMortem is the new way<br className={styles.mdShow} />
+        {" "}to compete and learn.
+      </h1>
 
-        {/* Description */}
-        <motion.p
-          className={styles.heroDesc}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.25 }}
-        >
-          Climb the leaderboard in fast-paced 1v1 algorithmic matches, or master advanced
-          computer science topics through interactive learning modules, custom sandbox
-          playgrounds, and Practice Banks.
-        </motion.p>
+      {/* Subtitle — text-gray-400, tracking-tight */}
+      <p className={styles.heroP} style={{ "--delay": "400ms" } as React.CSSProperties}>
+        Real-time 1v1 algorithmic battles and interactive learning paths built with<br className={styles.mdShow} />
+        {" "}speed, precision, and developer-first design.
+      </p>
 
-        {/* CTAs */}
-        <motion.div
-          className={styles.heroCtas}
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.35 }}
-        >
-          <Link href="/register" className={styles.btnPrimary}>
-            <Zap size={16} />
-            Find a Match
-          </Link>
-          <Link href="/learn" className={styles.btnSecondary}>
-            Start Learning
-            <ArrowRight size={15} />
-          </Link>
-        </motion.div>
+      {/* CTA — bg-primary with shine effect */}
+      <Link href="/register" className={`${styles.heroBtn} ${styles.btnGroup}`} style={{ "--delay": "600ms" } as React.CSSProperties}>
+        <span className={styles.btnShine} />
+        <span>Start Competing </span>
+        <ArrowRight size={16} />
+      </Link>
 
-        {/* Product preview */}
-        <motion.div
-          className={styles.previewWrapper}
-          initial={{ opacity: 0, y: 60, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.9, ease: [0.21, 0.47, 0.32, 0.98] }}
-        >
-          <div className={styles.previewGlow} />
-          <ProductPreview />
-        </motion.div>
+      {/* Hero product image — [perspective:2000px] wrapper */}
+      <div className={styles.heroImgWrap} style={{ "--delay": "400ms" } as React.CSSProperties}>
+        <div className={styles.heroImgInner}>
+          <BorderBeam />
+          <ArenaMockup />
+        </div>
       </div>
     </section>
   );
 }
 
-// ─── Stats Bar ────────────────────────────────────────────────────────────────
+// ─── Clients ──────────────────────────────────────────────────────────────────
 
-const STATS = [
-  { value: "7", label: "Problems per match" },
-  { value: "30m", label: "Match duration" },
-  { value: "2,800", label: "Total points possible" },
-  { value: "5", label: "Algorithm modules" },
+const PLATFORMS = [
+  { name: "Codeforces", c: "#ef4444" },
+  { name: "LeetCode",   c: "#f97316" },
+  { name: "AtCoder",    c: "#94a3b8" },
+  { name: "USACO",      c: "#22d3ee" },
+  { name: "ICPC",       c: "#a78bfa" },
 ];
 
-function StatsBar() {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true });
-
+function Clients() {
   return (
-    <motion.div
-      ref={ref}
-      className={styles.statsBar}
-      variants={stagger}
-      initial="hidden"
-      animate={inView ? "visible" : "hidden"}
-    >
-      {STATS.map((s, i) => (
-        <motion.div key={i} variants={fadeUp} className={styles.statItem}>
-          <span className={styles.statValue}>{s.value}</span>
-          <span className={styles.statLabel}>{s.label}</span>
-        </motion.div>
-      ))}
-    </motion.div>
-  );
-}
-
-// ─── Features Section ─────────────────────────────────────────────────────────
-
-const FEATURES = [
-  {
-    icon: Zap,
-    title: "Rating-Based Matchmaking",
-    description: "Matchmaking system matches you with equally skilled opponents. Link your Codeforces account for instant calibration.",
-  },
-  {
-    icon: BookOpen,
-    title: "Curated Learning Modules",
-    description: "Master key CS and algorithmic topics. Learn from scratch with interactive visualizers, sandbox tools, and unlockable Practice Banks.",
-  },
-  {
-    icon: Swords,
-    title: "Real-Time Arena",
-    description: "Split-screen editor. See when your opponent solves a question. Every second counts.",
-  },
-  {
-    icon: Timer,
-    title: "30-Minute Matches",
-    description: "7 problems, 30 minutes, points from 100 to 700. First to solve gets the points. Speed + skill = victory.",
-  },
-  {
-    icon: BarChart3,
-    title: "Rating & Rankings",
-    description: "Track your progress with detailed rating history, match analytics, and global leaderboards. Rise from Newbie to Legendary Grandmaster.",
-  },
-  {
-    icon: Link2,
-    title: "Codeforces Integration",
-    description: "Link your CF handle for instant rating calibration. Your existing competitive programming experience carries over.",
-  },
-];
-
-function FeaturesSection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
-  return (
-    <section ref={ref} id="features" className={styles.section}>
-      <div className={styles.sectionInner}>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-        >
-          <motion.p variants={fadeUp} className={styles.eyebrow}>Features</motion.p>
-          <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-            Master Competitive<br />Programming
-          </motion.h2>
-          <motion.p variants={fadeUp} className={styles.sectionDesc}>
-            Perfect your skills with real-time duels and hands-on conceptual learning paths.
-          </motion.p>
-
-          <motion.div
-            variants={stagger}
-            className={styles.featuresGrid}
-          >
-            {FEATURES.map((f) => (
-              <motion.div
-                key={f.title}
-                variants={fadeUp}
-                className={styles.featureCard}
-                whileHover={{ y: -5 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className={styles.featureIconWrap}>
-                  <f.icon size={20} strokeWidth={1.5} />
-                </div>
-                <h3 className={styles.featureTitle}>{f.title}</h3>
-                <p className={styles.featureDesc}>{f.description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-// ─── How It Works ─────────────────────────────────────────────────────────────
-
-const STEPS = [
-  {
-    num: "01",
-    icon: Users,
-    title: "Join the Queue",
-    desc: 'Click "Find Match" and our matchmaking engine searches for an opponent within your rating range.',
-  },
-  {
-    num: "02",
-    icon: Swords,
-    title: "Face Your Opponent",
-    desc: "7 problems appear simultaneously for both players. Sorted by difficulty (100→700 pts). The clock starts — you have 30 minutes.",
-  },
-  {
-    num: "03",
-    icon: Code2,
-    title: "Code & Submit",
-    desc: "Write your solution in the code editor. Hit Run to test with custom input. Hit Submit to judge against hidden test cases. First accepted wins the points.",
-  },
-  {
-    num: "04",
-    icon: Trophy,
-    title: "Collect Your Rating",
-    desc: "After 30 minutes, rating deltas are calculated. Win, and watch your rating soar. Review your opponent's solutions to learn.",
-  },
-];
-
-function HowItWorksSection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
-  return (
-    <section ref={ref} id="how-it-works" className={styles.section}>
-      <div className={styles.sectionInner}>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-        >
-          <motion.p variants={fadeUp} className={styles.eyebrow}>How It Works</motion.p>
-          <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-            From queue to victory<br />in 4 steps
-          </motion.h2>
-
-          <div className={styles.timeline}>
-            {STEPS.map((step, i) => (
-              <motion.div key={step.num} variants={fadeUp} className={styles.timelineStep}>
-                {/* Connector */}
-                {i < STEPS.length - 1 && <div className={styles.timelineConnector} />}
-
-                {/* Number circle */}
-                <div className={styles.timelineNumWrap}>
-                  <div className={styles.timelineNum}>{step.num}</div>
-                </div>
-
-                {/* Content */}
-                <div className={styles.timelineContent}>
-                  <div className={styles.timelineIcon}>
-                    <step.icon size={18} strokeWidth={1.5} />
-                  </div>
-                  <h3 className={styles.timelineTitle}>{step.title}</h3>
-                  <p className={styles.timelineDesc}>{step.desc}</p>
-                </div>
-              </motion.div>
-            ))}
+    <section id="clients" className={styles.clients}>
+      <div style={{ padding: "56px 0" }}>
+        <div className={styles.clientsInner}>
+          <h2 className={styles.clientsH2}>TRUSTED BY COMPETITIVE PROGRAMMERS TRAINING FOR</h2>
+          <div style={{ marginTop: 24 }}>
+            <ul className={styles.platformList}>
+              {PLATFORMS.map(p => (
+                <li key={p.name}>
+                  <span className={styles.platformLogo} style={{ color: p.c }}>{p.name}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
 }
 
-// ─── Scoring Section ──────────────────────────────────────────────────────────
+// ─── Radial divider ───────────────────────────────────────────────────────────
 
-const SCORING = [
-  { q: "Q1", pts: 100, diff: "Warm-up", type: "Implementation" },
-  { q: "Q2", pts: 200, diff: "Easy", type: "Greedy / Math" },
-  { q: "Q3", pts: 300, diff: "Easy-Med", type: "Sorting / Two Pointers" },
-  { q: "Q4", pts: 400, diff: "Medium", type: "Binary Search / BFS" },
-  { q: "Q5", pts: 500, diff: "Med-Hard", type: "DP / Graphs" },
-  { q: "Q6", pts: 600, diff: "Hard", type: "Advanced DP / Segment Trees" },
-  { q: "Q7", pts: 700, diff: "Expert", type: "Combinatorics / Flows" },
-];
-
-function getDiffColor(diff: string) {
-  if (diff === "Warm-up" || diff === "Easy") return "#22D3EE";
-  if (diff === "Easy-Med" || diff === "Medium") return "#A78BFA";
-  if (diff === "Med-Hard" || diff === "Hard") return "#FB923C";
-  return "#FF5F57";
+function RadialDivider() {
+  return <div className={styles.radial} aria-hidden="true" />;
 }
 
-function ScoringSection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+// ─── Pricing ──────────────────────────────────────────────────────────────────
+
+const FREE_FEATURES  = ["All module lessons","Module coding challenges","Completion badges","Ranked 1v1 matches","Solo practice mode","Global leaderboard access"];
+const PREM_FEATURES  = ["Everything in Free","Practice Bank (8+ bonus problems/module)","Full editorials + C++ & Python solutions","Post-module timed practice contests","Premium badge on leaderboard","Priority judge execution"];
+
+function Pricing() {
+  const [quarterly, setQuarterly] = useState(true);
 
   return (
-    <section ref={ref} className={styles.section}>
-      <div className={styles.sectionInner}>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-        >
-          <motion.p variants={fadeUp} className={styles.eyebrow}>Scoring</motion.p>
-          <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-            Every question rewards<br />speed and skill
-          </motion.h2>
-          <motion.p variants={fadeUp} className={styles.sectionDesc}>
-            7 problems per match, escalating in difficulty and reward.
-          </motion.p>
+    <section id="pricing">
+      <div className={styles.pricingWrap}>
+        <div className={styles.pricingHead}>
+          <h4 className={styles.pH4}>Pricing</h4>
+          <h2 className={styles.pH2}>Simple pricing for everyone.</h2>
+          <p className={styles.pP}>Choose an <strong>affordable plan</strong> that&apos;s packed with the best features for mastering DSA, competing in real-time, and tracking your progression.</p>
+        </div>
 
-          <motion.div variants={fadeUp} className={styles.scoringCard}>
-            <div className={styles.scoringTable}>
-              <div className={styles.scoringHeader}>
-                <span>Question</span>
-                <span>Points</span>
-                <span>Difficulty</span>
-                <span className={styles.hideOnMobile}>Problem Style</span>
-              </div>
-              {SCORING.map((row) => (
-                <motion.div
-                  key={row.q}
-                  className={styles.scoringRow}
-                  whileHover={{ backgroundColor: "rgba(255,255,255,0.03)" }}
+        {/* Toggle switch — exact Magic UI */}
+        <div className={styles.toggleRow}>
+          <button
+            role="switch"
+            aria-checked={quarterly}
+            onClick={() => setQuarterly(!quarterly)}
+            className={`${styles.toggle} ${quarterly ? styles.toggleOn : ""}`}
+          >
+            <span className={`${styles.thumb} ${quarterly ? styles.thumbOn : ""}`} />
+          </button>
+          <span>Quarterly</span>
+          <span className={styles.savePill}>2 MONTHS FREE ✨</span>
+        </div>
+
+        {/* Cards */}
+        <div className={styles.planGrid}>
+          {/* Free */}
+          <div className={styles.planCard}>
+            <div className={styles.planHead}><div style={{ marginLeft: 16 }}>
+              <h2 className={styles.planName}>Free</h2>
+              <p className={styles.planDesc}>Everything you need to get started competing</p>
+            </div></div>
+            <div className={styles.priceRow}>
+              <span className={styles.price}>₹0</span>
+              <span className={styles.pricePer}> / forever</span>
+            </div>
+            <Link href="/register" className={`${styles.planBtn} ${styles.btnGroup}`}>
+              <span className={styles.btnShine} />
+              <p>Get Started</p>
+            </Link>
+            <hr className={styles.planHr} />
+            <ul className={styles.featureList}>
+              {FREE_FEATURES.map(f => <li key={f} className={styles.featureItem}><CheckIcon /><span>{f}</span></li>)}
+            </ul>
+          </div>
+
+          {/* Premium — featured with color-one border */}
+          <div className={`${styles.planCard} ${styles.planFeatured}`}>
+            <div className={styles.planHead}><div style={{ marginLeft: 16 }}>
+              <h2 className={styles.planName}>Premium</h2>
+              <p className={styles.planDesc}>For serious competitive programmers who want more</p>
+            </div></div>
+            <div className={styles.priceRow}>
+              <span className={styles.price}>{quarterly ? "₹1,200" : "₹500"}</span>
+              <span className={styles.pricePer}>{quarterly ? " / 3 months" : " / month"}</span>
+            </div>
+            <Link href="/premium" className={`${styles.planBtn} ${styles.btnGroup}`}>
+              <span className={styles.btnShine} />
+              <p>Subscribe</p>
+            </Link>
+            <hr className={styles.planHr} />
+            <ul className={styles.featureList}>
+              {PREM_FEATURES.map(f => <li key={f} className={styles.featureItem}><CheckIcon /><span>{f}</span></li>)}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── CTA (review marquee) ─────────────────────────────────────────────────────
+
+function CTA() {
+  return (
+    <section id="cta">
+      <div style={{ padding: "56px 0" }}>
+        <div className={styles.ctaOuter}>
+          <div className={styles.ctaMarquee}>
+            {ROW_CFG.map((cfg, i) => (
+              <div key={i} className={styles.marqueeRow}>
+                <div
+                  className={styles.marqueeTrack}
+                  style={{
+                    animationDuration: `${cfg.dur}s`,
+                    animationDirection: cfg.rev ? "reverse" : "normal",
+                  }}
                 >
-                  <span className={styles.scoringQ}>{row.q}</span>
-                  <span className={styles.scoringPts}>+{row.pts}</span>
-                  <span
-                    className={styles.scoringDiff}
-                    style={{ color: getDiffColor(row.diff) }}
-                  >
-                    {row.diff}
-                  </span>
-                  <span className={`${styles.scoringType} ${styles.hideOnMobile}`}>
-                    {row.type}
-                  </span>
-                </motion.div>
-              ))}
+                  {[...getRow(i), ...getRow(i)].map((r, j) => (
+                    <ReviewCard key={`${i}-${j}`} {...r} />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Center overlay */}
+            <div className={styles.ctaCenter}>
+              <div className={styles.ctaIconBox}>
+                <Image src="/assets/logo.png" alt="CodeMortem" width={64} height={64} className={styles.ctaLogo} />
+              </div>
+              <div className={styles.ctaText}>
+                <h1 className={styles.ctaH1}>Stop solving problems alone.</h1>
+                <p className={styles.ctaSubP}>Find your first match in under 60 seconds. No credit card required.</p>
+                <Link href="/register" className={styles.ctaBtn}>
+                  Get Started
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </Link>
+              </div>
+              <div className={styles.ctaBgBlur} />
             </div>
-            <div className={styles.scoringTotal}>
-              Total possible per match: <strong>2,800 points</strong>
-            </div>
-          </motion.div>
-        </motion.div>
+
+            {/* Bottom fade-to-bg */}
+            <div className={styles.ctaFade} />
+          </div>
+        </div>
       </div>
-    </section>
-  );
-}
-
-// ─── Premium Section ──────────────────────────────────────────────────────────
-
-const PLAN_FEATURES = [
-  { label: "All module lessons", free: true },
-  { label: "Module coding challenges", free: true },
-  { label: "Completion badges", free: true },
-  { label: "Ranked matches & Solo practice", free: true },
-  { label: "Practice Bank (8+ bonus problems/module)", free: false },
-  { label: "Full editorials + C++ & Python solutions", free: false },
-  { label: "Post-module timed practice contests", free: false },
-  { label: "Premium badge on leaderboard", free: false },
-];
-
-function PremiumSection() {
-  const [billing, setBilling] = useState<"monthly" | "quarterly">("quarterly");
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
-  const monthly = { price: "₹500", per: "per month" };
-  const quarterly = { price: "₹1,200", per: "for 3 months" };
-  const plan = billing === "monthly" ? monthly : quarterly;
-
-  return (
-    <section ref={ref} id="premium" className={styles.section}>
-      <div className={styles.sectionInner}>
-        <motion.div
-          variants={stagger}
-          initial="hidden"
-          animate={inView ? "visible" : "hidden"}
-        >
-          <motion.p variants={fadeUp} className={styles.eyebrow}>Premium</motion.p>
-          <motion.h2 variants={fadeUp} className={styles.sectionTitle}>
-            Unlock your full<br />competitive potential
-          </motion.h2>
-          <motion.p variants={fadeUp} className={styles.sectionDesc}>
-            Practice Bank, bonus problems, full editorials, and timed contests — everything you need to go from good to elite.
-          </motion.p>
-
-          {/* Billing toggle */}
-          <motion.div variants={fadeUp} className={styles.billingToggle}>
-            <button
-              className={`${styles.billingBtn} ${billing === "monthly" ? styles.billingBtnActive : ""}`}
-              onClick={() => setBilling("monthly")}
-            >
-              Monthly
-            </button>
-            <button
-              className={`${styles.billingBtn} ${billing === "quarterly" ? styles.billingBtnActive : ""}`}
-              onClick={() => setBilling("quarterly")}
-            >
-              Quarterly
-              <span className={styles.saveBadge}>Save ₹300</span>
-            </button>
-          </motion.div>
-
-          {/* Pricing cards */}
-          <motion.div variants={fadeUp} className={styles.pricingGrid}>
-            {/* Free */}
-            <div className={styles.pricingCard}>
-              <div className={styles.pricingCardHead}>
-                <h3 className={styles.planName}>Free</h3>
-                <p className={styles.planSub}>Everything you need to get started</p>
-              </div>
-              <div className={styles.planPriceWrap}>
-                <span className={styles.planPrice}>₹0</span>
-                <span className={styles.planPer}>forever</span>
-              </div>
-              <Link href="/register" className={styles.planCta}>
-                Get Started
-              </Link>
-              <ul className={styles.planFeatures}>
-                {PLAN_FEATURES.filter(f => f.free).map(f => (
-                  <li key={f.label} className={styles.planFeatureItem}>
-                    <Check size={14} style={{ color: "#22D3EE", flexShrink: 0 }} />
-                    {f.label}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Premium */}
-            <motion.div
-              className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className={styles.pricingCardGlow} />
-              <div className={styles.featuredBadge}>
-                <Crown size={12} />
-                Most Popular
-              </div>
-              <div className={styles.pricingCardHead}>
-                <h3 className={styles.planName}>Premium</h3>
-                <p className={styles.planSub}>For serious competitive programmers</p>
-              </div>
-              <div className={styles.planPriceWrap}>
-                <span className={styles.planPrice}>{plan.price}</span>
-                <span className={styles.planPer}>{plan.per}</span>
-              </div>
-              {billing === "quarterly" && (
-                <div className={styles.planSavings}>Save ₹300 vs monthly</div>
-              )}
-              <Link href="/premium" className={styles.planCtaFeatured}>
-                Get Premium
-                <ArrowRight size={15} />
-              </Link>
-              <ul className={styles.planFeatures}>
-                {PLAN_FEATURES.map(f => (
-                  <li key={f.label} className={styles.planFeatureItem}>
-                    <Check size={14} style={{ color: "#22D3EE", flexShrink: 0 }} />
-                    {f.label}
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          </motion.div>
-
-          {/* Comparison table */}
-          <motion.div variants={fadeUp} className={styles.comparisonWrap}>
-            <h3 className={styles.comparisonTitle}>Full comparison</h3>
-            <div className={styles.comparisonTable}>
-              <div className={styles.comparisonHeader}>
-                <span>Feature</span>
-                <span style={{ textAlign: "center" }}>Free</span>
-                <span style={{ textAlign: "center", color: "#22D3EE" }}>Premium</span>
-              </div>
-              {PLAN_FEATURES.map(f => (
-                <motion.div
-                  key={f.label}
-                  className={styles.comparisonRow}
-                  whileHover={{ backgroundColor: "rgba(255,255,255,0.025)" }}
-                >
-                  <span className={styles.comparisonLabel}>{f.label}</span>
-                  <span style={{ textAlign: "center" }}>
-                    {f.free
-                      ? <Check size={15} style={{ color: "#22D3EE" }} />
-                      : <span style={{ color: "#3F3F46" }}>—</span>}
-                  </span>
-                  <span style={{ textAlign: "center" }}>
-                    <Check size={15} style={{ color: "#22D3EE" }} />
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </motion.div>
-      </div>
-    </section>
-  );
-}
-
-// ─── CTA Section ──────────────────────────────────────────────────────────────
-
-function CTASection() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-
-  return (
-    <section ref={ref} className={styles.ctaSection}>
-      <div className={styles.ctaGlow} />
-      <motion.div
-        className={styles.ctaInner}
-        variants={stagger}
-        initial="hidden"
-        animate={inView ? "visible" : "hidden"}
-      >
-        <motion.div variants={fadeUp} className={styles.ctaBadge}>
-          <Star size={12} />
-          Ready to compete?
-        </motion.div>
-        <motion.h2 variants={fadeUp} className={styles.ctaTitle}>
-          Ready to prove yourself?
-        </motion.h2>
-        <motion.p variants={fadeUp} className={styles.ctaDesc}>
-          Join thousands of competitive programmers in the most intense 1v1 coding arena ever built.
-        </motion.p>
-        <motion.div variants={fadeUp} className={styles.ctaCtas}>
-          <Link href="/register" className={styles.btnPrimary}>
-            <Zap size={16} />
-            Create Account &amp; Play
-          </Link>
-          <Link href="/learn" className={styles.btnSecondary}>
-            Explore Learning Paths
-            <ArrowRight size={15} />
-          </Link>
-        </motion.div>
-      </motion.div>
     </section>
   );
 }
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
+const FOOTER = {
+  Product:   [{ l: "Features", h: "/#features" }, { l: "Pricing", h: "/#pricing" }, { l: "Leaderboard", h: "/leaderboard" }],
+  Community: [{ l: "Discord", h: "#" }, { l: "Twitter", h: "#" }, { l: "GitHub", h: "#" }],
+  Legal:     [{ l: "Terms", h: "/terms" }, { l: "Privacy", h: "/privacy" }],
+};
+
 function Footer() {
   return (
-    <footer className={styles.footer}>
+    <footer>
       <div className={styles.footerInner}>
-        <div className={styles.footerBrand}>
-          <span className={styles.footerLogo}>☠</span>
-          <span>Code<span style={{ color: "#22D3EE" }}>Mortem</span></span>
+        <div className={styles.footerTop}>
+          <div className={styles.footerBrand}>
+            <Link href="/" className={styles.footerLogo}>
+              <Image src="/assets/logo.png" alt="CodeMortem" width={32} height={32} className={styles.footerLogoImg} />
+              <span className={styles.footerLogoText}>CodeMortem</span>
+            </Link>
+            <p className={styles.footerTagline}>Elite competitive programming. Built for developers.</p>
+          </div>
+          <div className={styles.footerGrid}>
+            {Object.entries(FOOTER).map(([col, links]) => (
+              <div key={col}>
+                <h2 className={styles.footerColHead}>{col}</h2>
+                <ul className={styles.footerColLinks}>
+                  {links.map(lk => (
+                    <li key={lk.l}><Link href={lk.h} className={styles.footerLink}>{lk.l}</Link></li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
-        <p className={styles.footerCopy}>
-          © {new Date().getFullYear()} CodeMortem. Built for competitive programmers.
-        </p>
-        <div className={styles.footerLinks}>
-          <a href="/#features">Features</a>
-          <a href="/#how-it-works">How it Works</a>
-          <Link href="/premium">Premium</Link>
-          <Link href="/login">Sign In</Link>
+        <div className={styles.footerBottom}>
+          <span className={styles.footerCopy}>© {new Date().getFullYear()} CodeMortem. All rights reserved.</span>
         </div>
       </div>
     </footer>
   );
 }
 
-// ─── Main Export ──────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
   return (
     <>
-      <Background />
       <Navbar />
       <main className={styles.main}>
         <HeroSection />
-        <StatsBar />
-        <FeaturesSection />
-        <HowItWorksSection />
-        <ScoringSection />
-        <PremiumSection />
-        <CTASection />
+        <Clients />
+        <RadialDivider />
+        <Pricing />
+        <CTA />
         <Footer />
       </main>
     </>

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -57,31 +58,23 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
     !user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date()
   );
 
-  // Navbar style: floating glass on landing page, normal on inner pages
+  // Navbar style: Magic UI exact style on landing page, normal on inner pages
+  // Magic UI: fixed left-0 top-0 w-full px-4 backdrop-blur-[12px] border-b
   const navStyle: React.CSSProperties = isLandingPage
     ? {
         position: "fixed",
-        top: scrolled ? 12 : 16,
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: scrolled ? "calc(100% - 48px)" : "calc(100% - 64px)",
-        maxWidth: scrolled ? 1100 : 1000,
-        background: scrolled
-          ? "rgba(9, 9, 11, 0.85)"
-          : "rgba(9, 9, 11, 0.4)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        borderRadius: scrolled ? 14 : 16,
-        padding: "10px 20px",
+        left: 0,
+        top: 0,
+        width: "100%",
+        padding: "0 16px",
+        background: "rgba(9, 9, 11, 0.85)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+        height: 56, // --navigation-height: 3.5rem
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
         zIndex: 100,
-        transition: "all 0.3s cubic-bezier(0.21, 0.47, 0.32, 0.98)",
-        boxShadow: scrolled
-          ? "0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.04)"
-          : "none",
       }
     : {};
 
@@ -89,22 +82,37 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
 
   return (
     <nav className={navClassName} style={isLandingPage ? navStyle : {}}>
+      {/* Inner container — max-w-[80rem] mx-auto flex justify-between w-full */}
+      <div style={isLandingPage ? {
+        maxWidth: "80rem",
+        margin: "0 auto",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+      } : { display: "contents" }}>
       {/* Logo */}
       <Link
         href="/"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: 8,
           textDecoration: "none",
-          fontWeight: 800,
-          fontSize: 15,
+          fontWeight: 600,
+          fontSize: 16,
           color: "#FFFFFF",
           letterSpacing: "-0.3px",
         }}
       >
-        <span style={{ fontSize: 18 }}>☠</span>
-        Code<span style={{ color: "#22D3EE" }}>Mortem</span>
+        <Image
+          src="/assets/logo.png"
+          alt="CodeMortem"
+          width={24}
+          height={24}
+          style={{ objectFit: "contain" }}
+        />
+        CodeMortem
       </Link>
 
       {/* Nav Links */}
@@ -267,6 +275,8 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
             </Link>
           </>
         )}
+      </div>
+      {/* End inner container */}
       </div>
     </nav>
   );
