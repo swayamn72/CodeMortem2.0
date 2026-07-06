@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useQueueStore } from "@/stores/queueStore";
+import { api } from "@/lib/api";
 import styles from "./page.module.css";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws/game";
@@ -109,7 +110,13 @@ export default function QueuePage() {
 
   useEffect(() => {
     if (mounted && isAuthenticated) {
-      connectWs();
+      // Ping the API first to ensure our token is fresh. 
+      // If it's expired, our api interceptor will automatically refresh it.
+      api.get("/users/me").then(() => {
+        connectWs();
+      }).catch((err: unknown) => {
+        console.error("Failed to verify session for matchmaking:", err);
+      });
     }
 
     return () => {

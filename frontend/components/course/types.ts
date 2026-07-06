@@ -83,3 +83,17 @@ export interface LPTestResult {
   stderr?: string;
   compileOutput?: string;
 }
+
+/** A single past submission returned by GET /learning-path/submissions */
+export interface LPSubmission {
+  id: string;
+  challengeId: string;
+  language: "cpp" | "python";
+  sourceCode: string;
+  verdict: string;
+  testsPassed: number;
+  testsTotal: number;
+  executionTime?: number; // seconds
+  memoryUsed?: number;    // KB
+  submittedAt: string;    // ISO timestamp
+}

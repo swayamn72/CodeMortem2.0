@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
-import type { ChallengeConfig, LPTestResult } from "./types";
+import type { ChallengeConfig, LPTestResult, LPSubmission } from "./types";
 import { getVerdictColor, getVerdictLabel } from "@/lib/verdicts";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import { useAuthStore } from "@/stores/authStore";
@@ -146,7 +146,7 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
   // ── State ────────────────────────────────────────────────────────────────────
   const [lang, setLang] = useState<"cpp" | "python">("cpp");
   const [code, setCode] = useState(TEMPLATES.cpp);
-  const [leftTab, setLeftTab] = useState<"statement" | "hints" | "editorial">("statement");
+  const [leftTab, setLeftTab] = useState<"statement" | "hints" | "editorial" | "submissions">("statement");
   const [consoleTab, setConsoleTab] = useState<"cases" | "stdout">("cases");
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,6 +157,11 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
   const [showSuccess, setShowSuccess] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [resetType, setResetType] = useState<"starter" | "reference" | null>(null);
+  // ── Submissions history ──────────────────────────────────────────────────
+  const [submissions, setSubmissions] = useState<LPSubmission[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subsLoaded, setSubsLoaded] = useState(false);
+  const [viewCodeSub, setViewCodeSub] = useState<LPSubmission | null>(null);
 
   // Reset when challenge changes — restore the starter template
   useEffect(() => {
@@ -174,7 +179,27 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
     }));
     setTestResults(pending);
     setActiveCaseIdx(0);
+    // Reset submission history for new challenge
+    setSubmissions([]);
+    setSubsLoaded(false);
+    setViewCodeSub(null);
   }, [challenge.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Lazy-load submissions when the tab is first opened ─────────────────────
+  const loadSubmissions = async () => {
+    if (subsLoaded || subsLoading) return;
+    setSubsLoading(true);
+    try {
+      const res = await api.get(`/learning-path/submissions?challengeId=${challenge.backendId}`);
+      setSubmissions(res.submissions ?? []);
+      setSubsLoaded(true);
+    } catch {
+      // silently fail — user will see empty state
+      setSubsLoaded(true);
+    } finally {
+      setSubsLoading(false);
+    }
+  };
 
   // Swap template when language changes (only if user hasn't written their own code)
   useEffect(() => {
@@ -283,6 +308,23 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
         onComplete();
         setShowSuccess(true);
       }
+      // Optimistically prepend this submission to history (avoids refetch)
+      if (user) {
+        const newSub: LPSubmission = {
+          id: res.submissionId || `local-${Date.now()}`,
+          challengeId: challenge.backendId,
+          language: lang,
+          sourceCode: code,
+          verdict: res.verdict,
+          testsPassed: res.testsPassed,
+          testsTotal: res.testsTotal,
+          executionTime: res.executionTime,
+          memoryUsed: res.memoryUsed,
+          submittedAt: new Date().toISOString(),
+        };
+        setSubmissions(prev => [newSub, ...prev].slice(0, 10));
+        setSubsLoaded(true);
+      }
     } catch (err: any) {
       setConsoleError(err.message || "Submission failed.");
       setConsoleTab("stdout");
@@ -356,12 +398,17 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
               background: "#0d0d12",
             }}
           >
-            {(["statement", "hints", ...(challenge.editorial ? ["editorial" as const] : [])] as const).map(tab => {
+            {(["statement", "hints", ...(challenge.editorial ? ["editorial" as const] : []), "submissions" as const] as const).map(tab => {
               const locked = tab === "editorial" && !hasSubmitted && !isPremiumActive;
+              const isSubsTab = tab === "submissions";
               return (
                 <button
                   key={tab}
-                  onClick={() => !locked && setLeftTab(tab)}
+                  onClick={() => {
+                    if (locked) return;
+                    setLeftTab(tab);
+                    if (isSubsTab && user) loadSubmissions();
+                  }}
                   disabled={locked}
                   style={{
                     padding: "4px 12px", borderRadius: 6,
@@ -371,9 +418,10 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
                     border: leftTab === tab ? "1px solid rgba(0,240,255,0.3)" : "1px solid transparent",
                     color: locked ? "var(--text-muted)" : leftTab === tab ? "var(--cm-cyan)" : "var(--text-secondary)",
                     textTransform: "capitalize",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {locked ? "🔒 Editorial" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  {locked ? "🔒 Editorial" : isSubsTab ? "Submissions" : tab.charAt(0).toUpperCase() + tab.slice(1)}
                 </button>
               );
             })}
@@ -439,32 +487,46 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
                 <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px", color: "var(--text-muted)", marginBottom: "4px" }}>
                   Hints &amp; Tips
                 </div>
-                {challenge.hints.map((hint, idx) => (
-                  <details
-                    key={idx}
-                    style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", overflow: "hidden" }}
-                  >
-                    <summary style={{
-                      padding: "12px 14px",
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      color: "var(--text-secondary)",
-                      cursor: "pointer",
-                      listStyle: "none",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      userSelect: "none",
-                    }}>
-                      <span>Hint {idx + 1}</span>
-                      <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 400 }}>▶</span>
-                    </summary>
-                    <div style={{ padding: "12px 14px 14px 14px", fontSize: "13px", color: "var(--text-secondary)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                      {renderMarkdownText(hint)}
-                    </div>
-                  </details>
-                ))}
+                {challenge.hints.map((hint, idx) => {
+                  const match = hint.match(/^\*\*Hint \d+(?:\s*[—\-]\s*(.*?))?\*\*\s*\n*/i);
+                  const titleStr = match && match[1] ? `Hint ${idx + 1} — ${match[1]}` : `Hint ${idx + 1}`;
+                  const bodyStr = match ? hint.slice(match[0].length) : hint;
+                  return (
+                    <details
+                      key={idx}
+                      style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", overflow: "hidden" }}
+                    >
+                      <summary style={{
+                        padding: "12px 14px",
+                        fontSize: "13px",
+                        fontWeight: 600,
+                        color: "var(--text-secondary)",
+                        cursor: "pointer",
+                        listStyle: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        userSelect: "none",
+                      }}>
+                        <span>{titleStr}</span>
+                        <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: 400 }}>▶</span>
+                      </summary>
+                      <div style={{ padding: "12px 14px 14px 14px", fontSize: "13px", color: "var(--text-secondary)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                        {renderMarkdownText(bodyStr)}
+                      </div>
+                    </details>
+                  );
+                })}
               </div>
+            )}
+
+            {leftTab === "submissions" && (
+              <SubmissionsTab
+                submissions={submissions}
+                loading={subsLoading}
+                isGuest={!user}
+                onViewCode={(sub) => setViewCodeSub(sub)}
+              />
             )}
 
             {leftTab === "editorial" && (hasSubmitted || isPremiumActive) && (
@@ -722,6 +784,60 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
         </div>
       </div>
 
+      {/* ★ VIEW CODE MODAL ★ */}
+      {viewCodeSub && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setViewCodeSub(null); }}
+          style={{
+            position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(0,0,0,0.65)", backdropFilter: "blur(3px)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
+          }}
+        >
+          <div style={{
+            background: "#12121a", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 12, padding: 24, width: "90%", maxWidth: 800,
+            maxHeight: "80vh", display: "flex", flexDirection: "column",
+            boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, textTransform: "uppercase",
+                  letterSpacing: "1px", color: "var(--text-muted)",
+                }}>Submission — {new Date(viewCodeSub.submittedAt).toLocaleString()}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                    background: getVerdictColor(viewCodeSub.verdict) + "18",
+                    border: `1px solid ${getVerdictColor(viewCodeSub.verdict)}55`,
+                    color: getVerdictColor(viewCodeSub.verdict),
+                  }}>{getVerdictLabel(viewCodeSub.verdict)}</span>
+                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    {viewCodeSub.testsPassed}/{viewCodeSub.testsTotal} passed
+                  </span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    {viewCodeSub.language === "cpp" ? "C++" : "Python"}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewCodeSub(null)}
+                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 20, padding: 4 }}
+              >✕</button>
+            </div>
+            <div style={{ height: 400, overflow: "hidden", background: "#0b0b10", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
+              <CodeEditor
+                value={viewCodeSub.sourceCode}
+                language={viewCodeSub.language}
+                onChange={() => {}}
+                readOnly={true}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ★ SUCCESS MODAL ★ */}
       {showSuccess && (
         <SuccessModal
@@ -868,4 +984,138 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
       )}
     </div>
   );
+}
+
+// ── SubmissionsTab sub-component ───────────────────────────────────────────────
+
+interface SubmissionsTabProps {
+  submissions: LPSubmission[];
+  loading: boolean;
+  isGuest: boolean;
+  onViewCode: (sub: LPSubmission) => void;
+}
+
+function SubmissionsTab({ submissions, loading, isGuest, onViewCode }: SubmissionsTabProps) {
+  if (isGuest) {
+    return (
+      <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
+        <div style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Sign in to view history</div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+          Your submission history is saved when you&apos;re logged in.<br />
+          Log in to track your past attempts.
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: "2rem 1rem", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+        Loading submissions…
+      </div>
+    );
+  }
+
+  if (submissions.length === 0) {
+    return (
+      <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 10 }}>📝</div>
+        <div style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>No submissions yet</div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Submit your solution to see history here.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px",
+        color: "var(--text-muted)", marginBottom: 8, padding: "0 4px",
+      }}>Last {submissions.length} Submission{submissions.length !== 1 ? "s" : ""}</div>
+
+      {submissions.map((sub, i) => {
+        const isAC = sub.verdict === "accepted";
+        const verdictColor = isAC ? "var(--cm-green)" : "var(--cm-red)";
+        const verdictBg = isAC ? "rgba(0,255,136,0.08)" : "rgba(255,80,80,0.08)";
+        const verdictBorder = isAC ? "rgba(0,255,136,0.25)" : "rgba(255,80,80,0.25)";
+        const label = getVerdictLabel(sub.verdict);
+        const date = new Date(sub.submittedAt);
+        const timeAgo = formatTimeAgo(date);
+
+        return (
+          <div
+            key={sub.id + i}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 4px",
+              borderBottom: "1px solid rgba(255,255,255,0.05)",
+              fontSize: 12,
+            }}
+          >
+            {/* Verdict badge */}
+            <span style={{
+              flexShrink: 0, minWidth: 88, textAlign: "center",
+              padding: "3px 6px", borderRadius: 999, fontWeight: 700, fontSize: 11,
+              background: verdictBg,
+              border: `1px solid ${verdictBorder}`,
+              color: verdictColor,
+              whiteSpace: "nowrap",
+            }}>
+              {isAC ? "✅" : "❌"} {label}
+            </span>
+
+            {/* Lang */}
+            <span style={{ color: "var(--text-muted)", flexShrink: 0, minWidth: 32, textAlign: "center" }}>
+              {sub.language === "cpp" ? "C++" : "Py"}
+            </span>
+
+            {/* Pass rate */}
+            <span style={{ color: "var(--text-secondary)", flexShrink: 0 }}>
+              {sub.testsPassed}/{sub.testsTotal}
+            </span>
+
+            {/* Exec time */}
+            {sub.executionTime != null ? (
+              <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>
+                {(sub.executionTime * 1000).toFixed(0)}ms
+              </span>
+            ) : <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>—</span>}
+
+            {/* Time ago */}
+            <span style={{ flex: 1, color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>
+              {timeAgo}
+            </span>
+
+            {/* View Code */}
+            <button
+              onClick={() => onViewCode(sub)}
+              title="View submitted code"
+              style={{
+                flexShrink: 0, padding: "3px 10px", borderRadius: 6, cursor: "pointer",
+                fontSize: 11, fontWeight: 600,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "var(--text-secondary)",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+            >
+              {"</>"}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatTimeAgo(date: Date): string {
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (secs < 60) return `${secs}s ago`;
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return date.toLocaleDateString();
 }

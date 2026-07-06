@@ -209,7 +209,7 @@ func main() {
 
 	// Learning path routes (authenticated)
 	lp := api.Group("/learning-path", authMw)
-	handler.RegisterLearningPathRoutes(lp, judgeClient)
+	handler.RegisterLearningPathRoutes(lp, judgeClient, db)
 
 	// WebSocket endpoint for matchmaking + game
 	fiberApp.Use("/ws", func(c *fiber.Ctx) error {
