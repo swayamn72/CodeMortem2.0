@@ -108,8 +108,8 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
         <Image
           src="/assets/logo.png"
           alt="CodeMortem"
-          width={24}
-          height={24}
+          width={48}
+          height={32}
           style={{ objectFit: "contain" }}
         />
         CodeMortem

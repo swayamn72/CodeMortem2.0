@@ -418,7 +418,7 @@ function Footer() {
         <div className={styles.footerTop}>
           <div className={styles.footerBrand}>
             <Link href="/" className={styles.footerLogo}>
-              <Image src="/assets/logo.png" alt="CodeMortem" width={32} height={32} className={styles.footerLogoImg} />
+              <Image src="/assets/logo.png" alt="CodeMortem" width={48} height={32} className={styles.footerLogoImg} />
               <span className={styles.footerLogoText}>CodeMortem</span>
             </Link>
             <p className={styles.footerTagline}>Elite competitive programming. Built for developers.</p>
