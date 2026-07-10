@@ -717,7 +717,7 @@ int count = bs1.count(); // Total number of set bits`} />
           <div style={{ textAlign: "center", padding: "4rem 2rem" }}>
             {/* Celebration header */}
             <div style={{ marginBottom: "0.5rem", fontSize: 13, fontWeight: 700, letterSpacing: "3px", textTransform: "uppercase", color: "var(--cm-green)", opacity: 0.9 }}>
-              ✦ COURSE COMPLETE ✦
+              ✦ MODULE COMPLETE ✦
             </div>
             <h1 style={{ fontSize: "2.1rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.75rem", letterSpacing: "-0.5px" }}>
               Bit Manipulation — Easy

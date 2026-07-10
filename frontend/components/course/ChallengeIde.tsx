@@ -8,11 +8,13 @@ import { getVerdictColor, getVerdictLabel } from "@/lib/verdicts";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import { useAuthStore } from "@/stores/authStore";
 import SuccessModal from "@/components/shared/SuccessModal";
+import { SubmissionsTab, SubmissionCodeViewerModal } from "@/components/shared/SubmissionsTab";
+import { RichCodeBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
 
 // ── Starter templates shown in the editor on load ─────────────────────────────
 const TEMPLATES: Record<"cpp" | "python", string> = {
   cpp:
-`#include <bits/stdc++.h>
+    `#include <bits/stdc++.h>
 using namespace std;
 
 int main() {
@@ -21,7 +23,7 @@ int main() {
     return 0;
 }`,
   python:
-`import sys
+    `import sys
 input = sys.stdin.readline
 
 # your code goes here
@@ -42,7 +44,7 @@ function renderMarkdownText(text: string) {
   const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
   let lastIndex = 0;
   let match;
-  
+
   while ((match = codeBlockRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
       blocks.push({ type: 'text', content: text.substring(lastIndex, match.index) });
@@ -59,7 +61,7 @@ function renderMarkdownText(text: string) {
       const lineCount = block.content.split("\n").length;
       return (
         <div key={i} style={{ height: Math.min(lineCount * 21 + 24, 400), marginBottom: "1rem", borderRadius: 8, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <CodeEditor value={block.content} language={block.lang!} onChange={() => {}} readOnly={true} />
+          <CodeEditor value={block.content} language={block.lang!} onChange={() => { }} readOnly={true} />
         </div>
       );
     }
@@ -536,21 +538,22 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
                   if (i % 3 === 0) {
                     if (part.trim()) {
                       acc.push(
-                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-                          {renderMarkdownText(part)}
+                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
+                          {fmt(part, challenge.diffColor || "var(--cm-cyan)", challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255")}
                         </div>
                       );
                     }
                   } else if (i % 3 === 2) {
                     const lang = arr[i - 1] || "cpp";
                     const cleanCode = part.trim();
-                    const lineCount = cleanCode.split("\n").length;
                     acc.push(
-                      <div key={`code-${i}`} style={{ marginBottom: "1rem" }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cm-cyan)", letterSpacing: "0.5px", marginBottom: 4, textTransform: "uppercase" }}>{lang === "python" ? "Python" : "C++"}</div>
-                        <div style={{ height: Math.min(lineCount * 21 + 24, 400), background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-cyan)", borderRadius: "0 8px 8px 0", overflow: "hidden" }}>
-                          <CodeEditor value={cleanCode} language={lang} onChange={() => {}} readOnly={true} />
-                        </div>
+                      <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
+                        <RichCodeBlock
+                          language={lang === "python" ? "Python" : "C++"}
+                          code={cleanCode}
+                          accentColor={challenge.diffColor || "var(--cm-cyan)"}
+                          accentRGB={challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255"}
+                        />
                       </div>
                     );
                   }
@@ -784,58 +787,12 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
         </div>
       </div>
 
-      {/* ★ VIEW CODE MODAL ★ */}
+      {/* ★ CODE VIEWER MODAL ★ */}
       {viewCodeSub && (
-        <div
-          onClick={(e) => { if (e.target === e.currentTarget) setViewCodeSub(null); }}
-          style={{
-            position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.65)", backdropFilter: "blur(3px)",
-            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
-          }}
-        >
-          <div style={{
-            background: "#12121a", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 12, padding: 24, width: "90%", maxWidth: 800,
-            maxHeight: "80vh", display: "flex", flexDirection: "column",
-            boxShadow: "0 16px 48px rgba(0,0,0,0.6)",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, textTransform: "uppercase",
-                  letterSpacing: "1px", color: "var(--text-muted)",
-                }}>Submission — {new Date(viewCodeSub.submittedAt).toLocaleString()}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                    background: getVerdictColor(viewCodeSub.verdict) + "18",
-                    border: `1px solid ${getVerdictColor(viewCodeSub.verdict)}55`,
-                    color: getVerdictColor(viewCodeSub.verdict),
-                  }}>{getVerdictLabel(viewCodeSub.verdict)}</span>
-                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                    {viewCodeSub.testsPassed}/{viewCodeSub.testsTotal} passed
-                  </span>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    {viewCodeSub.language === "cpp" ? "C++" : "Python"}
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={() => setViewCodeSub(null)}
-                style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", fontSize: 20, padding: 4 }}
-              >✕</button>
-            </div>
-            <div style={{ height: 400, overflow: "hidden", background: "#0b0b10", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <CodeEditor
-                value={viewCodeSub.sourceCode}
-                language={viewCodeSub.language}
-                onChange={() => {}}
-                readOnly={true}
-              />
-            </div>
-          </div>
-        </div>
+        <SubmissionCodeViewerModal
+          viewCodeSub={viewCodeSub}
+          onClose={() => setViewCodeSub(null)}
+        />
       )}
 
       {/* ★ SUCCESS MODAL ★ */}
@@ -884,11 +841,11 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
               </button>
             </div>
             <div style={{ height: 400, overflow: "hidden", background: "#0b0b10", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
-              <CodeEditor 
-                value={challenge.referenceTemplates?.[lang] || challenge.templates?.[lang] || TEMPLATES[lang]} 
-                language={lang} 
-                onChange={() => {}} 
-                readOnly={true} 
+              <CodeEditor
+                value={challenge.referenceTemplates?.[lang] || challenge.templates?.[lang] || TEMPLATES[lang]}
+                language={lang}
+                onChange={() => { }}
+                readOnly={true}
               />
             </div>
             <div style={{ marginTop: 24, display: "flex", justifyContent: "flex-end", gap: 12 }}>
@@ -986,136 +943,4 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
   );
 }
 
-// ── SubmissionsTab sub-component ───────────────────────────────────────────────
 
-interface SubmissionsTabProps {
-  submissions: LPSubmission[];
-  loading: boolean;
-  isGuest: boolean;
-  onViewCode: (sub: LPSubmission) => void;
-}
-
-function SubmissionsTab({ submissions, loading, isGuest, onViewCode }: SubmissionsTabProps) {
-  if (isGuest) {
-    return (
-      <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
-        <div style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>Sign in to view history</div>
-        <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-          Your submission history is saved when you&apos;re logged in.<br />
-          Log in to track your past attempts.
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div style={{ padding: "2rem 1rem", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
-        Loading submissions…
-      </div>
-    );
-  }
-
-  if (submissions.length === 0) {
-    return (
-      <div style={{ padding: "2rem 1rem", textAlign: "center" }}>
-        <div style={{ fontSize: 28, marginBottom: 10 }}>📝</div>
-        <div style={{ fontWeight: 700, color: "var(--text-primary)", marginBottom: 6 }}>No submissions yet</div>
-        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Submit your solution to see history here.</div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      <div style={{
-        fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "1.2px",
-        color: "var(--text-muted)", marginBottom: 8, padding: "0 4px",
-      }}>Last {submissions.length} Submission{submissions.length !== 1 ? "s" : ""}</div>
-
-      {submissions.map((sub, i) => {
-        const isAC = sub.verdict === "accepted";
-        const verdictColor = isAC ? "var(--cm-green)" : "var(--cm-red)";
-        const verdictBg = isAC ? "rgba(0,255,136,0.08)" : "rgba(255,80,80,0.08)";
-        const verdictBorder = isAC ? "rgba(0,255,136,0.25)" : "rgba(255,80,80,0.25)";
-        const label = getVerdictLabel(sub.verdict);
-        const date = new Date(sub.submittedAt);
-        const timeAgo = formatTimeAgo(date);
-
-        return (
-          <div
-            key={sub.id + i}
-            style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "10px 4px",
-              borderBottom: "1px solid rgba(255,255,255,0.05)",
-              fontSize: 12,
-            }}
-          >
-            {/* Verdict badge */}
-            <span style={{
-              flexShrink: 0, minWidth: 88, textAlign: "center",
-              padding: "3px 6px", borderRadius: 999, fontWeight: 700, fontSize: 11,
-              background: verdictBg,
-              border: `1px solid ${verdictBorder}`,
-              color: verdictColor,
-              whiteSpace: "nowrap",
-            }}>
-              {isAC ? "✅" : "❌"} {label}
-            </span>
-
-            {/* Lang */}
-            <span style={{ color: "var(--text-muted)", flexShrink: 0, minWidth: 32, textAlign: "center" }}>
-              {sub.language === "cpp" ? "C++" : "Py"}
-            </span>
-
-            {/* Pass rate */}
-            <span style={{ color: "var(--text-secondary)", flexShrink: 0 }}>
-              {sub.testsPassed}/{sub.testsTotal}
-            </span>
-
-            {/* Exec time */}
-            {sub.executionTime != null ? (
-              <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>
-                {(sub.executionTime * 1000).toFixed(0)}ms
-              </span>
-            ) : <span style={{ color: "var(--text-muted)", flexShrink: 0 }}>—</span>}
-
-            {/* Time ago */}
-            <span style={{ flex: 1, color: "var(--text-muted)", textAlign: "right", whiteSpace: "nowrap" }}>
-              {timeAgo}
-            </span>
-
-            {/* View Code */}
-            <button
-              onClick={() => onViewCode(sub)}
-              title="View submitted code"
-              style={{
-                flexShrink: 0, padding: "3px 10px", borderRadius: 6, cursor: "pointer",
-                fontSize: 11, fontWeight: 600,
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "var(--text-secondary)",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
-            >
-              {"</>"}
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function formatTimeAgo(date: Date): string {
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (secs < 60) return `${secs}s ago`;
-  const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return date.toLocaleDateString();
-}

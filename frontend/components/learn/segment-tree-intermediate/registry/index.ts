@@ -1,6 +1,7 @@
 import type { ProblemGroup } from "./types";
 import { MIN_COUNT_PROBLEM } from "./min-count";
 import { MAX_SUBARRAY_PROBLEM } from "./max-subarray";
+import { LAZY_PROPAGATION_PROBLEM } from "./lazy-propagation";
 
 /**
  * Ordered list of all problem groups in the Segment Tree Intermediate module.
@@ -10,6 +11,7 @@ import { MAX_SUBARRAY_PROBLEM } from "./max-subarray";
 export const PROBLEMS: ProblemGroup[] = [
   MIN_COUNT_PROBLEM,
   MAX_SUBARRAY_PROBLEM,
+  LAZY_PROPAGATION_PROBLEM,
 ];
 
 /**

@@ -1203,7 +1203,7 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
     title: "Cheapest Escape Route",
     difficulty: "Medium",
     diffColor: "var(--cm-yellow)",
-    statement: `Write the complete solution from scratch. The key insight is hidden in plain sight.\n\nThere are _N_ cities in a line. Every city charges a base toll of **1000** coins, but each city offers a **discount**. City _i_ has discount _d[i]_, so it costs \`1000 - d[i]\` to pass through.\n\nFor each query, pass through exactly **one city** in _[l, r]_ — find the cheapest.\n\n- \`1 i v\`: City _i_ changes its discount to _v_\n- \`2 l r\`: Print the **minimum cost** to pass through any one city in _[l, r]_`,
+    statement: `There are _N_ cities in a line. Every city charges a base toll of **1000** coins, but each city offers a **discount**. City _i_ has discount _d[i]_, so it costs \`1000 - d[i]\` to pass through.\n\nFor each query, pass through exactly **one city** in _[l, r]_ — find the cheapest.\n\n- \`1 i v\`: City _i_ changes its discount to _v_\n- \`2 l r\`: Print the **minimum cost** to pass through any one city in _[l, r]_`,
     constraints: "1 ≤ N, Q ≤ 10⁵\n0 ≤ d[i] ≤ 999 · Base toll = 1000\nAll operations are **1-indexed**",
     inputFormat: "N Q\nd[1] d[2] ... d[N]\n(Q lines of queries)",
     outputFormat: "Output for each query",
@@ -1212,7 +1212,149 @@ export const ST_CHALLENGES: Record<string, ChallengeConfig> = {
       "**Hint 2 — The algebraic flip**\n\nMinimising `1000 - d[i]` over a range is equivalent to maximising `d[i]` over that range. You do not need a min tree — you need a **range max tree on the discounts**.",
       "**Hint 3 — Indexing**\n\nInput queries are **1-indexed**. If your segment tree is 0-indexed internally, subtract 1 from `i`, `l`, and `r` when passing them into tree functions. The reference template keeps the tree 1-indexed to avoid this translation entirely."
     ],
-    editorial: `**Approach: Maximize the Discount**\n\nThe problem asks us to find the minimum cost to pass through any one city in a range \`[l, r]\`. The cost of city \`i\` is \`1000 - d[i]\`, where \`d[i]\` is the discount. \n\nMathematically, finding the minimum of \`1000 - d[i]\` is exactly the same as finding the maximum of \`d[i]\` and then subtracting it from 1000. \n\nSo, instead of building a Minimum Segment Tree on the costs (which would require recalculating \`1000 - d[i]\` everywhere), we can just build a standard **Maximum Segment Tree** directly on the discounts array \`d\`. When queried for range \`[l, r]\`, we find the maximum discount \`max_d\` and our answer is simply \`1000 - max_d\`.\n\n**Time Complexity**: O((N + Q) log N)`,
+    editorial: `**Approach: Maximize the Discount**\n\nThe problem asks us to find the minimum cost to pass through any one city in a range \`[l, r]\`. The cost of city \`i\` is \`1000 - d[i]\`, where \`d[i]\` is the discount. \n\nMathematically, finding the minimum of \`1000 - d[i]\` is exactly the same as finding the maximum of \`d[i]\` and then subtracting it from 1000. \n\nSo, instead of building a Minimum Segment Tree on the costs (which would require recalculating \`1000 - d[i]\` everywhere), we can just build a standard **Maximum Segment Tree** directly on the discounts array \`d\`. When queried for range \`[l, r]\`, we find the maximum discount \`max_d\` and our answer is simply \`1000 - max_d\`.\n\n**Time Complexity**: O((N + Q) log N)\n\n
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+const int MAXN = 100005;
+int d[MAXN];
+int tree[4 * MAXN];
+
+// Build the Segment Tree in O(N)
+void build(int node, int start, int end) {
+    if (start == end) {
+        tree[node] = d[start];
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    build(2 * node, start, mid);
+    build(2 * node + 1, mid + 1, end);
+    tree[node] = max(tree[2 * node], tree[2 * node + 1]);
+}
+
+// Update the tree in O(log N)
+void update(int node, int start, int end, int idx, int val) {
+    if (start == end) {
+        tree[node] = val;
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    if (start <= idx && idx <= mid) {
+        update(2 * node, start, mid, idx, val);
+    } else {
+        update(2 * node + 1, mid + 1, end, idx, val);
+    }
+    tree[node] = max(tree[2 * node], tree[2 * node + 1]);
+}
+
+// Range Maximum Query in O(log N)
+int query(int node, int start, int end, int l, int r) {
+    if (r < start || end < l) return -1; 
+    if (l <= start && end <= r) return tree[node];
+    
+    int mid = start + (end - start) / 2;
+    int p1 = query(2 * node, start, mid, l, r);
+    int p2 = query(2 * node + 1, mid + 1, end, l, r);
+    return max(p1, p2);
+}
+
+int main() {
+    // Fast I/O
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, q;
+    cin >> n >> q;
+
+    for (int i = 1; i <= n; i++) {
+        cin >> d[i];
+    }
+
+    build(1, 1, n);
+
+    for (int i = 0; i < q; i++) {
+        int type;
+        cin >> type;
+        if (type == 1) {
+            int idx, v;
+            cin >> idx >> v;
+            update(1, 1, n, idx, v);
+        } else if (type == 2) {
+            int l, r;
+            cin >> l >> r;
+            // Min cost is 1000 - max discount in [l, r]
+            cout << 1000 - query(1, 1, n, l, r) << "\\n";
+        }
+    }
+
+    return 0;
+}
+\`\`\`\n\n
+\`\`\`python
+import sys
+
+def solve():
+    input_data = sys.stdin.read().split()
+
+    n = int(input_data[0])
+    q = int(input_data[1])
+
+    # Iterative Segment Tree initialization
+    tree = [0] * (2 * n)
+
+    # Build the leaves
+    for i in range(n):
+        tree[n + i] = int(input_data[2 + i])
+
+    # Build parents
+    for i in range(n - 1, 0, -1):
+        tree[i] = max(tree[i << 1], tree[i << 1 | 1])
+
+    out = []
+    idx = 2 + n
+
+    # Process Queries
+    for _ in range(q):
+        type = int(input_data[idx])
+        if type == 1:
+            # 1-based to 0-based, plus N leaf offset
+            p = int(input_data[idx + 1]) - 1 + n
+            val = int(input_data[idx + 2])
+            tree[p] = val
+            p >>= 1
+            while p > 0:
+                tree[p] = max(tree[p << 1], tree[p << 1 | 1])
+                p >>= 1
+            idx += 3
+        else:
+            # L is inclusive, R is exclusive bound mapping
+            L = int(input_data[idx + 1]) - 1 + n
+            R = int(input_data[idx + 2]) + n 
+            res = -1
+            
+            while L < R:
+                if L % 2 == 1:
+                    if tree[L] > res: res = tree[L]
+                    L += 1
+                if R % 2 == 1:
+                    R -= 1
+                    if tree[R] > res: res = tree[R]
+                L >>= 1
+                R >>= 1
+                
+            out.append(str(1000 - res))
+            idx += 3
+
+    # Fast print
+    print('\\n'.join(out))
+
+if __name__ == '__main__':
+    solve()
+\`\`\``,
     sampleCases: SAMPLE_TEST_CASES.challenge4,
     nextLesson: "badge",
     nextLabel: "Next: Claim Badge →"

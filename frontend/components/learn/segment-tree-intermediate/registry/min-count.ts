@@ -173,15 +173,72 @@ export const MIN_COUNT_PROBLEM: ProblemGroup = {
       content: {
         type: "conceptual",
         data: {
-          narrations: [
-            "You already know how to build a range-minimum segment tree. Each node stores one number — the minimum of its range. That works perfectly for queries like 'what is the min of arr[l..r]?'",
-            "But now the problem changes slightly: you also need to count how many elements in [l, r] are equal to that minimum. Can you still answer this with the single-scalar tree you already know?",
-            "Try it mentally. Build a min tree over [3, 1, 4, 1, 5, 9, 2, 6]. The root stores 1 (the global min). Query range [0, 3] — the answer is min=1, and there are 2 ones in that range.",
-            "The min tree correctly returns 1 as the minimum. But it stores no count at all. You'd have to scan the range naively to count the 1s — that's O(N) per query and defeats the purpose.",
-            "The fix is simple once you see it: instead of storing one number per node, store a pair — (minimum value, count of that minimum). Everything else about the segment tree stays the same.",
-          ],
+          narrations: [],
           takeaway:
-            "A standard min tree cannot answer count queries. The solution is to extend each node from a scalar to a (min, count) pair. This is your first taste of 'augmented' segment trees — the core intermediate technique.",
+            "A standard min tree **cannot** answer count queries. The fix: extend each node from a scalar to a `(min, count)` pair. Everything else — build, update, query structure — stays identical. This is your first **augmented** segment tree.",
+          blocks: [
+            {
+              kind: "text",
+              text: "You already know how to build a **range-minimum segment tree**. Each node stores one number — the minimum of its range. That works perfectly for queries like _'what is the min of arr[l..r]?'_",
+            },
+            {
+              kind: "text",
+              text: "But now the problem changes slightly: you also need to count **how many elements** in [l, r] are equal to that minimum. Can you still answer this with the single-scalar tree you already know?",
+            },
+            {
+              kind: "diagram",
+              diagram:
+                `Array:  [ 3,  1,  4,  1,  5,  9,  2,  6 ]
+ Index:    0   1   2   3   4   5   6   7
+
+Standard Min Tree (each node = one scalar):
+
+             [0..7] = 1
+           /           \\
+      [0..3] = 1      [4..7] = 2
+      /      \\         /       \\
+  [0..1]=1 [2..3]=1 [4..5]=5 [6..7]=2
+  /    \\   /    \\   ...
+ [0]=3 [1]=1 [2]=4 [3]=1
+
+Node [0..3] only knows its min is 1.
+It has no idea both [0..1] and [2..3] contributed a 1.`,
+              caption: "The standard min tree answers the minimum correctly, but stores nothing about how many times it appears",
+            },
+            {
+              kind: "callout",
+              variant: "gotcha",
+              title: "The hidden cost of a naive count",
+              body: "To count the 1s in [0..3] you'd have to scan all four elements — O(N) per query. With Q = 10^5 queries that's 10^10 operations. The whole point of a segment tree is to avoid exactly this.",
+            },
+            {
+              kind: "text",
+              text: "The fix is elegant: instead of storing **one** number per node, store a **pair** — `(minimum value, count of that minimum)`. The tree structure, build logic, and query traversal are completely unchanged.",
+            },
+            {
+              kind: "diagram",
+              diagram:
+                `Augmented Min Tree — each node stores (min, count):
+
+              [0..7] = (1, 2)         ← global min is 1, appears 2 times
+           /                 \\
+      [0..3] = (1, 2)      [4..7] = (2, 1)
+      /           \\          /           \\
+  [0..1]=(1,1) [2..3]=(1,1)  ...
+  /        \\     /       \\
+(3,1)    (1,1) (4,1)   (1,1)
+
+Node [0..3] now perfectly merges its children.
+It knows min is 1, and count is 1 + 1 = 2.`,
+              caption: "Storing (min, count) pairs gives us both answers in one O(log N) query",
+            },
+            {
+              kind: "callout",
+              variant: "insight",
+              title: "This is what 'augmented' means",
+              body: "An augmented segment tree is any tree where nodes store a **richer struct** than a plain scalar, with a custom merge function to combine children. The (min, count) pair here is your first example — and the pattern generalises to dozens of problems.",
+            },
+          ],
         },
       },
     },
@@ -193,17 +250,66 @@ export const MIN_COUNT_PROBLEM: ProblemGroup = {
       content: {
         type: "conceptual",
         data: {
-          narrations: [
-            "Each node stores (mn, cnt): the minimum of its range and how many array elements in that range equal that minimum. A leaf node at index i stores (arr[i], 1).",
-            "The entire problem reduces to one function: merge(left, right). Given the (mn, cnt) pairs for two children, produce the pair for the parent. There are exactly three cases.",
-            "Case 1 — left.mn < right.mn: The overall minimum is left.mn. The right child's elements cannot possibly equal the minimum (they're all ≥ right.mn > left.mn). Return left unchanged.",
-            "Case 2 — right.mn < left.mn: Mirror of Case 1. Return right unchanged.",
-            "Case 3 — left.mn == right.mn: Both children share the same minimum. The count in the parent is the sum of both counts. Return (left.mn, left.cnt + right.cnt).",
-            "Out-of-range queries must return a 'neutral' value that merges invisibly with any real result. For min, the neutral minimum is LLONG_MAX (it always loses a comparison). The neutral count is 0 (it adds nothing). So the identity is (LLONG_MAX, 0).",
-            "Updates work identically to a standard min tree: update the leaf, then re-merge every ancestor. The count always resets to 1 at the leaf, since a single element trivially appears once.",
-          ],
+          narrations: [],
           takeaway:
-            "merge(left, right) has three cases based on which side has the smaller min. The identity element (LLONG_MAX, 0) is what the query function returns when a node falls completely outside the queried range.",
+            "`merge(left, right)` has exactly **three cases** based on which side holds the smaller min. The identity element `(LLONG_MAX, 0)` is returned for out-of-range nodes — it wins no comparison and adds no count, so it's invisible to any real result.",
+          blocks: [
+            {
+              kind: "text",
+              text: "Each node stores `(mn, cnt)`: the minimum of its range and how many array elements in that range equal that minimum. A **leaf** at index `i` always stores `(arr[i], 1)` — one element, appearing once.",
+            },
+            {
+              kind: "text",
+              text: "The entire problem reduces to **one function**: `merge(left, right)`. Given the `(mn, cnt)` pairs of two children, produce the correct pair for their parent. There are exactly three cases — no more, no less.",
+            },
+            {
+              kind: "diagram",
+              diagram:
+                `The Three Merge Cases:
+
+  Case 1 — left.mn < right.mn:
+    Parent = left  (right's elements are all > left.mn, can't affect the min)
+    Example: merge( (1, 2), (3, 1) )  →  (1, 2)
+
+  Case 2 — right.mn < left.mn:
+    Parent = right  (mirror of Case 1)
+    Example: merge( (4, 1), (1, 3) )  →  (1, 3)
+
+  Case 3 — left.mn == right.mn:
+    Both sides share the minimum — sum the counts
+    Parent = (left.mn, left.cnt + right.cnt)
+    Example: merge( (1, 2), (1, 1) )  →  (1, 3)`,
+              caption: "Three cases, derived purely from which child holds the smaller minimum",
+            },
+            {
+              kind: "code",
+              language: "C++",
+              code:
+                `struct Node { long long mn, cnt; };
+
+Node merge(Node a, Node b) {
+    if (a.mn < b.mn) return a;          // Case 1: left wins
+    if (b.mn < a.mn) return b;          // Case 2: right wins
+    return {a.mn, a.cnt + b.cnt};       // Case 3: tie — sum counts
+}`,
+            },
+            {
+              kind: "callout",
+              variant: "rule",
+              title: "The Identity Element",
+              body: "Out-of-range query nodes must return a value that is invisible to merge. For min-count: `(LLONG_MAX, 0)`. LLONG_MAX loses every comparison (never becomes the minimum), and count 0 adds nothing when counts are summed.",
+            },
+            {
+              kind: "text",
+              text: "**Updates** work identically to a standard min tree: descend to the target leaf, set `(new_value, 1)`, then re-merge every ancestor on the way back up. The count resets to 1 at the leaf — a single element trivially appears once.",
+            },
+            {
+              kind: "callout",
+              variant: "insight",
+              title: "One merge function rules them all",
+              body: "The same `merge` function is called identically in `build`, `update`, and `query`. You only write it once. This uniformity — one struct, one merge — is the hallmark of augmented segment trees and scales to far more complex node types.",
+            },
+          ],
         },
       },
     },
@@ -211,7 +317,7 @@ export const MIN_COUNT_PROBLEM: ProblemGroup = {
     // ── Lesson 3: Challenge ───────────────────────────────────────────────────
     {
       id: "p1-challenge",
-      title: "3. Code It",
+      title: "3. Implement Min-Count Tree",
       content: {
         type: "challenge",
         data: {
@@ -221,7 +327,7 @@ export const MIN_COUNT_PROBLEM: ProblemGroup = {
             "First line: N Q\nSecond line: N space-separated integers (the array)\nNext Q lines: each is either `1 i v` or `2 l r`",
           outputFormat:
             "For each type-2 query, print two integers on one line: the minimum and its count.",
-          sampleInput: "6 4\n3 1 4 1 5 9\n2 0 3\n1 1 7\n2 0 3\n2 2 5",
+          sampleInput: "6 5\n3 1 4 1 5 9\n2 0 3\n1 1 7\n1 3 8\n2 0 3\n2 2 5",
           sampleOutput: "1 2\n3 1\n4 1",
           constraints: [
             "1 ≤ N, Q ≤ 10⁵",
@@ -247,7 +353,7 @@ export const MIN_COUNT_PROBLEM: ProblemGroup = {
           sampleTestCases: [
             {
               label: "Basic — min with duplicates",
-              input: "6 4\n3 1 4 1 5 9\n2 0 3\n1 1 7\n2 0 3\n2 2 5",
+              input: "6 5\n3 1 4 1 5 9\n2 0 3\n1 1 7\n1 3 8\n2 0 3\n2 2 5",
               expected: "1 2\n3 1\n4 1",
             },
             {
@@ -263,6 +369,124 @@ export const MIN_COUNT_PROBLEM: ProblemGroup = {
           ],
           starterCode: { cpp: STARTER_CPP, python: STARTER_PYTHON },
           referenceBoilerplate: { cpp: REFERENCE_CPP, python: REFERENCE_PYTHON },
+          editorial: `The Concept
+A standard segment tree designed for range minimum queries stores a single scalar value per node (the minimum). To also track the frequency of that minimum, we simply expand the node's state to store a pair: \`{minimum_value, count}\`.
+
+Base Case (Leaves)
+For a leaf node representing a single element \`v\` at index \`i\`, the state is \`{v, 1}\`. The minimum is the element itself, and it appears exactly once.
+
+The Merge Logic (Transitions)
+When merging a left child and a right child to compute the parent's state, there are exactly three scenarios:
+
+Left is strictly smaller: The parent inherits the minimum and the count entirely from the left child.
+
+Right is strictly smaller: The parent inherits the minimum and the count entirely from the right child.
+
+Both minimums are equal: The parent's minimum remains the same, but its count becomes the sum of both children's counts (\`left.count + right.count\`).
+
+The Identity Element
+During a range query, if the current node's range falls completely outside the query range, we must return a value that will not affect the final answer. Returning \`{LLONG_MAX, 0}\` ensures that this dummy node loses any minimum comparison and adds 0 to the frequency count.
+
+C++ Solution
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <climits>
+
+using namespace std;
+
+// The expanded state
+struct Node {
+    long long min_val;
+    int count;
+};
+
+vector<Node> tree;
+vector<long long> arr;
+
+// The core logic handling all 3 transition cases uniformly
+Node mergeNodes(Node left, Node right) {
+    if (left.min_val < right.min_val) return left;
+    if (right.min_val < left.min_val) return right;
+    return {left.min_val, left.count + right.count};
+}
+
+void build(int node, int start, int end) {
+    if (start == end) {
+        tree[node] = {arr[start], 1}; // Base case: leaf
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    build(2 * node, start, mid);
+    build(2 * node + 1, mid + 1, end);
+    tree[node] = mergeNodes(tree[2 * node], tree[2 * node + 1]);
+}
+
+void update(int node, int start, int end, int idx, long long val) {
+    if (start == end) {
+        tree[node] = {val, 1}; // Point update
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    if (idx <= mid) {
+        update(2 * node, start, mid, idx, val);
+    } else {
+        update(2 * node + 1, mid + 1, end, idx, val);
+    }
+    tree[node] = mergeNodes(tree[2 * node], tree[2 * node + 1]);
+}
+
+Node query(int node, int start, int end, int l, int r) {
+    if (r < start || end < l) {
+        return {LLONG_MAX, 0}; // Complete miss: identity element
+    }
+    if (l <= start && end <= r) {
+        return tree[node]; // Complete cover
+    }
+    
+    // Partial cover
+    int mid = start + (end - start) / 2;
+    Node left_res = query(2 * node, start, mid, l, r);
+    Node right_res = query(2 * node + 1, mid + 1, end, l, r);
+    
+    return mergeNodes(left_res, right_res);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, q;
+    cin >> n >> q;
+
+    arr.resize(n);
+    tree.resize(4 * n);
+
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
+    build(1, 0, n - 1);
+
+    while (q--) {
+        int type;
+        cin >> type;
+        if (type == 1) {
+            int i;
+            long long v;
+            cin >> i >> v;
+            update(1, 0, n - 1, i, v);
+        } else {
+            int l, r;
+            cin >> l >> r;
+            Node res = query(1, 0, n - 1, l, r);
+            cout << res.min_val << " " << res.count << "\\n";
+        }
+    }
+    return 0;
+}
+\`\`\`
+`,
         },
       },
     },

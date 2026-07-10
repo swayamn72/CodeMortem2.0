@@ -9,6 +9,7 @@ interface CodeEditorProps {
   language: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
+  autoFocus?: boolean;
 }
 
 const LANGUAGE_MAP: Record<string, string> = {
@@ -21,13 +22,15 @@ const LANGUAGE_MAP: Record<string, string> = {
   rust: "rust",
 };
 
-export default function CodeEditor({ value, language, onChange, readOnly = false }: CodeEditorProps) {
+export default function CodeEditor({ value, language, onChange, readOnly = false, autoFocus = false }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const handleMount: OnMount = useCallback((editor) => {
     editorRef.current = editor;
-    editor.focus();
-  }, []);
+    if (autoFocus) {
+      editor.focus();
+    }
+  }, [autoFocus]);
 
   const handleChange = useCallback(
     (val: string | undefined) => {

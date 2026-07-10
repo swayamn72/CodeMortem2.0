@@ -9,9 +9,15 @@ import HintPanel from "../shared/HintPanel";
 import { getVerdictText } from "@/lib/verdicts";
 import SuccessModal from "@/components/shared/SuccessModal";
 import { useAuthStore } from "@/stores/authStore";
+import { RichCodeBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
+import { SubmissionsTab, SubmissionCodeViewerModal } from "@/components/shared/SubmissionsTab";
+import type { LPSubmission } from "@/components/course/types";
 
 // ── useCodeRunner hook ────────────────────────────────────────────────────────
 // Encapsulates all run / submit / state logic so ChallengeRenderer stays clean.
+
+const ACCENT_COLOR = "var(--cm-cyan)";
+const ACCENT_RGB = "0,240,255";
 
 function useCodeRunner(
   content: ChallengeContent,
@@ -206,7 +212,23 @@ export default function ChallengeRenderer({
 
   const [language, setLanguage] = useState<"cpp" | "python">("cpp");
   const [code, setCode] = useState(content.starterCode.cpp);
-  const [leftTab, setLeftTab] = useState<"statement" | "hints" | "editorial">("statement");
+  const [leftTab, setLeftTab] = useState<"statement" | "hints" | "editorial" | "submissions">("statement");
+  const [submissions, setSubmissions] = useState<LPSubmission[]>([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [viewCodeSub, setViewCodeSub] = useState<LPSubmission | null>(null);
+
+  const loadSubmissions = async () => {
+    if (!user || subsLoading) return;
+    setSubsLoading(true);
+    try {
+      const res = await api.get(`/learning-path/submissions?challengeId=${content.backendChallengeId}`);
+      setSubmissions(res.submissions ?? []);
+    } catch (err) {
+      console.error("Failed to load submissions", err);
+    } finally {
+      setSubsLoading(false);
+    }
+  };
   const [showReference, setShowReference] = useState(false);
   const [activeCase, setActiveCase] = useState(0);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -394,32 +416,38 @@ export default function ChallengeRenderer({
               flexShrink: 0,
             }}
           >
-            {(["statement", "hints", ...(content.editorial ? ["editorial" as const] : [])] as const).map(t => {
+            {(["statement", "hints", ...(content.editorial ? ["editorial" as const] : []), "submissions" as const] as const).map(t => {
               const locked = t === "editorial" && !(hasSubmitted || isCompleted || isPremiumActive);
               return (
-              <button
-                key={t}
-                onClick={() => !locked && setLeftTab(t)}
-                disabled={locked}
-                style={{
-                  padding: "11px 20px",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  color: locked ? "var(--text-muted)" : leftTab === t ? "var(--text-primary)" : "#6b7280",
-                  background: "transparent",
-                  border: "none",
-                  borderBottom:
-                    leftTab === t
-                      ? "2px solid var(--cm-cyan)"
-                      : "2px solid transparent",
-                  cursor: locked ? "not-allowed" : "pointer",
-                  transition: "all 0.15s",
-                  textTransform: "capitalize",
-                }}
-              >
-                {locked ? "🔒 Editorial" : t.charAt(0).toUpperCase() + t.slice(1)}
-              </button>
-            )})}
+                <button
+                  key={t}
+                  onClick={() => {
+                    if (!locked) {
+                      setLeftTab(t);
+                      if (t === "submissions") loadSubmissions();
+                    }
+                  }}
+                  disabled={locked}
+                  style={{
+                    padding: "11px 20px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: locked ? "var(--text-muted)" : leftTab === t ? "var(--text-primary)" : "#6b7280",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom:
+                      leftTab === t
+                        ? "2px solid var(--cm-cyan)"
+                        : "2px solid transparent",
+                    cursor: locked ? "not-allowed" : "pointer",
+                    transition: "all 0.15s",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {locked ? "🔒 Editorial" : t.charAt(0).toUpperCase() + t.slice(1)}
+                </button>
+              )
+            })}
           </div>
 
           {/* Panel body */}
@@ -596,27 +624,38 @@ export default function ChallengeRenderer({
                   if (i % 3 === 0) {
                     if (part.trim()) {
                       acc.push(
-                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap" }}>
-                          {part}
+                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
+                          {fmt(part, ACCENT_COLOR, ACCENT_RGB)}
                         </div>
                       );
                     }
                   } else if (i % 3 === 2) {
                     const lang = arr[i - 1] || "cpp";
                     const cleanCode = part.trim();
-                    const lineCount = cleanCode.split("\\n").length;
                     acc.push(
                       <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--cm-cyan)", letterSpacing: "0.5px", marginBottom: 4, textTransform: "uppercase" }}>{lang === "python" ? "Python" : "C++"}</div>
-                        <div style={{ height: Math.min(lineCount * 21 + 24, 400), background: "#0b0b10", border: "1px solid rgba(255,255,255,0.07)", borderLeft: "3px solid var(--cm-cyan)", borderRadius: "0 8px 8px 0", overflow: "hidden" }}>
-                          <CodeEditor value={cleanCode} language={lang as "cpp" | "python"} onChange={() => {}} readOnly={true} />
-                        </div>
+                        <RichCodeBlock
+                          language={lang === "python" ? "Python" : "C++"}
+                          code={cleanCode}
+                          accentColor={ACCENT_COLOR}
+                          accentRGB={ACCENT_RGB}
+                        />
                       </div>
                     );
                   }
                   return acc;
                 }, [])}
               </div>
+            )}
+
+            {/* SUBMISSIONS TAB */}
+            {leftTab === "submissions" && (
+              <SubmissionsTab
+                submissions={submissions}
+                loading={subsLoading}
+                isGuest={!user}
+                onViewCode={(sub) => setViewCodeSub(sub)}
+              />
             )}
           </div>
         </div>
@@ -779,13 +818,12 @@ export default function ChallengeRenderer({
                           activeCase === tc.testIndex
                             ? "var(--bg-tertiary)"
                             : "transparent",
-                        border: `1px solid ${
-                          tc.verdict === "running"
+                        border: `1px solid ${tc.verdict === "running"
                             ? "rgba(0,240,255,0.4)"
                             : activeCase === tc.testIndex
-                            ? "var(--border-accent)"
-                            : "var(--border-primary)"
-                        }`,
+                              ? "var(--border-accent)"
+                              : "var(--border-primary)"
+                          }`,
                         color:
                           activeCase === tc.testIndex
                             ? "var(--text-primary)"
@@ -839,11 +877,11 @@ export default function ChallengeRenderer({
                       { label: "Input", val: testResults[activeCase].input },
                       testResults[activeCase].output
                         ? {
-                            label: "Your Output",
-                            val: testResults[activeCase].output ?? "",
-                            red:
-                              testResults[activeCase].verdict === "wrong_answer",
-                          }
+                          label: "Your Output",
+                          val: testResults[activeCase].output ?? "",
+                          red:
+                            testResults[activeCase].verdict === "wrong_answer",
+                        }
                         : null,
                       {
                         label: "Expected",
@@ -851,17 +889,17 @@ export default function ChallengeRenderer({
                       },
                       testResults[activeCase].stderr
                         ? {
-                            label: "Stderr",
-                            val: testResults[activeCase].stderr ?? "",
-                            red: true,
-                          }
+                          label: "Stderr",
+                          val: testResults[activeCase].stderr ?? "",
+                          red: true,
+                        }
                         : null,
                       testResults[activeCase].compileOutput
                         ? {
-                            label: "Compile Error",
-                            val: testResults[activeCase].compileOutput ?? "",
-                            red: true,
-                          }
+                          label: "Compile Error",
+                          val: testResults[activeCase].compileOutput ?? "",
+                          red: true,
+                        }
                         : null,
                     ]
                       .filter(Boolean)
@@ -885,11 +923,10 @@ export default function ChallengeRenderer({
                               background: red
                                 ? "rgba(255,45,85,0.05)"
                                 : "#06060a",
-                              border: `1px solid ${
-                                red
+                              border: `1px solid ${red
                                   ? "rgba(255,45,85,0.2)"
                                   : "rgba(255,255,255,0.05)"
-                              }`,
+                                }`,
                               padding: "8px 12px",
                               borderRadius: "6px",
                               color: red ? "var(--cm-red)" : "#e2e8f0",
@@ -921,6 +958,13 @@ export default function ChallengeRenderer({
             onNavigate();
           } : undefined}
           nextLabel={nextLabel}
+        />
+      )}
+
+      {viewCodeSub && (
+        <SubmissionCodeViewerModal
+          viewCodeSub={viewCodeSub}
+          onClose={() => setViewCodeSub(null)}
         />
       )}
     </div>

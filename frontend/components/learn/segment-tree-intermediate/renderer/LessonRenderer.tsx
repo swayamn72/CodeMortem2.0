@@ -1,7 +1,20 @@
 "use client";
 
 import type { ConceptualContent } from "../registry/types";
-import styles from "@/app/learn/segment-tree/page.module.css";
+import {
+  ModuleHeading,
+  NarrationStep,
+  RenderBlock,
+  TakeawayCard,
+  ContinueButton,
+} from "@/components/learn/shared/RichLessonPrimitives";
+
+// ── Module-level accent config ────────────────────────────────────────────────
+// To adapt this renderer for a different module, change these two constants and
+// the moduleLabel string. Everything else is handled by the shared primitives.
+const ACCENT = "var(--cm-cyan)";
+const ACCENT_RGB = "0,240,255";
+const MODULE_LABEL = "🌳 Segment Trees · Intermediate";
 
 interface LessonRendererProps {
   lessonId: string;
@@ -18,70 +31,54 @@ export default function LessonRenderer({
   onComplete,
   nextLabel = "Continue →",
 }: LessonRendererProps) {
+  const hasBlocks = content.blocks && content.blocks.length > 0;
+
+  // Sequential index only for text blocks (so step numbers skip non-text blocks)
+  let textCounter = 0;
+  const blockIndices = (content.blocks ?? []).map((b) =>
+    b.kind === "text" ? textCounter++ : -1
+  );
+
   return (
     <div>
-      {/* Header */}
-      <div className={styles.titleArea}>
-        <h1>{title}</h1>
+      <ModuleHeading
+        title={title}
+        moduleLabel={MODULE_LABEL}
+        accentColor={ACCENT}
+        accentRGB={ACCENT_RGB}
+      />
+
+      {/* Content blocks */}
+      <div style={{ marginBottom: "1.75rem", display: "flex", flexDirection: "column", gap: "12px" }}>
+        {hasBlocks
+          ? content.blocks!.map((block, idx) => (
+              <RenderBlock
+                key={idx}
+                block={block}
+                textIdx={blockIndices[idx]}
+                accentColor={ACCENT}
+                accentRGB={ACCENT_RGB}
+              />
+            ))
+          : content.narrations.map((narration, idx) => (
+              <NarrationStep
+                key={idx}
+                idx={idx}
+                accentColor={ACCENT}
+                accentRGB={ACCENT_RGB}
+              >
+                {narration}
+              </NarrationStep>
+            ))}
       </div>
 
-      {/* Static narration card */}
-      <div className={styles.animationCard}>
-        <div
-          className={styles.narration}
-          style={{ 
-            whiteSpace: "pre-wrap", 
-            display: "flex", 
-            flexDirection: "column", 
-            gap: "16px" 
-          }}
-        >
-          {content.narrations.map((narration, idx) => (
-            <p key={idx} style={{ margin: 0, lineHeight: 1.75 }}>
-              {narration}
-            </p>
-          ))}
-        </div>
-      </div>
+      <TakeawayCard
+        takeaway={content.takeaway}
+        accentColor={ACCENT}
+        accentRGB={ACCENT_RGB}
+      />
 
-      {/* Takeaway */}
-      <div className="card-glass" style={{ marginTop: "1.5rem" }}>
-        <strong>Takeaway:</strong> {content.takeaway}
-      </div>
-
-      {/* Complete button */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "rgba(0,255,136,0.06)",
-          border: "1px solid rgba(0,255,136,0.3)",
-          borderRadius: "var(--radius-md)",
-          padding: "16px 20px",
-          marginTop: "16px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "20px" }}>✓</span>
-          <div
-            style={{
-              fontWeight: 600,
-              color: "var(--cm-green)",
-              fontSize: "var(--font-size-sm)",
-            }}
-          >
-            Lesson complete
-          </div>
-        </div>
-        <button
-          className="btn btn-accent btn-sm"
-          onClick={onComplete}
-          style={{ animation: "pulse-glow 2s ease-in-out infinite" }}
-        >
-          {nextLabel}
-        </button>
-      </div>
+      <ContinueButton label={nextLabel} onClick={onComplete} />
     </div>
   );
 }

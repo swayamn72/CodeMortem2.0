@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useProgressStore } from "@/stores/progressStore";
 import { useAuthStore } from "@/stores/authStore";
@@ -11,6 +11,7 @@ import styles from "@/app/learn/segment-tree/page.module.css";
 import { PROBLEMS, ALL_LESSON_IDS, MODULE_ID } from "@/components/learn/segment-tree-intermediate/registry";
 import LessonRenderer from "@/components/learn/segment-tree-intermediate/renderer/LessonRenderer";
 import ChallengeRenderer from "@/components/learn/segment-tree-intermediate/renderer/ChallengeRenderer";
+import MCQCheckpoint from "@/components/learn/segment-tree-intermediate/shared/MCQCheckpoint";
 import type { LessonConfig } from "@/components/learn/segment-tree-intermediate/registry/types";
 
 // Derive flat lesson list from registry (badge appended separately)
@@ -26,18 +27,25 @@ export default function SegmentTreeIntermediatePath() {
 
   const activeLessonConfig = ALL_LESSONS.find((l) => l.id === activeLesson);
   const isChallenge = activeLessonConfig?.content.type === "challenge";
+  const isMCQ = activeLessonConfig?.content.type === "mcq";
   const isBadge = activeLesson === "badge";
   const allCompleted = ALL_LESSONS.every((l) => isLessonComplete(MODULE_ID, l.id));
 
   // Auto-collapse sidebar on challenge/badge screens
   useEffect(() => {
-    setSidebarCollapsed(isChallenge || isBadge);
+    setSidebarCollapsed(isChallenge || isBadge);  // MCQ stays expanded
   }, [isChallenge, isBadge]);
 
   // Auto-mark badge as complete on arrival
   useEffect(() => {
     if (isBadge && allCompleted) markLessonComplete(MODULE_ID, "badge");
   }, [isBadge, allCompleted, markLessonComplete]);
+
+  // Scroll content pane to top on every lesson change
+  const contentRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  }, [activeLesson]);
 
   const badgeDef = getBadgeDef(MODULE_ID);
   const badgeEarnedAt = earnedBadges[MODULE_ID];
@@ -155,14 +163,16 @@ export default function SegmentTreeIntermediatePath() {
             {navOrder.map((id) => {
               const done = isLessonComplete(MODULE_ID, id);
               const active = activeLesson === id;
+              const lessonType = ALL_LESSONS.find((l) => l.id === id)?.content.type;
               const icon =
                 done
                   ? "✓"
                   : id === "badge"
                   ? "🏆"
-                  : ALL_LESSONS.find((l) => l.id === id)?.content.type ===
-                    "challenge"
+                  : lessonType === "challenge"
                   ? "💻"
+                  : lessonType === "mcq"
+                  ? "🧩"
                   : "📖";
               return (
                 <button
@@ -233,6 +243,7 @@ export default function SegmentTreeIntermediatePath() {
                     const done = isLessonComplete(MODULE_ID, lesson.id);
                     const active = activeLesson === lesson.id;
                     const isC = lesson.content.type === "challenge";
+                    const isMCQLesson = lesson.content.type === "mcq";
                     return (
                       <button
                         key={lesson.id}
@@ -253,6 +264,8 @@ export default function SegmentTreeIntermediatePath() {
                             </span>
                           ) : isC ? (
                             "💻"
+                          ) : isMCQLesson ? (
+                            "🧩"
                           ) : (
                             "📖"
                           )}
@@ -321,6 +334,7 @@ export default function SegmentTreeIntermediatePath() {
 
       {/* ── Content pane ── */}
       <section
+        ref={contentRef}
         className={styles.contentPane}
         style={
           isChallenge || isBadge
@@ -346,6 +360,15 @@ export default function SegmentTreeIntermediatePath() {
               lessonId={activeLessonConfig.id}
               title={activeLessonConfig.title}
               content={activeLessonConfig.content.data}
+              onComplete={() => completeAndNavigate(activeLessonConfig.id, nextId)}
+              nextLabel={nextLabel}
+            />
+          )}
+
+          {/* ── MCQ Checkpoint Lessons ── */}
+          {activeLessonConfig?.content.type === "mcq" && (
+            <MCQCheckpoint
+              data={activeLessonConfig.content.data}
               onComplete={() => completeAndNavigate(activeLessonConfig.id, nextId)}
               nextLabel={nextLabel}
             />

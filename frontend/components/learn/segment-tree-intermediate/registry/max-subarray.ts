@@ -152,42 +152,142 @@ export const MAX_SUBARRAY_PROBLEM: ProblemGroup = {
   partLabel: "Problem 2: Max Subarray Sum",
 
   lessons: [
-    // ── Lesson 1: Motivation ──────────────────────────────────────────────────
+    // ── Lesson 1: Motivation ─────────────────────────────────────────────────────
     {
       id: "p2-motivation",
       title: "4. Why a Scalar Per Node Fails",
       content: {
         type: "conceptual",
         data: {
-          narrations: [
-            "The classic Kadane's algorithm finds the maximum subarray sum in O(N). But what if you also need to handle point updates — after each update, print the new maximum subarray sum? Kadane's is O(N) per update, giving O(N·M) total — TLE for large inputs.",
-            "A segment tree feels like the right tool. Let's try the naive approach: each node stores the best subarray sum within its range. Can we merge two children correctly?",
-            "Consider children covering [0,3] (best = 4) and [4,7] (best = 6). The parent's best is not simply max(4, 6) = 6. The optimal subarray might cross the midpoint — e.g. the best suffix of the left child combined with the best prefix of the right child.",
-            "Concretely: array [-2, 1, -3, 4, -1, 2, 1, -5]. Left half best = 4 (just [4]). Right half best = 2 (just [2]). But the global best is 6: [4, -1, 2, 1] — crossing the boundary. A scalar per node cannot capture this.",
-            "The fix: each node must store enough information to compute the crossing case. Specifically, it needs the best suffix of its range (subarray ending at the right edge) and the best prefix (subarray starting at the left edge). With those, the parent can compute max(left.best, right.best, left.suf + right.pref).",
-          ],
+          narrations: [],
           takeaway:
-            "A single 'best' per node is insufficient because the optimal subarray can cross the boundary between children. You need prefix and suffix information per node to enable correct merging.",
+            "A single `best` per node is **not enough** because the optimal subarray can cross the boundary between children. You need `pref` and `suf` per node so the parent can evaluate the **crossing case**: `left.suf + right.pref`.",
+          blocks: [
+            {
+              kind: "text",
+              text: "The classic **Kadane's algorithm** finds the maximum subarray sum in O(N). But what if the array also has point updates? Kadane's is O(N) per update — O(N×M) total. For N = M = 10^5 that's 10^10 operations — instant TLE.",
+            },
+            {
+              kind: "text",
+              text: "A segment tree sounds like the right tool. Let's try the naive approach first: store the **best subarray sum** in each node's range. Can we merge two children correctly?",
+            },
+            {
+              kind: "code",
+              language: "C++",
+              code:
+                `// Naive attempt: storing only the best sum
+struct Node {
+    long long best;
+};
+
+Node merge(Node left, Node right) {
+    // We can take the best from the left, or the best from the right...
+    long long ans = max(left.best, right.best);
+    
+    // BUT what if the true best subarray starts in 'left' and ends in 'right'?
+    // e.g., the suffix of left + the prefix of right.
+    // We don't have enough information to calculate this!
+    
+    return {ans}; // ❌ Fails on crossing subarrays
+}`,
+            },
+            {
+              kind: "callout",
+              variant: "gotcha",
+              title: "Why 'best' alone is insufficient",
+              body: "To compute the crossing case `left.suf + right.pref`, you need the best **suffix** of the left child and the best **prefix** of the right child. These are not derivable from the children's `best` values alone. You must store them explicitly.",
+            },
+            {
+              kind: "text",
+              text: "The fix: each node stores **four values** instead of one. With `(total, pref, suf, best)`, the parent can always compute the crossing case exactly. Kadane's answer with updates becomes O(log N) per update.",
+            },
+            {
+              kind: "diagram",
+              diagram:
+                `A node covering range [s..e] stores:
+
+  total  —  sum of all elements in [s..e]
+  pref   —  max sum of any subarray starting at s   (arr[s..k] for any k ≤ e)
+  suf    —  max sum of any subarray ending   at e   (arr[k..e] for any k ≥ s)
+  best   —  max sum of any subarray anywhere in [s..e]
+
+With these four values, merge can compute the parent's four values
+for any two adjacent children in O(1).`,
+              caption: "The minimal information needed to merge two adjacent ranges correctly",
+            },
+          ],
         },
       },
     },
 
-    // ── Lesson 2: Core Insight ────────────────────────────────────────────────
+    // ── Lesson 2: Core Insight ─────────────────────────────────────────────────
     {
       id: "p2-insight",
       title: "5. Four Values Per Node",
       content: {
         type: "conceptual",
         data: {
-          narrations: [
-            "Each node stores four values: (total, pref, suf, best). total = sum of all elements. pref = best subarray starting at the left edge. suf = best subarray ending at the right edge. best = best subarray anywhere.",
-            "For a leaf with value v: total = v. pref = suf = best = max(0, v). The max(0, v) clamps handle the empty subarray: the problem says the subarray may be empty, so the minimum answer is 0. A negative leaf contributes 0, not a negative number.",
-            "The merge formulas derive from first principles:\ntotal = L.total + R.total  (straightforward sum)\npref  = max(L.pref,  L.total + R.pref)  ← either stay inside left, or take all of left plus the best prefix of right\nsuf   = max(R.suf,   R.total + L.suf)   ← mirror of pref\nbest  = max(L.best, R.best, L.suf + R.pref)  ← three cases",
-            "For updates: update the leaf using makeLeaf(new_value), then re-merge all ancestors exactly as in any other segment tree. The query is always the global best, which is just tree_root.best — no range query needed.",
-            "The crossing case L.suf + R.pref is the only case that requires storing all four fields. Remove pref and suf from the node and you can no longer compute the parent's best — which is exactly why a scalar-per-node fails.",
-          ],
+          narrations: [],
           takeaway:
-            "The four-field node (total, pref, suf, best) is the minimal information needed to merge two adjacent ranges. The crossing case L.suf + R.pref is what makes the merge possible. This pattern generalises to many problems that ask for 'best contiguous substructure'.",
+            "The four-field node `(total, pref, suf, best)` is the **minimal** information needed to merge two adjacent ranges. The crossing case `L.suf + R.pref` is what makes it possible. Remove `pref`/`suf` and you can no longer compute the parent's `best`.",
+          blocks: [
+            {
+              kind: "text",
+              text: "Each node stores four values: **`total`** (sum of all elements), **`pref`** (best subarray starting at the left edge), **`suf`** (best subarray ending at the right edge), **`best`** (best subarray anywhere in the range).",
+            },
+            {
+              kind: "text",
+              text: "For a **leaf** with value `v`: `total = v`. `pref = suf = best = max(0, v)`. The `max(0, v)` handles the empty subarray rule — if `v` is negative, we prefer the empty subarray (sum 0) over including it.",
+            },
+            {
+              kind: "diagram",
+              diagram:
+                `Merge formulas — derived from first principles:
+
+  res.total = L.total + R.total
+  └─ trivial: sum of both halves
+
+  res.pref = max( L.pref,  L.total + R.pref )
+  └─ best prefix either stays inside left, OR takes ALL of left + best prefix of right
+
+  res.suf  = max( R.suf,   R.total + L.suf  )
+  └─ mirror of pref, but from the right edge
+
+  res.best = max( L.best,  R.best,  L.suf + R.pref )
+  └─ three options: entirely in left, entirely in right, or crossing the midpoint`,
+              caption: "Each formula has a clear geometric meaning — derive them once, remember the pattern forever",
+            },
+            {
+              kind: "code",
+              language: "C++",
+              code:
+                `struct Node { long long total, pref, suf, best; };
+
+Node makeLeaf(long long v) {
+    long long m = max(0LL, v);
+    return {v, m, m, m};   // total=v, pref=suf=best=max(0,v)
+}
+
+Node merge(Node L, Node R) {
+    Node res;
+    res.total = L.total + R.total;
+    res.pref  = max(L.pref, L.total + R.pref);
+    res.suf   = max(R.suf,  R.total + L.suf);
+    res.best  = max({L.best, R.best, L.suf + R.pref});
+    return res;
+}`,
+            },
+            {
+              kind: "text",
+              text: "For **updates**: call `makeLeaf(new_value)` at the target leaf, then re-merge every ancestor. The global answer is always `tree_root.best` — no range query needed, just read the root.",
+            },
+            {
+              kind: "callout",
+              variant: "insight",
+              title: "The crossing case is the key insight",
+              body: "`L.suf + R.pref` is the only case that requires storing all four fields. Without `pref` and `suf`, you cannot compute the parent's `best` when the optimal subarray crosses the midpoint. This pattern — storing boundary information to enable crossing — generalises to many tree problems.",
+            },
+          ],
         },
       },
     },
@@ -195,7 +295,7 @@ export const MAX_SUBARRAY_PROBLEM: ProblemGroup = {
     // ── Lesson 3: Challenge ───────────────────────────────────────────────────
     {
       id: "p2-challenge",
-      title: "6. Code It",
+      title: "6. Implement Max Subarray Tree",
       content: {
         type: "challenge",
         data: {

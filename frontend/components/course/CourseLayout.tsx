@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useProgressStore } from "@/stores/progressStore";
 import styles from "@/app/learn/segment-tree/page.module.css";
 import type { CourseConfig } from "./types";
@@ -37,10 +37,11 @@ export default function CourseLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const contentRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    // Scroll both the main window and the content pane to the top instantly on lesson change
+  useLayoutEffect(() => {
+    // Synchronously scroll to top before the browser paints the new lesson
     window.scrollTo(0, 0);
     if (contentRef.current) {
+      contentRef.current.scrollTo(0, 0);
       contentRef.current.scrollTop = 0;
     }
   }, [activeLesson]);

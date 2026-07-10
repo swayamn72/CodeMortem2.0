@@ -63,29 +63,39 @@ rng = random.Random(seed)
 if seed < 5:
     n = rng.randint(2, 10)
     q = rng.randint(1, 10)
-    lo, hi = -100, 100
+    lo, hi = -5, 5
 elif seed < 15:
     n = rng.randint(100, 1000)
     q = rng.randint(100, 1000)
-    lo, hi = -10**6, 10**6
+    lo, hi = -50, 50
 else:
     # Large tier — brute force O(N*Q) will TLE (~10^10 ops)
     n = 100000
     q = 100000
-    lo, hi = -10**9, 10**9
+    lo, hi = -100, 100
 
 a = [rng.randint(lo, hi) for _ in range(n)]
 print(n, q)
 print(*a)
 for _ in range(q):
-    t = rng.randint(1, 2)
+    # For large tests, heavily favor range queries and make them massive
+    if seed >= 15:
+        t = 2 if rng.random() < 0.95 else 1
+    else:
+        t = rng.randint(1, 2)
+        
     if t == 1:
         idx = rng.randint(0, n - 1)
         val = rng.randint(lo, hi)
         print(1, idx, val)
     else:
-        l = rng.randint(0, n - 1)
-        r = rng.randint(l, n - 1)
+        if seed >= 15:
+            # Force massive ranges (length ~99,000+) to reliably TLE brute forces
+            l = rng.randint(0, 100)
+            r = rng.randint(n - 100, n - 1)
+        else:
+            l = rng.randint(0, n - 1)
+            r = rng.randint(l, n - 1)
         print(2, l, r)
 `,
 

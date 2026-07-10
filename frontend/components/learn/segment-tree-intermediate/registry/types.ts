@@ -14,14 +14,47 @@ export interface SampleCase {
   expected: string;
 }
 
+// ── Rich content blocks (used in ConceptualContent.blocks) ───────────────────
+// The canonical definition lives in the shared library. Re-exported here so
+// module registry files can import from one place.
+import type { ContentBlock } from "@/components/learn/shared/RichLessonTypes";
+export type { ContentBlock };
+
 // ── Lesson content variants ──────────────────────────────────────────────────
 
 /** A conceptual lesson that walks the user through an idea step by step. */
 export interface ConceptualContent {
-  /** Array of narration strings shown one at a time (step-through). */
+  /** Array of narration strings shown one at a time (step-through).
+   *  Ignored when `blocks` is present (legacy path). */
   narrations: string[];
   /** Shown in a highlighted card at the bottom of the lesson. */
   takeaway: string;
+  /**
+   * Optional rich content blocks. When provided the renderer renders these
+   * instead of the flat `narrations` array, allowing code, diagrams and
+   * callouts inline. Old lessons that only set `narrations` are unchanged.
+   */
+  blocks?: ContentBlock[];
+}
+
+// ── MCQ (Checkpoint) content ─────────────────────────────────────────────────
+
+export interface MCQOption {
+  text: string;
+}
+
+export interface MCQQuestion {
+  id: string;
+  question: string;
+  options: MCQOption[];
+  /** 0-indexed correct answer. */
+  answerIndex: number;
+  explanation: string;
+}
+
+export interface MCQData {
+  title: string;
+  questions: MCQQuestion[];
 }
 
 /** A from-scratch coding challenge rendered inside the split-pane IDE. */
@@ -54,7 +87,8 @@ export interface ChallengeContent {
 
 export type LessonContent =
   | { type: "conceptual"; data: ConceptualContent }
-  | { type: "challenge"; data: ChallengeContent };
+  | { type: "challenge"; data: ChallengeContent }
+  | { type: "mcq"; data: MCQData };
 
 export interface LessonConfig {
   id: string;
