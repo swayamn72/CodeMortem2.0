@@ -3,7 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import CodeEditor from "@/components/editor/CodeEditor";
 import { api } from "@/lib/api";
-import type { ChallengeConfig } from "@/components/course/types";
+import type { ChallengeConfig, LPSubmission } from "@/components/course/types";
+import { RichCodeBlock, RenderBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
 import type { LPTestResult } from "@/components/learn/bit-manipulation/types";
 import { getVerdictColor, getVerdictLabel } from "@/lib/verdicts";
 import SuccessModal from "@/components/shared/SuccessModal";
@@ -296,12 +297,52 @@ export default function PracticeChallengeIde({
               </div>
             )}
 
-            {leftTab === "editorial" && hasSubmitted && (
+            {leftTab === "editorial" && hasSubmitted && challenge.editorial && (
               <div>
                 <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--cm-cyan)" }}>Editorial</h3>
-                <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
-                  {challenge.editorial}
-                </div>
+                {Array.isArray(challenge.editorial) ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    {(() => {
+                      let textCounter = 0;
+                      return challenge.editorial.map((block, i) => {
+                        const accentColor = "var(--cm-cyan)";
+                        const accentRGB = "0,240,255";
+                        const isText = block.kind === "text";
+                        const textIdx = isText ? textCounter++ : -1;
+                        return (
+                          <RenderBlock 
+                            key={i} 
+                            block={block} 
+                            textIdx={textIdx} 
+                            accentColor={accentColor} 
+                            accentRGB={accentRGB} 
+                          />
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
+                    {challenge.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
+                      if (i % 3 === 0) {
+                        if (part.trim()) acc.push(<span key={`text-${i}`}>{part}</span>);
+                      } else if (i % 3 === 2) {
+                        const lang = arr[i - 1] || "cpp";
+                        acc.push(
+                          <div key={`code-${i}`} style={{ margin: "1rem 0" }}>
+                            <RichCodeBlock
+                              language={lang === "python" ? "Python" : "C++"}
+                              code={part.trim()}
+                              accentColor="var(--cm-cyan)"
+                              accentRGB="0,240,255"
+                            />
+                          </div>
+                        );
+                      }
+                      return acc;
+                    }, [])}
+                  </div>
+                )}
               </div>
             )}
           </div>

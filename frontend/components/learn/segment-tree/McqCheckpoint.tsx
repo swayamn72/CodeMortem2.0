@@ -24,6 +24,8 @@ export default function McqCheckpoint({
   nextLabel,
   onNext,
 }: McqCheckpointProps) {
+  const allAnswered = questions.length > 0 && questions.every(q => checked[q.id]);
+
   return (
     <div className={styles.checkpointArea}>
       <h2 className={styles.checkpointTitle}>
@@ -102,28 +104,30 @@ export default function McqCheckpoint({
         );
       })}
 
-      <div
-        className="card-glass"
-        style={{
-          border: "1px solid var(--cm-green)",
-          background: "rgba(0, 255, 136, 0.03)",
-          textAlign: "center",
-          padding: "2rem",
-          marginTop: "1.5rem",
-        }}
-      >
-        <h3 style={{ color: "var(--cm-green)", marginBottom: "0.5rem" }}>
-          {allCorrect ? "🎯 All correct!" : "💡 Keep it up!"}
-        </h3>
-        <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
-          {allCorrect
-            ? "You've nailed it. Time to move on."
-            : "Feel free to review the lessons and try again, or jump ahead whenever you're ready."}
-        </p>
-        <button className="btn btn-primary" onClick={onNext}>
-          {nextLabel}
-        </button>
-      </div>
+      {allAnswered && (
+        <div
+          className="card-glass"
+          style={{
+            border: allCorrect ? "1px solid var(--cm-green)" : "1px solid rgba(255,255,255,0.1)",
+            background: allCorrect ? "rgba(0, 255, 136, 0.03)" : "rgba(255,255,255,0.02)",
+            textAlign: "center",
+            padding: "2rem",
+            marginTop: "1.5rem",
+          }}
+        >
+          <h3 style={{ color: allCorrect ? "var(--cm-green)" : "var(--text-primary)", marginBottom: "0.5rem" }}>
+            {allCorrect ? "🎯 All correct!" : "💡 Checkpoint completed!"}
+          </h3>
+          <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
+            {allCorrect
+              ? "You've nailed it. Time to move on."
+              : "Feel free to review the lessons and try again, or jump ahead whenever you're ready."}
+          </p>
+          <button className="btn btn-primary" onClick={onNext}>
+            {nextLabel}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Binary, Sigma, TreePine, Zap, type LucideIcon } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useProgressStore } from "@/stores/progressStore";
 import Navbar from "@/components/Navbar";
@@ -18,7 +19,7 @@ interface Module {
   description: string;
   tag: string;
   tagColor: string;
-  icon: string;
+  icon: string | LucideIcon;
   difficulty: "Easy" | "Medium" | "Hard";
   /** Course level — independent of difficulty badge. */
   level: "Beginner" | "Intermediate" | "Advanced";
@@ -53,7 +54,7 @@ const MODULES: Module[] = [
       "Master bitwise operations from first principles. Learn masking, XOR tricks, popcount, subset enumeration, and the 12 most-used bit idioms in competitive programming.",
     tag: "Easy",
     tagColor: "#00ff88",
-    icon: "🔢",
+    icon: Binary,
     difficulty: "Easy",
     level: "Beginner",
     lessons: 20,
@@ -78,7 +79,7 @@ const MODULES: Module[] = [
       "Build a reusable C++ combinatorics library from scratch. Master modular arithmetic, binary exponentiation, Fermat's inverse, and classical counting models (grid paths, stars & bars, anagrams, inclusion-exclusion).",
     tag: "Beginner",
     tagColor: "#aa00e6",
-    icon: "∑",
+    icon: Sigma,
     difficulty: "Easy",
     level: "Beginner",
     lessons: 29,
@@ -109,7 +110,7 @@ const MODULES: Module[] = [
       "Level up with multi-field node design. Learn to track (min, count) pairs and compute max subarray sum under point updates — the two most important intermediate segment tree patterns.",
     tag: "Medium",
     tagColor: "#ffd700",
-    icon: "🌳",
+    icon: TreePine,
     difficulty: "Medium",
     level: "Intermediate",
     lessons: 7,
@@ -129,7 +130,7 @@ const MODULES: Module[] = [
       "Advanced techniques including lazy propagation for range updates, merge sort trees, fractional cascading, and persistent segment trees for competitive programming.",
     tag: "Hard",
     tagColor: "#ff2d55",
-    icon: "🔥",
+    icon: Zap,
     difficulty: "Hard",
     level: "Advanced",
     lessons: 8,
@@ -144,7 +145,7 @@ const MODULES: Module[] = [
       "Master the most powerful tree data structure technique in competitive programming. Learn to decompose trees into chains, then use a Segment Tree to answer path queries, point updates, edge-weight queries, and lazy range updates — all in O(log² N).",
     tag: "Hard",
     tagColor: "#ff2d55",
-    icon: "🔥",
+    icon: Zap,
     difficulty: "Hard",
     level: "Advanced",
     lessons: HLD_LESSON_IDS.length,
@@ -256,10 +257,14 @@ export default function LearnPage() {
                 {/* Card header */}
                 <div className={styles.cardHeader}>
                   <span className={styles.moduleIcon}>
-                    {mod.icon.includes(".png") || mod.icon.includes(".svg") ? (
-                      <img src={mod.icon} alt={mod.title} style={{ width: "64px", height: "64px", display: "block", objectFit: "contain" }} />
+                    {typeof mod.icon === "string" ? (
+                      (mod.icon.includes(".png") || mod.icon.includes(".svg")) ? (
+                        <img src={mod.icon} alt={mod.title} style={{ width: "64px", height: "64px", display: "block", objectFit: "contain" }} />
+                      ) : (
+                        mod.icon
+                      )
                     ) : (
-                      mod.icon
+                      <mod.icon size={52} strokeWidth={1.5} color="currentColor" />
                     )}
                   </span>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>

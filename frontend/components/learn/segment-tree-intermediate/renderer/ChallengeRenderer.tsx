@@ -9,7 +9,7 @@ import HintPanel from "../shared/HintPanel";
 import { getVerdictText } from "@/lib/verdicts";
 import SuccessModal from "@/components/shared/SuccessModal";
 import { useAuthStore } from "@/stores/authStore";
-import { RichCodeBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
+import { RichCodeBlock, RenderBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
 import { SubmissionsTab, SubmissionCodeViewerModal } from "@/components/shared/SubmissionsTab";
 import type { LPSubmission } from "@/components/course/types";
 
@@ -620,31 +620,52 @@ export default function ChallengeRenderer({
             {leftTab === "editorial" && (hasSubmitted || isCompleted || isPremiumActive) && content.editorial && (
               <div>
                 <h3 style={{ fontSize: "16px", marginBottom: "16px", color: "var(--cm-cyan)" }}>Editorial</h3>
-                {content.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
-                  if (i % 3 === 0) {
-                    if (part.trim()) {
+                {Array.isArray(content.editorial) ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    {(() => {
+                      let textCounter = 0;
+                      return content.editorial.map((block, i) => {
+                        const isText = block.kind === "text";
+                        const textIdx = isText ? textCounter++ : -1;
+                        return (
+                          <RenderBlock 
+                            key={i} 
+                            block={block} 
+                            textIdx={textIdx} 
+                            accentColor={ACCENT_COLOR} 
+                            accentRGB={ACCENT_RGB} 
+                          />
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  content.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
+                    if (i % 3 === 0) {
+                      if (part.trim()) {
+                        acc.push(
+                          <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
+                            {fmt(part, ACCENT_COLOR, ACCENT_RGB)}
+                          </div>
+                        );
+                      }
+                    } else if (i % 3 === 2) {
+                      const lang = arr[i - 1] || "cpp";
+                      const cleanCode = part.trim();
                       acc.push(
-                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
-                          {fmt(part, ACCENT_COLOR, ACCENT_RGB)}
+                        <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
+                          <RichCodeBlock
+                            language={lang === "python" ? "Python" : "C++"}
+                            code={cleanCode}
+                            accentColor={ACCENT_COLOR}
+                            accentRGB={ACCENT_RGB}
+                          />
                         </div>
                       );
                     }
-                  } else if (i % 3 === 2) {
-                    const lang = arr[i - 1] || "cpp";
-                    const cleanCode = part.trim();
-                    acc.push(
-                      <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
-                        <RichCodeBlock
-                          language={lang === "python" ? "Python" : "C++"}
-                          code={cleanCode}
-                          accentColor={ACCENT_COLOR}
-                          accentRGB={ACCENT_RGB}
-                        />
-                      </div>
-                    );
-                  }
-                  return acc;
-                }, [])}
+                    return acc;
+                  }, [])
+                )}
               </div>
             )}
 

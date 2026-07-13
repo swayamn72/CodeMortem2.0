@@ -29,6 +29,10 @@ export default function MCQCheckpoint({
         submitted[q.id] && answers[q.id] === q.answerIndex
     );
 
+  const allAnswered =
+    data.questions.length > 0 &&
+    data.questions.every((q) => submitted[q.id]);
+
   function pick(qId: string, idx: number) {
     if (submitted[qId]) return;
     setAnswers((prev) => ({ ...prev, [qId]: idx }));
@@ -215,16 +219,33 @@ export default function MCQCheckpoint({
                     lineHeight: 1.7,
                   }}
                 >
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: isCorrect ? "var(--cm-green)" : "rgba(255,80,80,0.9)",
-                      marginRight: "6px",
-                    }}
-                  >
-                    {isCorrect ? "✓ Correct!" : "✗ Not quite."}
-                  </span>
-                  {q.explanation}
+                  <div style={{ marginBottom: "12px" }}>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        color: isCorrect ? "var(--cm-green)" : "rgba(255,80,80,0.9)",
+                        marginRight: "6px",
+                      }}
+                    >
+                      {isCorrect ? "✓ Correct!" : "✗ Not quite."}
+                    </span>
+                    {fmt(q.explanation, ACCENT, ACCENT_RGB)}
+                  </div>
+                  {!isCorrect && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setSubmitted((prev) => ({ ...prev, [q.id]: false }));
+                        setAnswers((prev) => {
+                          const next = { ...prev };
+                          delete next[q.id];
+                          return next;
+                        });
+                      }}
+                    >
+                      Try Again
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -232,36 +253,36 @@ export default function MCQCheckpoint({
         })}
       </div>
 
-      {/* Complete button — appears when all answered correctly */}
-      {allCorrect && (
+      {/* Complete button — appears when all answered, regardless of correctness */}
+      {allAnswered && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            background: "rgba(0,255,136,0.06)",
-            border: "1px solid rgba(0,255,136,0.3)",
+            background: allCorrect ? "rgba(0,255,136,0.06)" : "rgba(255,255,255,0.03)",
+            border: allCorrect ? "1px solid rgba(0,255,136,0.3)" : "1px solid rgba(255,255,255,0.1)",
             borderRadius: "var(--radius-md)",
             padding: "16px 20px",
             marginTop: "24px",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "20px" }}>🎯</span>
+            <span style={{ fontSize: "20px" }}>{allCorrect ? "🎯" : "💡"}</span>
             <div
               style={{
                 fontWeight: 600,
-                color: "var(--cm-green)",
+                color: allCorrect ? "var(--cm-green)" : "var(--text-primary)",
                 fontSize: "var(--font-size-sm)",
               }}
             >
-              All questions correct — checkpoint passed!
+              {allCorrect ? "All questions correct — checkpoint passed!" : "Checkpoint completed!"}
             </div>
           </div>
           <button
             className="btn btn-accent btn-sm"
             onClick={onComplete}
-            style={{ animation: "pulse-glow 2s ease-in-out infinite" }}
+            style={allCorrect ? { animation: "pulse-glow 2s ease-in-out infinite" } : {}}
           >
             {nextLabel}
           </button>

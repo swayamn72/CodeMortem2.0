@@ -38,7 +38,7 @@ export interface ChallengeConfig {
   /** ordered from nudge → near-answer */
   hints: string[];
   /** shown only after first submit */
-  editorial: string;
+  editorial: import("@/components/learn/shared/RichLessonTypes").ContentBlock[] | string;
   sampleCases: SampleCase[];
   /** lesson id to navigate to on completion */
   nextLesson: string;

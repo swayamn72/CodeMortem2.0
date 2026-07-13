@@ -518,14 +518,14 @@ export const LAZY_PROPAGATION_PROBLEM: ProblemGroup = {
             },
             {
               kind: "diagram",
-              diagram: `Array:   [ 1  2  3  4  5  6  7  8  10 ]
-Range add +5 to [2..6]:
+              diagram: `**Array:   [ 1  1  1  1  1  2  2  2  2 ]**
+\`Query: Add +10 to [0..4]\`
 
-Naive:   update(2) → update(3) → update(4) → ...  6 calls, 6 × O(log N)
-              ↑ Still fine for one query, but what about 10⁵ queries?
+Naive:   \`update(0) → update(1) → ... → update(4)\`  _5 calls to the bottom_
+              ↑ _Fine for one query, but 10⁵ queries will TLE_
 
-N = 100,000 elements,  Q = 100,000 range-add queries
-Naive cost:  Q × N = 10¹⁰ operations  →  💀 TLE`,
+\`N = 100,000\` elements,  \`Q = 100,000\` range-add queries
+Naive cost:  \`Q × N = 10¹⁰\` operations  →  **[TLE]**`,
               caption: "Naive range update cost explodes as N and Q grow",
             },
             {
@@ -540,18 +540,24 @@ Naive cost:  Q × N = 10¹⁰ operations  →  💀 TLE`,
             },
             {
               kind: "diagram",
-              diagram: `Range add +5 to [2..6]:
+              diagram: `**Query:** \`Add +10 to [0..4]\`
 
-Before lazy:                        After lazy:
-        [0..8] sum=45                       [0..8] sum=75
-       /             \\                     /             \\
-  [0..4]            [5..8]           [0..4]↑lazy=+5    [5..8]
-  ...               ...              ...               ...
+**Before Lazy Update:**
+                 \`[0..8]\` sum=13
+                /             \\
+      \`[0..4]\` sum=5           \`[5..8]\` sum=8
+      _(5 elements)_            _(4 elements)_
 
-Only 2 nodes touched instead of 7 leaves!
-The lazy tag (+5) on [0..4] means "I owe my children +5,
-I'll tell them when they're next visited."`,
-              caption: "Lazy propagation: mark at the top, push when needed",
+**After Lazy Update:**
+                 \`[0..8]\` sum=63   _← (13 + 50)_
+                /             \\
+      \`[0..4]\` sum=55          \`[5..8]\` sum=8 
+      **[LAZY = +10]**         **[LAZY = 0]**
+      _← (5 + 50)_
+
+_The lazy tag (+10) on [0..4] is a post-it note:_
+_"I owe all my descendants +10. I'll pass it down later if anyone visits them."_`,
+              caption: "Instead of walking down to 5 leaves, we stop at [0..4] and leave a tag.",
             },
           ],
         },
@@ -575,17 +581,17 @@ I'll tell them when they're next visited."`,
             },
             {
               kind: "diagram",
-              diagram: `Parallel arrays:
+              diagram: `**Parallel arrays (1-based indexing):**
 
-  tree[]  =  [ 45, 10, 35, 3,  7,  15, 20, 1, 2, 3, 4, ... ]
-  lazy[]  =  [  0,  0,  0, 0,  0,   0,  0, 0, 0, 0, 0, ... ]
-              ↑ Initially all lazy values are 0 (no pending work)
+  \`tree[]\`  =  \`[ 0,  13,   5,   8, ... ]\`
+  \`lazy[]\`  =  \`[ 0,   0,   0,   0, ... ]\`
+                    ↑ _Initially all lazy values are 0 (no pending work)_
 
-After "range add +5 to [2..6]":
+**After "Add +10 to [0..4]":**
 
-  tree[]  =  [ 75, 35, 40, 3,  7,  15, 25, 1, 2, ...]
-  lazy[]  =  [  0, +5,  0, 0,  0,   0, +5, 0, 0, ...]
-              ↑ lazy[left child] = +5: its leaves haven't been told yet`,
+  \`tree[]\`  =  \`[ 0,  63,  55,   8, ... ]\`
+  \`lazy[]\`  =  \`[ 0,   0, +10,   0, ... ]\`
+                         ↑ _lazy[2] = +10: Node 2 owes its descendants +10_`,
               caption: "tree[] stores current aggregates, lazy[] stores pending debts",
             },
             {
@@ -678,17 +684,17 @@ After push_down(v):  (v now owes nothing)
             },
             {
               kind: "diagram",
-              diagram: `Update / Query call sequence:
+              diagram: `**Update / Query call sequence:**
 
-update(v, ...) or query(v, ...):
-    if out-of-range:  return
-    if fully-covered: apply directly + return
+\`update(v, ...)\` or \`query(v, ...)\`:
+    **if out-of-range:**  \`return\`
+    **if fully-covered:** apply directly + \`return\`
     ──────────────────────────────────────────
-    push_down(v)   ← ALWAYS here before recursing
+    **\`push_down(v)\`   ← ALWAYS here before recursing!**
     ──────────────────────────────────────────
-    recurse left child
-    recurse right child
-    merge children → tree[v]`,
+    _recurse left child_
+    _recurse right child_
+    **merge children** → \`tree[v]\``,
               caption: "push_down fires exactly once per node per operation — O(log N) total",
             },
           ],
@@ -852,7 +858,7 @@ void update(int v, int s, int e, int l, int r, ll val) {
             {
               label: "Basic range add then query",
               input: "5 4\n1 2 3 4 5\n1 1 3 10\n2 0 4\n2 1 2\n1 0 4 1",
-              expected: "45\n22",
+              expected: "45\n25",
             },
             {
               label: "All elements same, large range add",

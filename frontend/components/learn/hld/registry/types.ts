@@ -42,7 +42,7 @@ export interface ChallengeContent {
   /** Reference boilerplate shown when the user clicks "Refer Boilerplate". */
   referenceBoilerplate: { cpp: string; python: string };
   /** Markdown text for the editorial, optionally containing code blocks. */
-  editorial?: string;
+  editorial?: string | import("@/components/learn/shared/RichLessonTypes").ContentBlock[];
   /** Whether this challenge is premium-gated. */
   premium?: boolean;
 }

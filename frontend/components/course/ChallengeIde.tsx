@@ -9,7 +9,7 @@ import styles from "@/app/learn/segment-tree/page.module.css";
 import { useAuthStore } from "@/stores/authStore";
 import SuccessModal from "@/components/shared/SuccessModal";
 import { SubmissionsTab, SubmissionCodeViewerModal } from "@/components/shared/SubmissionsTab";
-import { RichCodeBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
+import { RichCodeBlock, RenderBlock, fmt } from "@/components/learn/shared/RichLessonPrimitives";
 
 // ── Starter templates shown in the editor on load ─────────────────────────────
 const TEMPLATES: Record<"cpp" | "python", string> = {
@@ -534,31 +534,54 @@ export default function ChallengeIde({ challenge, onComplete, navigate, nextLabe
             {leftTab === "editorial" && (hasSubmitted || isPremiumActive) && (
               <div>
                 <h3 style={{ fontSize: "1rem", marginBottom: "1rem", color: "var(--cm-cyan)" }}>Editorial</h3>
-                {challenge.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
-                  if (i % 3 === 0) {
-                    if (part.trim()) {
+                {Array.isArray(challenge.editorial) ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                    {(() => {
+                      let textCounter = 0;
+                      return challenge.editorial.map((block, i) => {
+                        const accentColor = challenge.diffColor || "var(--cm-cyan)";
+                        const accentRGB = challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255";
+                        const isText = block.kind === "text";
+                        const textIdx = isText ? textCounter++ : -1;
+                        return (
+                          <RenderBlock 
+                            key={i} 
+                            block={block} 
+                            textIdx={textIdx} 
+                            accentColor={accentColor} 
+                            accentRGB={accentRGB} 
+                          />
+                        );
+                      });
+                    })()}
+                  </div>
+                ) : (
+                  challenge.editorial.split(/```(cpp|python)?\n?([\s\S]*?)```/g).reduce<React.ReactNode[]>((acc, part, i, arr) => {
+                    if (i % 3 === 0) {
+                      if (part.trim()) {
+                        acc.push(
+                          <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
+                            {fmt(part, challenge.diffColor || "var(--cm-cyan)", challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255")}
+                          </div>
+                        );
+                      }
+                    } else if (i % 3 === 2) {
+                      const lang = arr[i - 1] || "cpp";
+                      const cleanCode = part.trim();
                       acc.push(
-                        <div key={`text-${i}`} style={{ fontSize: 14, color: "var(--text-secondary)", marginBottom: "1rem", whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
-                          {fmt(part, challenge.diffColor || "var(--cm-cyan)", challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255")}
+                        <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
+                          <RichCodeBlock
+                            language={lang === "python" ? "Python" : "C++"}
+                            code={cleanCode}
+                            accentColor={challenge.diffColor || "var(--cm-cyan)"}
+                            accentRGB={challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255"}
+                          />
                         </div>
                       );
                     }
-                  } else if (i % 3 === 2) {
-                    const lang = arr[i - 1] || "cpp";
-                    const cleanCode = part.trim();
-                    acc.push(
-                      <div key={`code-${i}`} style={{ marginBottom: "1.5rem" }}>
-                        <RichCodeBlock
-                          language={lang === "python" ? "Python" : "C++"}
-                          code={cleanCode}
-                          accentColor={challenge.diffColor || "var(--cm-cyan)"}
-                          accentRGB={challenge.diffColor ? `${parseInt(challenge.diffColor.slice(1,3),16)},${parseInt(challenge.diffColor.slice(3,5),16)},${parseInt(challenge.diffColor.slice(5,7),16)}` : "0,240,255"}
-                        />
-                      </div>
-                    );
-                  }
-                  return acc;
-                }, [])}
+                    return acc;
+                  }, [])
+                )}
               </div>
             )}
           </div>

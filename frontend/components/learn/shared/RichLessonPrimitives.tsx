@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import type { ContentBlock } from "./RichLessonTypes";
+import { Lightbulb, TriangleAlert, CheckCircle2, Siren } from "lucide-react";
 
 // ── Config passed by each module ──────────────────────────────────────────────
 export interface ModuleConfig {
@@ -357,11 +358,11 @@ export function RichDiagramBlock({
             fontFamily: "var(--font-mono, 'Fira Code', monospace)",
             fontSize: "12.5px",
             lineHeight: 1.72,
-            color: accentColor,
+            color: "var(--text-primary)",
             whiteSpace: "pre",
           }}
         >
-          {diagram}
+          {fmt(diagram, accentColor, accentRGB)}
         </pre>
       </div>
       {caption && (
@@ -383,7 +384,7 @@ export function RichDiagramBlock({
 
 const CALLOUT_CFG = {
   insight: {
-    icon: "💡",
+    icon: Lightbulb,
     getStyle: (rgb: string) => ({
       bg: `rgba(${rgb},0.07)`,
       border: `rgba(${rgb},0.28)`,
@@ -392,7 +393,7 @@ const CALLOUT_CFG = {
     label: "Insight",
   },
   warning: {
-    icon: "⚠️",
+    icon: TriangleAlert,
     getStyle: () => ({
       bg: "rgba(255,204,0,0.07)",
       border: "rgba(255,204,0,0.28)",
@@ -401,7 +402,7 @@ const CALLOUT_CFG = {
     label: "Watch Out",
   },
   rule: {
-    icon: "✅",
+    icon: CheckCircle2,
     getStyle: () => ({
       bg: "rgba(0,255,136,0.06)",
       border: "rgba(0,255,136,0.25)",
@@ -410,7 +411,7 @@ const CALLOUT_CFG = {
     label: "Rule",
   },
   gotcha: {
-    icon: "🔥",
+    icon: Siren,
     getStyle: () => ({
       bg: "rgba(255,80,80,0.07)",
       border: "rgba(255,80,80,0.25)",
@@ -447,8 +448,10 @@ export function RichCalloutBlock({
         alignItems: "flex-start",
       }}
     >
-      <span style={{ fontSize: "20px", flexShrink: 0, lineHeight: 1.4 }}>{cfg.icon}</span>
-      <div>
+      <div style={{ flexShrink: 0, marginTop: "2px", color: labelColor }}>
+        <cfg.icon size={20} strokeWidth={2.5} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
             fontSize: "11px",

@@ -1,6 +1,8 @@
 "use client";
 
 import type { ConceptualContent } from "../registry/types";
+import { useProgressStore } from "@/stores/progressStore";
+import { Zap } from "lucide-react";
 import { getHLDVisual } from "../HLDInteractiveTools";
 import styles from "@/app/learn/segment-tree/page.module.css";
 
@@ -44,7 +46,7 @@ function LessonHeading({ title }: { title: string }) {
           opacity: 0.85,
         }}
       >
-        🔥 Heavy-Light Decomposition
+        <span style={{ display: "inline-flex", alignItems: "center", marginRight: "6px" }}><Zap size={16} /></span>Heavy-Light Decomposition
       </div>
       <h1
         style={{

@@ -109,7 +109,9 @@ export default function BadgeCard({
         {/* Hex ring + inner hex */}
         <div style={ringStyle}>
           <div style={hexStyle}>
-            <span style={{ lineHeight: 1, userSelect: "none" }}>{badge.icon}</span>
+            <span style={{ lineHeight: 1, userSelect: "none", color: "currentColor", display: "flex", alignItems: "center" }}>
+              <badge.icon size={dims.font} strokeWidth={1.5} />
+            </span>
           </div>
         </div>
 

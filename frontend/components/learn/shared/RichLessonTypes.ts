@@ -41,7 +41,7 @@ export type ContentBlock =
        *   insight → 💡 cyan/accent
        *   warning → ⚠️ yellow
        *   rule    → ✅ green
-       *   gotcha  → 🔥 red
+       *   gotcha  → 🚨 red
        */
       variant: "insight" | "warning" | "rule" | "gotcha";
       title: string;

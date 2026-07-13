@@ -204,15 +204,15 @@ Node merge(Node left, Node right) {
             {
               kind: "diagram",
               diagram:
-                `A node covering range [s..e] stores:
+                `**A node covering range [s..e] stores:**
 
-  total  —  sum of all elements in [s..e]
-  pref   —  max sum of any subarray starting at s   (arr[s..k] for any k ≤ e)
-  suf    —  max sum of any subarray ending   at e   (arr[k..e] for any k ≥ s)
-  best   —  max sum of any subarray anywhere in [s..e]
+  \`total\`  —  sum of all elements in \`[s..e]\`
+  \`pref\`   —  max sum of any subarray starting at \`s\`   _(arr[s..k] for any k ≤ e)_
+  \`suf\`    —  max sum of any subarray ending   at \`e\`   _(arr[k..e] for any k ≥ s)_
+  \`best\`   —  max sum of any subarray anywhere in \`[s..e]\`
 
-With these four values, merge can compute the parent's four values
-for any two adjacent children in O(1).`,
+_With these four values, merge can compute the parent's four values_
+_for any two adjacent children in O(1)._`,
               caption: "The minimal information needed to merge two adjacent ranges correctly",
             },
           ],
@@ -242,19 +242,19 @@ for any two adjacent children in O(1).`,
             {
               kind: "diagram",
               diagram:
-                `Merge formulas — derived from first principles:
+                `**Merge formulas — derived from first principles:**
 
-  res.total = L.total + R.total
-  └─ trivial: sum of both halves
+  \`res.total = L.total + R.total\`
+  └─ _trivial: sum of both halves_
 
-  res.pref = max( L.pref,  L.total + R.pref )
-  └─ best prefix either stays inside left, OR takes ALL of left + best prefix of right
+  \`res.pref = max( L.pref,  L.total + R.pref )\`
+  └─ _best prefix either stays inside left, OR takes ALL of left + best prefix of right_
 
-  res.suf  = max( R.suf,   R.total + L.suf  )
-  └─ mirror of pref, but from the right edge
+  \`res.suf  = max( R.suf,   R.total + L.suf  )\`
+  └─ _mirror of pref, but from the right edge_
 
-  res.best = max( L.best,  R.best,  L.suf + R.pref )
-  └─ three options: entirely in left, entirely in right, or crossing the midpoint`,
+  \`res.best = max( L.best,  R.best,  L.suf + R.pref )\`
+  └─ _three options: entirely in left, entirely in right, or crossing the midpoint_`,
               caption: "Each formula has a clear geometric meaning — derive them once, remember the pattern forever",
             },
             {
@@ -331,7 +331,7 @@ Node merge(Node L, Node R) {
             {
               label: "Basic — crossing boundary",
               input: "5 3\n-2 1 -3 4 -1\n2 2\n0 5\n4 3",
-              expected: "4\n4\n8\n8",
+              expected: "4\n7\n12\n15",
             },
             {
               label: "All negative — empty subarray",
@@ -341,11 +341,115 @@ Node merge(Node L, Node R) {
             {
               label: "Update improves answer",
               input: "4 2\n1 2 3 4\n0 10\n3 -1",
-              expected: "10\n19\n18",
+              expected: "10\n19\n15",
             },
           ],
           starterCode: { cpp: STARTER_CPP, python: STARTER_PYTHON },
           referenceBoilerplate: { cpp: REFERENCE_CPP, python: REFERENCE_PYTHON },
+          editorial: `The standard segment tree storing only the maximum subarray sum fails because the optimal subarray might cross the boundary between the left and right halves. To resolve this and enable proper merging, we expand the node's state to maintain four properties for its segment: the total segment sum (sum), the maximum prefix sum (pref), the maximum suffix sum (suff), and the overall maximum subarray sum (ans).
+
+**Base Case (Leaves)**
+For a leaf node representing a single element at index \`i\` with value \`v\`, the total sum is simply \`v\`. Because the problem explicitly states that empty subarrays are allowed (meaning the answer must be \`>= 0\`), the prefix, suffix, and overall maximum answers are bounded to at least 0. Thus, the leaf state is initialized as:
+\`{v, max(0, v), max(0, v), max(0, v)}\`
+
+**The Merge Logic (Transitions)**
+When merging a left child and a right child to compute the parent's state, we must update all four properties:
+
+1. **sum**: The total sum is the sum of both halves (\`left.sum + right.sum\`).
+2. **pref**: The maximum prefix sum can either come entirely from the left child, or it can span across the left child completely and include the maximum prefix of the right child (\`max(left.pref, left.sum + right.pref)\`).
+3. **suff**: Similarly, the maximum suffix sum is either the right child's suffix, or the entire right child plus the left child's suffix (\`max(right.suff, right.sum + left.suff)\`).
+4. **ans**: The maximum subarray sum for the parent can be entirely in the left child, entirely in the right child, or it can cross the boundary between them. If it crosses the boundary, it must be the combination of the left child's maximum suffix and the right child's maximum prefix (\`max(left.ans, right.ans, left.suff + right.pref)\`).
+
+By maintaining these four properties, every node contains enough information to correctly compute the optimal subarray sum for its segment in \`O(1)\` time during the merge step, leading to \`O(N)\` build time and \`O(log N)\` updates.
+
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+struct Node {
+    long long sum;
+    long long pref;
+    long long suff;
+    long long ans;
+};
+
+const int MAXN = 100005;
+Node tree[4 * MAXN];
+long long arr[MAXN];
+
+Node make_node(long long val) {
+    Node res;
+    res.sum = val;
+    res.pref = max(0LL, val);
+    res.suff = max(0LL, val);
+    res.ans = max(0LL, val);
+    return res;
+}
+
+Node mergeNodes(Node left, Node right) {
+    Node res;
+    res.sum = left.sum + right.sum;
+    res.pref = max(left.pref, left.sum + right.pref);
+    res.suff = max(right.suff, right.sum + left.suff);
+    res.ans = max({left.ans, right.ans, left.suff + right.pref});
+    return res;
+}
+
+void build(int node, int start, int end) {
+    if (start == end) {
+        tree[node] = make_node(arr[start]);
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    build(2 * node, start, mid);
+    build(2 * node + 1, mid + 1, end);
+    tree[node] = mergeNodes(tree[2 * node], tree[2 * node + 1]);
+}
+
+void update(int node, int start, int end, int idx, long long val) {
+    if (start == end) {
+        arr[idx] = val;
+        tree[node] = make_node(val);
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    if (idx <= mid) {
+        update(2 * node, start, mid, idx, val);
+    } else {
+        update(2 * node + 1, mid + 1, end, idx, val);
+    }
+    tree[node] = mergeNodes(tree[2 * node], tree[2 * node + 1]);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, m;
+    cin >> n >> m;
+
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
+    build(1, 0, n - 1);
+    
+    cout << tree[1].ans << "\\n";
+
+    while (m--) {
+        int i;
+        long long v;
+        cin >> i >> v;
+        update(1, 0, n - 1, i, v);
+        cout << tree[1].ans << "\\n";
+    }
+
+    return 0;
+}
+\`\`\``,
         },
       },
     },

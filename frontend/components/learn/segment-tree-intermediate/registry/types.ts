@@ -82,7 +82,7 @@ export interface ChallengeContent {
    */
   referenceBoilerplate: { cpp: string; python: string };
   /** Markdown text for the editorial, optionally containing code blocks. */
-  editorial?: string;
+  editorial?: string | import("@/components/learn/shared/RichLessonTypes").ContentBlock[];
 }
 
 export type LessonContent =

@@ -11,6 +11,8 @@ import BadgeCard from "@/components/BadgeCard";
 import styles from "@/app/learn/segment-tree/page.module.css";
 
 import { PROBLEMS, ALL_LESSON_IDS, MODULE_ID } from "@/components/learn/hld/registry";
+import { useScrollToTop } from "@/components/learn/shared/RichLessonPrimitives";
+import { Zap } from "lucide-react";
 import HLDLessonRenderer from "@/components/learn/hld/renderer/LessonRenderer";
 import ChallengeRenderer from "@/components/learn/hld/renderer/ChallengeRenderer";
 import type { LessonConfig } from "@/components/learn/hld/registry/types";
@@ -122,7 +124,9 @@ export default function HLDPath() {
                   color: "var(--text-primary)",
                 }}
               >
-                <span>🔥</span> Heavy-Light Decomp.
+                <span style={{ display: "inline-flex", alignItems: "center", marginRight: "4px" }}>
+                  <Zap size={14} />
+                </span> Heavy-Light Decomp.
               </div>
               <div
                 style={{

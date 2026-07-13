@@ -16,6 +16,7 @@ import "codemortem/internal/challenges"
 func init() {
 	registerMinCountSegTree()
 	registerMaxSubarraySegTree()
+	registerLazyRangeAddSumSegTree()
 }
 
 // Standard whitespace-insensitive token checker.
@@ -271,6 +272,140 @@ int main() {
         upd(1, 0, n-1, i, v);
         cout << seg[1].best << "\n";
     }
+}
+`,
+
+		CheckerPy:   tokenCheckerPy,
+		NumTests:    20,
+		TimeLimitMs: 1500,
+		MemLimitKB:  262144,
+	})
+}
+
+// ── Lazy Propagation: Range Add / Range Sum ──────────────────────────────────
+//
+// Problem: Given N integers and Q queries:
+//   - Type 1 l r v: range add — add v to arr[l..r]
+//   - Type 2 l r: range sum — print sum of arr[l..r]
+//
+// Brute force: O(N*Q) -> TLE
+// Expected: segment tree with lazy propagation (addition tags) -> O(log N) per op
+
+func registerLazyRangeAddSumSegTree() {
+	challenges.Register(&challenges.Challenge{
+		ID:         "lazy_range_add_sum",
+		Name:       "Range Add / Range Sum",
+		CourseSlug: "segment-tree-intermediate",
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    n = rng.randint(2, 10)
+    q = rng.randint(1, 10)
+    lo, hi = -5, 5
+elif seed < 15:
+    n = rng.randint(100, 1000)
+    q = rng.randint(100, 1000)
+    lo, hi = -50, 50
+else:
+    # Large tier — brute force O(N*Q) will TLE
+    n = 100000
+    q = 100000
+    lo, hi = -100, 100
+
+a = [rng.randint(lo, hi) for _ in range(n)]
+print(n, q)
+print(*a)
+for _ in range(q):
+    if seed >= 15:
+        # Favor large range operations for massive tests
+        t = 2 if rng.random() < 0.5 else 1
+        # Force massive ranges (length ~99,000+) to reliably TLE brute forces
+        l = rng.randint(0, 100)
+        r = rng.randint(n - 100, n - 1)
+    else:
+        t = rng.randint(1, 2)
+        l = rng.randint(0, n - 1)
+        r = rng.randint(l, n - 1)
+    
+    if t == 1:
+        val = rng.randint(lo, hi)
+        print(1, l, r, val)
+    else:
+        print(2, l, r)
+`,
+
+		ReferenceCpp: `
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int MAXN = 1e5 + 5;
+ll tree_arr[4 * MAXN], lazy[4 * MAXN];
+
+void push(int v, int s, int e) {
+    if (lazy[v] == 0) return;
+    int m = (s + e) / 2;
+    tree_arr[2*v] += lazy[v] * (m - s + 1);
+    lazy[2*v] += lazy[v];
+    tree_arr[2*v+1] += lazy[v] * (e - m);
+    lazy[2*v+1] += lazy[v];
+    lazy[v] = 0;
+}
+
+void build(const vector<ll>& a, int v, int s, int e) {
+    if (s == e) { tree_arr[v] = a[s]; return; }
+    int m = (s + e) / 2;
+    build(a, 2*v, s, m);
+    build(a, 2*v+1, m+1, e);
+    tree_arr[v] = tree_arr[2*v] + tree_arr[2*v+1];
+}
+
+void upd(int v, int s, int e, int l, int r, ll val) {
+    if (r < s || e < l) return;
+    if (l <= s && e <= r) {
+        tree_arr[v] += val * (e - s + 1);
+        lazy[v] += val;
+        return;
+    }
+    push(v, s, e);
+    int m = (s + e) / 2;
+    upd(2*v, s, m, l, r, val);
+    upd(2*v+1, m+1, e, l, r, val);
+    tree_arr[v] = tree_arr[2*v] + tree_arr[2*v+1];
+}
+
+ll qry(int v, int s, int e, int l, int r) {
+    if (r < s || e < l) return 0;
+    if (l <= s && e <= r) return tree_arr[v];
+    push(v, s, e);
+    int m = (s + e) / 2;
+    return qry(2*v, s, m, l, r) + qry(2*v+1, m+1, e, l, r);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<ll> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+    build(a, 1, 0, n - 1);
+    
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            ll v; cin >> v;
+            upd(1, 0, n - 1, l, r, v);
+        } else {
+            cout << qry(1, 0, n - 1, l, r) << "\n";
+        }
+    }
+    return 0;
 }
 `,
 
