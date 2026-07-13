@@ -47,3 +47,16 @@ export type ContentBlock =
       title: string;
       body: string;
     };
+
+export type SharedMCQQuestion = {
+  id: string | number;
+  question: string;
+  options: string[] | { text: string }[];
+  answerIndex: number;
+  explanation: string;
+};
+
+export type SharedMCQData = {
+  title?: string;
+  questions: SharedMCQQuestion[];
+};

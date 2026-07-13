@@ -9,7 +9,7 @@ import BadgeCard from "@/components/BadgeCard";
 import { getBadgeDef } from "@/lib/badges";
 
 // ── Subcomponents ──
-import McqCheckpoint from "./learn/segment-tree/McqCheckpoint";
+import MCQCheckpoint from "@/components/learn/shared/MCQCheckpoint";
 import TreeVisualizer from "./learn/segment-tree/TreeVisualizer";
 
 import CourseLayout from "@/components/course/CourseLayout";
@@ -97,12 +97,6 @@ export default function SegmentTreePath() {
       markLessonComplete(SEGMENT_TREE_COURSE.moduleId, "badge");
     }
   }, [activeLesson, markLessonComplete]);
-
-  // ── MCQ State ──
-  const [mcqAnswers1, setMcqAnswers1] = useState<Record<number, number>>({});
-  const [mcqChecked1, setMcqChecked1] = useState<Record<number, boolean>>({});
-  const [mcqAnswers2, setMcqAnswers2] = useState<Record<number, number>>({});
-  const [mcqChecked2, setMcqChecked2] = useState<Record<number, boolean>>({});
 
   // ── Lesson 2: N/Q Slider State ──
   const [sliderN, setSliderN] = useState(1000);
@@ -267,36 +261,7 @@ export default function SegmentTreePath() {
     return naiveStep > 0 && naiveStep < 16 && idx >= q.l && idx <= q.r;
   };
 
-  // ─────────────────────────────────────────────
-  //  MCQ Handlers
-  // ─────────────────────────────────────────────
-  const handleMcqSelect1 = (qId: number, optIdx: number) => {
-    if (mcqChecked1[qId]) return;
-    setMcqAnswers1({ ...mcqAnswers1, [qId]: optIdx });
-  };
-  const handleMcqCheckAnswer1 = (qId: number) => {
-    if (mcqAnswers1[qId] === undefined) return;
-    const newChecked = { ...mcqChecked1, [qId]: true };
-    setMcqChecked1(newChecked);
-    if (newChecked[1] && newChecked[2] && mcqAnswers1[1] === MCQ_PART_1[0].answer && mcqAnswers1[2] === MCQ_PART_1[1].answer) {
-      markLessonComplete(SEGMENT_TREE_COURSE.moduleId, "mcq1");
-    }
-  };
-  const handleMcqSelect2 = (qId: number, optIdx: number) => {
-    if (mcqChecked2[qId]) return;
-    setMcqAnswers2({ ...mcqAnswers2, [qId]: optIdx });
-  };
-  const handleMcqCheckAnswer2 = (qId: number) => {
-    if (mcqAnswers2[qId] === undefined) return;
-    const newChecked = { ...mcqChecked2, [qId]: true };
-    setMcqChecked2(newChecked);
-    if (newChecked[1] && newChecked[2] && newChecked[3] &&
-      mcqAnswers2[1] === MCQ_PART_2[0].answer &&
-      mcqAnswers2[2] === MCQ_PART_2[1].answer &&
-      mcqAnswers2[3] === MCQ_PART_2[2].answer) {
-      markLessonComplete(SEGMENT_TREE_COURSE.moduleId, "mcq2");
-    }
-  };
+
 
   // ─────────────────────────────────────────────
   //  Render
@@ -482,15 +447,10 @@ export default function SegmentTreePath() {
                 <h1>Checkpoint 1: The Naive Bottleneck</h1>
                 <p>Validate your understanding of complexity constraints before proceeding.</p>
               </div>
-              <McqCheckpoint
-                questions={MCQ_PART_1}
-                answers={mcqAnswers1}
-                checked={mcqChecked1}
-                onSelect={handleMcqSelect1}
-                onCheck={handleMcqCheckAnswer1}
-                allCorrect={part1Complete}
+              <MCQCheckpoint
+                data={{ questions: MCQ_PART_1 }}
+                onComplete={() => completeLessonAndGo("mcq1", "lesson3")}
                 nextLabel="Continue to Lesson 3: The Core Idea →"
-                onNext={() => completeLessonAndGo("mcq1", "lesson3")}
               />
             </div>
           )}
@@ -806,15 +766,10 @@ export default function SegmentTreePath() {
                 <h1>Checkpoint 2: Segment Tree Operations</h1>
                 <p>Verify your understanding of Segment Tree structure, queries, and updates.</p>
               </div>
-              <McqCheckpoint
-                questions={MCQ_PART_2}
-                answers={mcqAnswers2}
-                checked={mcqChecked2}
-                onSelect={handleMcqSelect2}
-                onCheck={handleMcqCheckAnswer2}
-                allCorrect={part2Complete}
+              <MCQCheckpoint
+                data={{ questions: MCQ_PART_2 }}
+                onComplete={() => completeLessonAndGo("mcq2", "lesson6")}
                 nextLabel="Continue to Code Walkthrough →"
-                onNext={() => completeLessonAndGo("mcq2", "lesson6")}
               />
             </div>
           )}

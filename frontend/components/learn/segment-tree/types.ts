@@ -22,7 +22,7 @@ export interface MCQQuestion {
   id: number;
   question: string;
   options: string[];
-  answer: number;
+  answerIndex: number;
   explanation: string;
 }
 

@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { MCQData } from "../registry/types";
-import styles from "@/app/learn/segment-tree/page.module.css";
-import { fmt } from "@/components/learn/shared/RichLessonPrimitives";
+import type { SharedMCQData } from "./RichLessonTypes";
+import { fmt } from "./RichLessonPrimitives";
 
 const ACCENT = "var(--cm-cyan)";
 const ACCENT_RGB = "0,240,255";
 
 interface MCQCheckpointProps {
-  data: MCQData;
+  data: SharedMCQData;
   onComplete: () => void;
   nextLabel?: string;
 }
@@ -33,12 +32,12 @@ export default function MCQCheckpoint({
     data.questions.length > 0 &&
     data.questions.every((q) => submitted[q.id]);
 
-  function pick(qId: string, idx: number) {
+  function pick(qId: string | number, idx: number) {
     if (submitted[qId]) return;
     setAnswers((prev) => ({ ...prev, [qId]: idx }));
   }
 
-  function submit(qId: string) {
+  function submit(qId: string | number) {
     if (answers[qId] === undefined) return;
     setSubmitted((prev) => ({ ...prev, [qId]: true }));
   }
@@ -46,12 +45,14 @@ export default function MCQCheckpoint({
   return (
     <div>
       {/* Header */}
-      <div className={styles.titleArea}>
-        <h1>
-          <span style={{ marginRight: "10px" }}>🧩</span>
-          {data.title}
-        </h1>
-      </div>
+      {data.title && (
+        <div style={{ marginBottom: "20px", marginTop: "40px" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: 800, color: "var(--cm-cyan)", display: "flex", alignItems: "center" }}>
+            <span style={{ marginRight: "10px" }}>🧩</span>
+            {data.title}
+          </h2>
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
         {data.questions.map((q, qIdx) => {
@@ -109,7 +110,7 @@ export default function MCQCheckpoint({
                 >
                   {qIdx + 1}
                 </span>
-                {q.question}
+                {fmt(q.question, ACCENT, ACCENT_RGB)}
               </div>
 
               {/* Options */}
@@ -140,6 +141,9 @@ export default function MCQCheckpoint({
                     border = "rgba(0,240,255,0.40)";
                     color = "var(--cm-cyan)";
                   }
+
+                  // Handle both string options and {text: string} objects for backward compatibility
+                  const optText = typeof opt === "string" ? opt : (opt as any).text;
 
                   return (
                     <button
@@ -183,7 +187,7 @@ export default function MCQCheckpoint({
                       >
                         {String.fromCharCode(65 + idx)}
                       </span>
-                      <span style={{ flex: 1 }}>{opt.text}</span>
+                      <span style={{ flex: 1 }}>{fmt(optText, ACCENT, ACCENT_RGB)}</span>
                       {icon && <span style={{ flexShrink: 0 }}>{icon}</span>}
                     </button>
                   );
@@ -262,7 +266,7 @@ export default function MCQCheckpoint({
             justifyContent: "space-between",
             background: allCorrect ? "rgba(0,255,136,0.06)" : "rgba(255,255,255,0.03)",
             border: allCorrect ? "1px solid rgba(0,255,136,0.3)" : "1px solid rgba(255,255,255,0.1)",
-            borderRadius: "var(--radius-md)",
+            borderRadius: "12px",
             padding: "16px 20px",
             marginTop: "24px",
           }}

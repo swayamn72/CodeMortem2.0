@@ -38,24 +38,8 @@ export interface ConceptualContent {
 }
 
 // ── MCQ (Checkpoint) content ─────────────────────────────────────────────────
-
-export interface MCQOption {
-  text: string;
-}
-
-export interface MCQQuestion {
-  id: string;
-  question: string;
-  options: MCQOption[];
-  /** 0-indexed correct answer. */
-  answerIndex: number;
-  explanation: string;
-}
-
-export interface MCQData {
-  title: string;
-  questions: MCQQuestion[];
-}
+import type { SharedMCQData } from "@/components/learn/shared/RichLessonTypes";
+export type MCQData = SharedMCQData;
 
 /** A from-scratch coding challenge rendered inside the split-pane IDE. */
 export interface ChallengeContent {

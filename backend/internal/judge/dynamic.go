@@ -14,6 +14,200 @@ import (
 	"codemortem/internal/challenges"
 )
 
+// StaticJudge runs the user's code against pre-generated test cases loaded from the DB.
+// It returns the same []DynamicTestResult shape as DynamicJudge so the handler needs zero changes.
+func (c *Client) StaticJudge(ctx context.Context, langID int, sourceCode string, testCases []challenges.StoredTestCase, challenge *challenges.Challenge) ([]DynamicTestResult, error) {
+	// ── 1. Compile the user's code (C++) ──────────────────────────────────────
+	userBinaryPath, compileErr, err := c.compileUserCode(ctx, langID, sourceCode)
+	if err != nil {
+		return nil, fmt.Errorf("compile user code: %w", err)
+	}
+	if compileErr != nil {
+		return []DynamicTestResult{{
+			TestIndex:     0,
+			Verdict:       "compile_error",
+			VerdictMsg:    *compileErr,
+			CompileOutput: *compileErr,
+		}}, nil
+	}
+	if userBinaryPath != "" {
+		defer os.RemoveAll(filepath.Dir(userBinaryPath))
+	}
+
+	// ── 2. Write checker to temp file ─────────────────────────────────────────
+	tmpDir, err := os.MkdirTemp("", "cm_static_")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	checkerPath := filepath.Join(tmpDir, "checker.py")
+	if err := os.WriteFile(checkerPath, []byte(challenge.CheckerPy), 0644); err != nil {
+		return nil, err
+	}
+
+	// ── 3. Run all tests concurrently (with semaphore) ────────────────────────
+	type workResult struct {
+		idx int
+		res DynamicTestResult
+		err error
+	}
+
+	sem := make(chan struct{}, 4) // at most 4 concurrent tests
+	resultCh := make(chan workResult, len(testCases))
+
+	for i, tc := range testCases {
+		i, tc := i, tc
+		go func() {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			res, runErr := c.runStaticTest(ctx, i, tc.Input, tc.ExpectedOutput, checkerPath, langID, sourceCode, userBinaryPath, challenge)
+			resultCh <- workResult{idx: i, res: res, err: runErr}
+		}()
+	}
+
+	results := make([]DynamicTestResult, len(testCases))
+	for range testCases {
+		wr := <-resultCh
+		if wr.err != nil {
+			results[wr.idx] = DynamicTestResult{
+				TestIndex:  wr.idx,
+				Verdict:    "runtime_error",
+				VerdictMsg: wr.err.Error(),
+			}
+		} else {
+			results[wr.idx] = wr.res
+		}
+	}
+
+	return results, nil
+}
+
+// runStaticTest runs a single pre-stored test case through the user's solution + checker.
+func (c *Client) runStaticTest(
+	ctx context.Context,
+	testIdx int,
+	inputStr, expectedStr string,
+	checkerPath string,
+	langID int,
+	sourceCode, userBinaryPath string,
+	challenge *challenges.Challenge,
+) (DynamicTestResult, error) {
+	result := DynamicTestResult{
+		TestIndex:      testIdx,
+		Input:          truncate(inputStr, 500),
+		ExpectedOutput: truncate(expectedStr, 500),
+	}
+
+	// Run user solution
+	timeLimitDur := time.Duration(challenge.TimeLimitMs) * time.Millisecond
+	userCtx, userCancel := context.WithTimeout(ctx, timeLimitDur+500*time.Millisecond)
+	defer userCancel()
+
+	start := time.Now()
+	var userOut string
+
+	if langID == 54 { // C++
+		userCmd := exec.CommandContext(userCtx, userBinaryPath)
+		userCmd.Stdin = strings.NewReader(inputStr)
+		var outBuf, errBuf bytes.Buffer
+		userCmd.Stdout = &outBuf
+		userCmd.Stderr = &errBuf
+		userErr := userCmd.Run()
+		userOut = outBuf.String()
+		result.ExecutionMs = time.Since(start).Milliseconds()
+
+		if userCtx.Err() == context.DeadlineExceeded || result.ExecutionMs > int64(challenge.TimeLimitMs) {
+			result.Verdict = "time_limit"
+			result.VerdictMsg = fmt.Sprintf("Time limit exceeded (%dms)", result.ExecutionMs)
+			return result, nil
+		}
+		if userErr != nil {
+			result.Verdict = "runtime_error"
+			result.VerdictMsg = errBuf.String()
+			result.Stderr = errBuf.String()
+			result.ActualOutput = truncate(userOut, 500)
+			return result, nil
+		}
+	} else if langID == 71 { // Python
+		userResp, runErr := c.runLocalPython(ctx, &SubmissionRequest{
+			SourceCode: sourceCode,
+			LanguageID: langID,
+			Stdin:      inputStr,
+		})
+		result.ExecutionMs = time.Since(start).Milliseconds()
+		if runErr != nil {
+			result.Verdict = "runtime_error"
+			result.VerdictMsg = runErr.Error()
+			return result, nil
+		}
+		if userResp.Status.ID == StatusTLE {
+			result.Verdict = "time_limit"
+			result.VerdictMsg = "Time limit exceeded"
+			return result, nil
+		}
+		if userResp.Status.ID != StatusAccepted && userResp.Stdout == nil {
+			stderr := ""
+			if userResp.Stderr != nil {
+				stderr = *userResp.Stderr
+			}
+			result.Verdict = "runtime_error"
+			result.VerdictMsg = stderr
+			return result, nil
+		}
+		if userResp.Stdout != nil {
+			userOut = *userResp.Stdout
+		}
+	} else {
+		return result, fmt.Errorf("language %d not supported", langID)
+	}
+
+	result.ActualOutput = truncate(userOut, 500)
+
+	// Run checker
+	checkerInput := inputStr + "---SECTION---\n" + expectedStr + "---SECTION---\n" + userOut
+	checkerCtx, checkerCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer checkerCancel()
+
+	checkerCmd := exec.CommandContext(checkerCtx, "python3", checkerPath)
+	checkerCmd.Stdin = strings.NewReader(checkerInput)
+	var checkerOut bytes.Buffer
+	checkerCmd.Stdout = &checkerOut
+	checkerErr := checkerCmd.Run()
+
+	checkerMsg := strings.TrimSpace(checkerOut.String())
+	if checkerMsg == "" {
+		checkerMsg = "No checker output"
+	}
+
+	if checkerErr != nil {
+		if exitErr, ok := checkerErr.(*exec.ExitError); ok {
+			switch exitErr.ExitCode() {
+			case 1:
+				result.Verdict = "wrong_answer"
+				result.VerdictMsg = checkerMsg
+			case 2:
+				result.Verdict = "wrong_answer"
+				result.VerdictMsg = "Presentation Error: " + checkerMsg
+			default:
+				result.Verdict = "runtime_error"
+				result.VerdictMsg = "Checker error: " + checkerMsg
+			}
+		} else {
+			result.Verdict = "runtime_error"
+			result.VerdictMsg = "Checker crashed"
+		}
+		return result, nil
+	}
+
+	result.Verdict = "accepted"
+	result.VerdictMsg = "Accepted"
+	return result, nil
+}
+
+
+
 // DynamicTestResult holds the outcome of a single dynamically-generated test.
 type DynamicTestResult struct {
 	TestIndex      int    `json:"testIndex"`

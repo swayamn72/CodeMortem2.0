@@ -12,6 +12,7 @@ import (
 	"codemortem/internal/ai"
 	"codemortem/internal/app"
 	"codemortem/internal/auth"
+	"codemortem/internal/challenges"
 	_ "codemortem/internal/challenges/segment_tree"              // registers all segment tree challenges
 	_ "codemortem/internal/challenges/segment_tree_intermediate" // registers intermediate segment tree challenges
 	_ "codemortem/internal/challenges/hld"                       // registers all HLD challenges
@@ -72,6 +73,13 @@ func main() {
 	userHandler := user.NewHandler(userRepo)
 
 	judgeClient := judge.NewClient(&cfg.Judge0)
+
+	// Seed challenge test cases in background (idempotent — skips if already seeded)
+	go func() {
+		seedCtx, seedCancel := context.WithCancel(context.Background())
+		defer seedCancel()
+		challenges.SeedAll(seedCtx, db)
+	}()
 
 	hub := game.NewHub()
 	go hub.Run()

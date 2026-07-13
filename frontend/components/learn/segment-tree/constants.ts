@@ -177,7 +177,7 @@ export const MCQ_PART_1: MCQQuestion[] = [
         id: 1,
         question: "What is the time complexity of answering Q range-sum queries naively on an array of size N?",
         options: ["O(N)", "O(Q)", "O(N · Q)", "O(N log N)"],
-        answer: 2,
+        answerIndex: 2,
         explanation:
             "Correct! The naive approach takes O(N) operations per query in the worst case. Performing Q such queries yields a total time complexity of O(N · Q).",
     },
@@ -185,7 +185,7 @@ export const MCQ_PART_1: MCQQuestion[] = [
         id: 2,
         question: "Which of these scenarios would make the naive approach time out (standard 1.0s limit, ~10⁸ operations)?",
         options: ["N = 100, Q = 100", "N = 10,000, Q = 50", "N = 100,000, Q = 100,000", "N = 500, Q = 1,000"],
-        answer: 2,
+        answerIndex: 2,
         explanation:
             "Correct! When N = 10⁵ and Q = 10⁵, O(N · Q) results in 10¹⁰ operations, which is way above the standard CPU threshold of ~10⁸ operations per second, leading to a Time Limit Exceeded (TLE).",
     },
@@ -196,7 +196,7 @@ export const MCQ_PART_2: MCQQuestion[] = [
         id: 1,
         question: "How many nodes does a segment tree for an array of size N = 8 have?",
         options: ["15", "8", "16", "7"],
-        answer: 0,
+        answerIndex: 0,
         explanation:
             "Correct! For N = 8 (a power of 2), a full binary segment tree contains 8 leaves and 7 internal nodes, giving a total of 15 nodes (2N - 1). In the general case for any N, the size is bounded by 4N.",
     },
@@ -209,7 +209,7 @@ export const MCQ_PART_2: MCQQuestion[] = [
             "The sum of all elements from index 2 to 5 inclusive",
             "The average of elements in range [2, 5]",
         ],
-        answer: 2,
+        answerIndex: 2,
         explanation:
             "Correct! Each node in a sum segment tree stores the sum of all elements in its corresponding range, which for [2, 5] is a[2] + a[3] + a[4] + a[5].",
     },
@@ -217,7 +217,7 @@ export const MCQ_PART_2: MCQQuestion[] = [
         id: 3,
         question: "How many nodes are visited during a range query in the worst case?",
         options: ["O(N)", "O(N log N)", "O(log N)", "O(1)"],
-        answer: 2,
+        answerIndex: 2,
         explanation:
             "Correct! Because we only recurse when there is a partial overlap and can skip fully outside ranges or immediately return fully inside ranges, the maximum number of visited nodes per level is constant, resulting in O(log N) worst-case time complexity.",
     },

@@ -17,6 +17,9 @@ func init() {
 	registerMinCountSegTree()
 	registerMaxSubarraySegTree()
 	registerLazyRangeAddSumSegTree()
+	registerLazyRangeAssignSumSegTree()
+	registerLazyRangeAddMinSegTree()
+	registerLazyRangeAssignMaxSubSegTree()
 }
 
 // Standard whitespace-insensitive token checker.
@@ -405,6 +408,491 @@ int main() {
             cout << qry(1, 0, n - 1, l, r) << "\n";
         }
     }
+    return 0;
+}
+`,
+
+		CheckerPy:   tokenCheckerPy,
+		NumTests:    20,
+		TimeLimitMs: 1500,
+		MemLimitKB:  262144,
+	})
+}
+
+// ── Lazy Propagation: Range Assign / Range Sum ───────────────────────────────
+//
+// Problem: Given N integers and Q queries:
+//   - Type 1 l r v: range assign — set arr[l..r] to v
+//   - Type 2 l r: range sum — print sum of arr[l..r]
+//
+// Expected: segment tree with lazy propagation (assignment tags). Uses LLONG_MIN as sentinel.
+
+func registerLazyRangeAssignSumSegTree() {
+	challenges.Register(&challenges.Challenge{
+		ID:         "lazy_range_assign_sum",
+		Name:       "Range Assign / Range Sum",
+		CourseSlug: "segment-tree-intermediate",
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    n = rng.randint(2, 10)
+    q = rng.randint(1, 10)
+    lo, hi = -5, 5
+elif seed < 15:
+    n = rng.randint(100, 1000)
+    q = rng.randint(100, 1000)
+    lo, hi = -50, 50
+else:
+    # Large tier — brute force O(N*Q) will TLE
+    n = 100000
+    q = 100000
+    lo, hi = -100, 100
+
+a = [rng.randint(lo, hi) for _ in range(n)]
+print(n, q)
+print(*a)
+for _ in range(q):
+    if seed >= 15:
+        # Favor large range operations for massive tests
+        t = 2 if rng.random() < 0.5 else 1
+        # Force massive ranges (length ~99,000+) to reliably TLE brute forces
+        l = rng.randint(0, 100)
+        r = rng.randint(n - 100, n - 1)
+    else:
+        t = rng.randint(1, 2)
+        l = rng.randint(0, n - 1)
+        r = rng.randint(l, n - 1)
+    
+    if t == 1:
+        val = rng.randint(lo, hi)
+        print(1, l, r, val)
+    else:
+        print(2, l, r)
+`,
+
+		ReferenceCpp: `
+#include <bits/stdc++.h>
+using namespace std;
+using ll = long long;
+
+const int MAXN = 1e5 + 5;
+const ll NO_OP = LLONG_MIN;
+ll tree_arr[4 * MAXN], lazy[4 * MAXN];
+
+void push(int v, int s, int e) {
+    if (lazy[v] == NO_OP) return;
+    int m = (s + e) / 2;
+    tree_arr[2*v] = lazy[v] * (m - s + 1);
+    lazy[2*v] = lazy[v];
+    tree_arr[2*v+1] = lazy[v] * (e - m);
+    lazy[2*v+1] = lazy[v];
+    lazy[v] = NO_OP;
+}
+
+void build(const vector<ll>& a, int v, int s, int e) {
+    lazy[v] = NO_OP;
+    if (s == e) { tree_arr[v] = a[s]; return; }
+    int m = (s + e) / 2;
+    build(a, 2*v, s, m);
+    build(a, 2*v+1, m+1, e);
+    tree_arr[v] = tree_arr[2*v] + tree_arr[2*v+1];
+}
+
+void upd(int v, int s, int e, int l, int r, ll val) {
+    if (r < s || e < l) return;
+    if (l <= s && e <= r) {
+        tree_arr[v] = val * (e - s + 1);
+        lazy[v] = val;
+        return;
+    }
+    push(v, s, e);
+    int m = (s + e) / 2;
+    upd(2*v, s, m, l, r, val);
+    upd(2*v+1, m+1, e, l, r, val);
+    tree_arr[v] = tree_arr[2*v] + tree_arr[2*v+1];
+}
+
+ll qry(int v, int s, int e, int l, int r) {
+    if (r < s || e < l) return 0;
+    if (l <= s && e <= r) return tree_arr[v];
+    push(v, s, e);
+    int m = (s + e) / 2;
+    return qry(2*v, s, m, l, r) + qry(2*v+1, m+1, e, l, r);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<ll> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+    build(a, 1, 0, n - 1);
+    
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            ll v; cin >> v;
+            upd(1, 0, n - 1, l, r, v);
+        } else {
+            cout << qry(1, 0, n - 1, l, r) << "\n";
+        }
+    }
+    return 0;
+}
+`,
+
+		CheckerPy:   tokenCheckerPy,
+		NumTests:    20,
+		TimeLimitMs: 1500,
+		MemLimitKB:  262144,
+	})
+}
+
+// ── Lazy Propagation: Range Add / Range Minimum ──────────────────────────────
+//
+// Problem: Given N integers and Q queries:
+//   - Type 1 l r v: range add — add v to arr[l..r]
+//   - Type 2 l r: range min — print minimum of arr[l..r]
+//
+// Expected: segment tree with lazy propagation (addition tags, min merge).
+
+func registerLazyRangeAddMinSegTree() {
+	challenges.Register(&challenges.Challenge{
+		ID:         "lazy_range_add_min",
+		Name:       "Range Add / Range Minimum",
+		CourseSlug: "segment-tree-intermediate",
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    n = rng.randint(2, 10)
+    q = rng.randint(1, 10)
+    lo, hi = -5, 5
+elif seed < 15:
+    n = rng.randint(100, 1000)
+    q = rng.randint(100, 1000)
+    lo, hi = -50, 50
+else:
+    # Large tier — brute force O(N*Q) will TLE
+    n = 100000
+    q = 100000
+    lo, hi = -100, 100
+
+a = [rng.randint(lo, hi) for _ in range(n)]
+print(n, q)
+print(*a)
+for _ in range(q):
+    if seed >= 15:
+        # Favor large range operations for massive tests
+        t = 2 if rng.random() < 0.5 else 1
+        # Force massive ranges (length ~99,000+) to reliably TLE brute forces
+        l = rng.randint(0, 100)
+        r = rng.randint(n - 100, n - 1)
+    else:
+        t = rng.randint(1, 2)
+        l = rng.randint(0, n - 1)
+        r = rng.randint(l, n - 1)
+    
+    if t == 1:
+        val = rng.randint(lo, hi)
+        print(1, l, r, val)
+    else:
+        print(2, l, r)
+`,
+
+		ReferenceCpp: `
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <climits>
+
+using namespace std;
+
+const int MAXN = 100005;
+long long tree[4 * MAXN];
+long long lazy[4 * MAXN];
+long long A[MAXN];
+
+void build(int node, int start, int end) {
+    lazy[node] = 0;
+    if (start == end) {
+        tree[node] = A[start];
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    build(2 * node, start, mid);
+    build(2 * node + 1, mid + 1, end);
+    tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+}
+
+void push_down(int node, int start, int end) {
+    if (lazy[node] != 0) {
+        // Correct implementation: Just add the lazy offset directly to minimums
+        tree[2 * node] += lazy[node];
+        lazy[2 * node] += lazy[node];
+        
+        tree[2 * node + 1] += lazy[node];
+        lazy[2 * node + 1] += lazy[node];
+        
+        lazy[node] = 0;
+    }
+}
+
+void update_range(int node, int start, int end, int l, int r, long long val) {
+    if (start > end || start > r || end < l) return;
+    
+    if (start >= l && end <= r) {
+        tree[node] += val;
+        lazy[node] += val;
+        return;
+    }
+    
+    push_down(node, start, end);
+    int mid = start + (end - start) / 2;
+    update_range(2 * node, start, mid, l, r, val);
+    update_range(2 * node + 1, mid + 1, end, l, r, val);
+    
+    tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+}
+
+long long query_range(int node, int start, int end, int l, int r) {
+    if (start > end || start > r || end < l) {
+        return LLONG_MAX; // Out of bounds returns infinity
+    }
+    if (start >= l && end <= r) {
+        return tree[node];
+    }
+    
+    push_down(node, start, end);
+    int mid = start + (end - start) / 2;
+    long long p1 = query_range(2 * node, start, mid, l, r);
+    long long p2 = query_range(2 * node + 1, mid + 1, end, l, r);
+    
+    return min(p1, p2);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    
+    for (int i = 0; i < n; i++) {
+        cin >> A[i];
+    }
+
+    build(1, 0, n - 1);
+
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            long long v;
+            cin >> v;
+            update_range(1, 0, n - 1, l, r, v);
+        } else {
+            cout << query_range(1, 0, n - 1, l, r) << "\n";
+        }
+    }
+    push(v, s, e);
+    int m = (s + e) / 2;
+    upd(2*v, s, m, l, r, val);
+    upd(2*v+1, m+1, e, l, r, val);
+    tree_arr[v] = tree_arr[2*v] + tree_arr[2*v+1];
+}
+
+ll qry(int v, int s, int e, int l, int r) {
+    if (r < s || e < l) return 0;
+    if (l <= s && e <= r) return tree_arr[v];
+    push(v, s, e);
+    int m = (s + e) / 2;
+    return qry(2*v, s, m, l, r) + qry(2*v+1, m+1, e, l, r);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false); cin.tie(NULL);
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    vector<ll> a(n);
+    for (int i = 0; i < n; i++) cin >> a[i];
+    build(a, 1, 0, n - 1);
+    
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            ll v; cin >> v;
+            upd(1, 0, n - 1, l, r, v);
+        } else {
+            cout << qry(1, 0, n - 1, l, r) << "\n";
+        }
+    }
+    return 0;
+}
+`,
+
+		CheckerPy:   tokenCheckerPy,
+		NumTests:    20,
+		TimeLimitMs: 1500,
+		MemLimitKB:  262144,
+	})
+}
+
+
+// ── Lazy Propagation: Range Assign / Max Subarray ────────────────────────────
+//
+// Problem: Given N integers and Q queries:
+//   - Type 1 l r v: range assign — set arr[l..r] = v
+//
+// After building the tree and after every query, print the maximum contiguous 
+// subarray sum of the entire array.
+// Expected: segment tree with lazy propagation tracking (sum, pref, suf, best).
+
+func registerLazyRangeAssignMaxSubSegTree() {
+	challenges.Register(&challenges.Challenge{
+		ID:         "lazy_range_assign_max_sub",
+		Name:       "Range Assign + Max Subarray",
+		CourseSlug: "segment-tree-intermediate",
+
+		GeneratorPy: `
+import sys, random
+
+seed = int(sys.argv[1])
+rng = random.Random(seed)
+
+if seed < 5:
+    n = rng.randint(2, 10)
+    q = rng.randint(1, 10)
+    lo, hi = -5, 5
+elif seed < 15:
+    n = rng.randint(100, 1000)
+    q = rng.randint(100, 1000)
+    lo, hi = -50, 50
+else:
+    # Large tier
+    n = 100000
+    q = 100000
+    lo, hi = -100, 100
+
+a = [rng.randint(lo, hi) for _ in range(n)]
+print(n, q)
+print(*a)
+for _ in range(q):
+    if seed >= 15:
+        # Favor large range operations for massive tests
+        l = rng.randint(0, 100)
+        r = rng.randint(n - 100, n - 1)
+    else:
+        l = rng.randint(0, n - 1)
+        r = rng.randint(l, n - 1)
+    
+    val = rng.randint(lo, hi)
+    print(l, r, val)
+`,
+
+		ReferenceCpp: `
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <climits>
+
+using namespace std;
+
+const long long NO_OP = LLONG_MIN;
+
+struct Node {
+    long long sum, pref, suf, best;
+};
+
+const int MAXN = 100005;
+Node tree[4 * MAXN];
+long long lazy[4 * MAXN];
+long long A[MAXN];
+
+Node combine(Node l, Node r) {
+    return {
+        l.sum + r.sum,
+        max(l.pref, l.sum + r.pref),
+        max(r.suf, r.sum + l.suf),
+        max({l.best, r.best, l.suf + r.pref})
+    };
+}
+
+void applyAssign(int node, long long val, int len) {
+    tree[node].sum = val * len;
+    long long max_val = max(0LL, val * len);
+    tree[node].pref = max_val;
+    tree[node].suf = max_val;
+    tree[node].best = max_val;
+    lazy[node] = val;
+}
+
+void build(int node, int s, int e) {
+    lazy[node] = NO_OP;
+    if (s == e) {
+        long long v = A[s];
+        tree[node] = {v, max(0LL, v), max(0LL, v), max(0LL, v)};
+        return;
+    }
+    int m = s + (e - s) / 2;
+    build(2 * node, s, m);
+    build(2 * node + 1, m + 1, e);
+    tree[node] = combine(tree[2 * node], tree[2 * node + 1]);
+}
+
+void push_down(int node, int s, int e) {
+    if (lazy[node] != NO_OP) {
+        int m = s + (e - s) / 2;
+        applyAssign(2 * node, lazy[node], m - s + 1);
+        applyAssign(2 * node + 1, lazy[node], e - m);
+        lazy[node] = NO_OP;
+    }
+}
+
+void update(int node, int s, int e, int l, int r, long long v) {
+    if (r < s || e < l) return;
+    if (l <= s && e <= r) {
+        applyAssign(node, v, e - s + 1);
+        return;
+    }
+    push_down(node, s, e);
+    int m = s + (e - s) / 2;
+    update(2 * node, s, m, l, r, v);
+    update(2 * node + 1, m + 1, e, l, r, v);
+    tree[node] = combine(tree[2 * node], tree[2 * node + 1]);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, q;
+    if (!(cin >> n >> q)) return 0;
+    
+    for (int i = 0; i < n; i++) cin >> A[i];
+    
+    build(1, 0, n - 1);
+    cout << tree[1].best << "\n";
+    
+    while (q--) {
+        int l, r;
+        long long v;
+        cin >> l >> r >> v;
+        update(1, 0, n - 1, l, r, v);
+        cout << tree[1].best << "\n";
+    }
+    
     return 0;
 }
 `,

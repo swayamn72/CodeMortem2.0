@@ -81,7 +81,14 @@ func RegisterLearningPathRoutes(lp fiber.Router, judgeClient *judge.Client, db *
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "unknown challenge ID"})
 		}
 
-		results, err := judgeClient.DynamicJudge(c.Context(), langID, req.Code, challenge)
+		// Load pre-generated test cases from DB
+		testCases, err := challenges.GetStoredTestCases(c.Context(), db, req.ChallengeID, challenge.NumTests)
+		if err != nil {
+			log.Printf("[lp] test cases not ready for %q: %v", req.ChallengeID, err)
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "test cases are still being generated, please try again in a moment"})
+		}
+
+		results, err := judgeClient.StaticJudge(c.Context(), langID, req.Code, testCases, challenge)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "judge service error: " + err.Error()})
 		}

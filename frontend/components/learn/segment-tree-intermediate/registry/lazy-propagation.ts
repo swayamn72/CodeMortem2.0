@@ -1012,6 +1012,142 @@ void assign(int v, int s, int e, int l, int r, ll val) {
             cpp: REF_CPP_RANGE_ASSIGN_SUM,
             python: REF_PYTHON_RANGE_ASSIGN_SUM,
           },
+          editorial: `**The Concept: Overwriting vs. Accumulating**
+In a standard lazy segment tree designed for range addition, pending updates are accumulated. If you add 5 to a range, and later add 3 to that same range, the pending lazy value simply becomes 8.
+
+Range Assignment is fundamentally different: it is absolute. If you assign 5 to a range, and later assign 3 to that same range, the 5 is completely destroyed. The new pending value is just 3. Because of this, when pushing lazy values down to children, we do not add to their existing values; we completely overwrite their tree sums and their lazy tags.
+
+**The Sentinel Trap**
+The most common bug in this problem is setting the default empty state of the lazy array to 0. If the problem constraints allow setting array values to 0 (which they do: \\(v \\ge -10^9\\)), the tree cannot distinguish between "no update is pending" and "a pending update wants to set this range to 0."
+
+To solve this, we use a sentinel value. A sentinel is a value so far outside the bounds of possible inputs that it cannot possibly be a real query. Since \\(v \\ge -10^9\\), we can safely use \`LLONG_MIN\` (which is roughly \\(-9 \\times 10^{18}\\)) to represent a completely blank, inactive lazy tag.
+
+**The Push Down Mechanism**
+When a node needs to pass an assignment down to its children:
+1. We check if \`lazy[node] != LLONG_MIN\`. If it's the sentinel, we do nothing.
+2. If there is a valid assignment, we update the left child's sum to be the pending value multiplied by the length of the left segment.
+3. We overwrite the left child's lazy tag with the new value. (We do not use \`+=\`).
+4. We repeat this for the right child.
+5. Finally, we reset the current node's lazy tag back to \`LLONG_MIN\`.
+
+**C++ Solution (Accepted)**
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <climits>
+
+using namespace std;
+
+const int MAXN = 100005;
+const long long NO_OP = LLONG_MIN; // Sentinel value
+
+long long tree[4 * MAXN];
+long long lazy[4 * MAXN];
+long long A[MAXN];
+
+// Build the initial segment tree
+void build(int node, int start, int end) {
+    lazy[node] = NO_OP; // Initialize all lazy tags to the sentinel
+    if (start == end) {
+        tree[node] = A[start];
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    build(2 * node, start, mid);
+    build(2 * node + 1, mid + 1, end);
+    tree[node] = tree[2 * node] + tree[2 * node + 1];
+}
+
+// Push down pending absolute assignments to the children
+void push_down(int node, int start, int end) {
+    if (lazy[node] != NO_OP) {
+        int mid = start + (end - start) / 2;
+        long long val = lazy[node];
+        
+        // Overwrite left child
+        tree[2 * node] = val * (mid - start + 1);
+        lazy[2 * node] = val; // Absolute assignment, NOT +=
+        
+        // Overwrite right child
+        tree[2 * node + 1] = val * (end - mid);
+        lazy[2 * node + 1] = val; // Absolute assignment, NOT +=
+        
+        // Clear the lazy tag for the current node using the sentinel
+        lazy[node] = NO_OP;
+    }
+}
+
+// Range Update: Assign 'val' to all elements in A[l..r]
+void update_range(int node, int start, int end, int l, int r, long long val) {
+    if (start > end || start > r || end < l) {
+        return;
+    }
+    
+    // Completely inside the range
+    if (start >= l && end <= r) {
+        tree[node] = val * (end - start + 1);
+        lazy[node] = val;
+        return;
+    }
+    
+    // Push down before branching
+    push_down(node, start, end);
+    
+    int mid = start + (end - start) / 2;
+    update_range(2 * node, start, mid, l, r, val);
+    update_range(2 * node + 1, mid + 1, end, l, r, val);
+    
+    tree[node] = tree[2 * node] + tree[2 * node + 1];
+}
+
+// Range Query: Get the sum of elements in A[l..r]
+long long query_range(int node, int start, int end, int l, int r) {
+    if (start > end || start > r || end < l) {
+        return 0;
+    }
+    
+    if (start >= l && end <= r) {
+        return tree[node];
+    }
+    
+    // Push down before reading children
+    push_down(node, start, end);
+    
+    int mid = start + (end - start) / 2;
+    long long p1 = query_range(2 * node, start, mid, l, r);
+    long long p2 = query_range(2 * node + 1, mid + 1, end, l, r);
+    
+    return p1 + p2;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, q;
+    cin >> n >> q;
+    
+    for (int i = 0; i < n; i++) {
+        cin >> A[i];
+    }
+
+    build(1, 0, n - 1);
+
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            long long v;
+            cin >> v;
+            update_range(1, 0, n - 1, l, r, v);
+        } else {
+            cout << query_range(1, 0, n - 1, l, r) << "\\n";
+        }
+    }
+    
+    return 0;
+}
+\`\`\``,
         },
       },
     },
@@ -1147,25 +1283,140 @@ void update(int v, int s, int e, int l, int r, ll val) {
             cpp: REF_CPP_RANGE_ADD_MIN,
             python: REF_PYTHON_RANGE_ADD_MIN,
           },
+          editorial: `**The Concept**
+When adapting Lazy Propagation from a Range Sum tree to a Range Minimum tree, the core structural mechanics remain identical, but the mathematical transition functions change.
+
+The fundamental rule for this problem is: Adding a constant value \\(V\\) to all elements in a set shifts the minimum value of that set by exactly \\(V\\). For instance, if the minimum element in a segment is 3, and we add 10 to every single element in that segment, the new minimum element is guaranteed to be 3 + 10 = 13. Because this relationship is independent of how many elements are in the segment, we do not multiply the lazy value by the length of the node's range.
+
+**The Identity Element**
+For a Range Sum tree, the identity element for an out-of-bounds query is 0 (since adding 0 does not change a sum). However, for a Range Minimum tree, our identity element must be infinity (\`LLONG_MAX\` in C++). If an out-of-bounds query returns 0, it could corrupt our calculations if the actual elements in our target range are all greater than 0 (e.g., \`min(5, 0) = 0\`, which is wrong). Returning \`LLONG_MAX\` ensures that the valid ranges always win the \`min()\` comparison.
+
+**The Push Down Mechanism**
+When a node clears its lazy debt and pushes updates down to its left and right children:
+1. We check if \`lazy[node] != 0\`.
+2. We add \`lazy[node]\` directly to the tree values of both children (without multiplying by segment length).
+3. We accumulate \`lazy[node]\` into the lazy tags of both children using \`+=\`.
+4. We reset \`lazy[node] = 0\`.
+
+**C++ Solution (Accepted)**
+\`\`\`cpp
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <climits>
+
+using namespace std;
+
+const int MAXN = 100005;
+long long tree[4 * MAXN];
+long long lazy[4 * MAXN];
+long long A[MAXN];
+
+void build(int node, int start, int end) {
+    lazy[node] = 0;
+    if (start == end) {
+        tree[node] = A[start];
+        return;
+    }
+    int mid = start + (end - start) / 2;
+    build(2 * node, start, mid);
+    build(2 * node + 1, mid + 1, end);
+    tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+}
+
+void push_down(int node, int start, int end) {
+    if (lazy[node] != 0) {
+        // Correct implementation: Just add the lazy offset directly to minimums
+        tree[2 * node] += lazy[node];
+        lazy[2 * node] += lazy[node];
+        
+        tree[2 * node + 1] += lazy[node];
+        lazy[2 * node + 1] += lazy[node];
+        
+        lazy[node] = 0;
+    }
+}
+
+void update_range(int node, int start, int end, int l, int r, long long val) {
+    if (start > end || start > r || end < l) return;
+    
+    if (start >= l && end <= r) {
+        tree[node] += val;
+        lazy[node] += val;
+        return;
+    }
+    
+    push_down(node, start, end);
+    int mid = start + (end - start) / 2;
+    update_range(2 * node, start, mid, l, r, val);
+    update_range(2 * node + 1, mid + 1, end, l, r, val);
+    
+    tree[node] = min(tree[2 * node], tree[2 * node + 1]);
+}
+
+long long query_range(int node, int start, int end, int l, int r) {
+    if (start > end || start > r || end < l) {
+        return LLONG_MAX; // Out of bounds returns infinity
+    }
+    if (start >= l && end <= r) {
+        return tree[node];
+    }
+    
+    push_down(node, start, end);
+    int mid = start + (end - start) / 2;
+    long long p1 = query_range(2 * node, start, mid, l, r);
+    long long p2 = query_range(2 * node + 1, mid + 1, end, l, r);
+    
+    return min(p1, p2);
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    int n, q;
+    cin >> n >> q;
+    
+    for (int i = 0; i < n; i++) {
+        cin >> A[i];
+    }
+
+    build(1, 0, n - 1);
+
+    while (q--) {
+        int type, l, r;
+        cin >> type >> l >> r;
+        if (type == 1) {
+            long long v;
+            cin >> v;
+            update_range(1, 0, n - 1, l, r, v);
+        } else {
+            cout << query_range(1, 0, n - 1, l, r) << "\\n";
+        }
+    }
+    
+    return 0;
+}
+\`\`\``,
         },
       },
     },
 
-    // ── Challenge 6: Capstone — Range Add + Max Subarray ──────────────────────
+    // ── Challenge 6: Capstone — Range Assign + Max Subarray ───────────────────
     {
       id: "p3-challenge-capstone",
-      title: "14. Capstone: Range Add + Max Subarray",
+      title: "14. Capstone: Range Assign + Max Subarray",
       content: {
         type: "challenge",
         data: {
           problemStatement:
-            "Given an array A of N integers and Q range-add updates. After each update (and before any), print the maximum subarray sum.\n\n**Empty subarray is allowed**, so the answer is always ≥ 0.\n\nThis combines the **four-field node** from Problem 2 with the **lazy propagation** from Problem 3.\n\n**Range add:** `l r v` — add v to every element A[l..r] (0-indexed)",
+            "Given an array A of N integers and Q range-assign updates. After building the tree and after every query, print the maximum contiguous subarray sum of the entire array.\n\n**Empty subarray is allowed**, so the answer is always ≥ 0.\n\n**Range assign:** `l r v` — set every element in A[l..r] to v (0-indexed)",
           inputFormat:
-            "First line: N Q\nSecond line: N space-separated integers (the initial array)\nNext Q lines: each is `l r v` — a range add",
+            "First line: N Q\nSecond line: N space-separated integers (the initial array)\nNext Q lines: each is `l r v` — a range assignment",
           outputFormat:
             "Q+1 lines: the maximum subarray sum before any updates, then after each update.",
           sampleInput: "5 3\n-2 1 -3 4 -1\n0 4 1\n2 4 3\n0 2 -10",
-          sampleOutput: "4\n9\n9\n4",
+          sampleOutput: "4\n5\n11\n6",
           constraints: [
             "1 ≤ N, Q ≤ 10⁵",
             "-10⁹ ≤ A[i], v ≤ 10⁹",
@@ -1173,41 +1424,67 @@ void update(int v, int s, int e, int l, int r, ll val) {
           ],
           hints: [
             {
-              title: "Hint 1 — Combine both techniques",
-              body: "Each node stores (total, pref, suf, best) exactly as in Problem 2. Add a lazy[] array for range-add tags. The hard part is applyAdd(node, delta, len): think about how adding delta to every element shifts total, pref, suf, and best.",
+              title: "Hint 1 — The Node Transitions",
+              body: "When merging a left child and right child, the logic is identical to a standard point-update maximum subarray tree: sum = l.sum + r.sum, pref = max(l.pref, l.sum + r.pref), suf = max(r.suf, r.sum + l.suf), best = max({l.best, r.best, l.suf + r.pref}).",
             },
             {
-              title: "Hint 2 — applyAdd for the four-field node",
-              body: "total += delta × len. pref = max(0, pref + delta × len). suf = max(0, suf + delta × len). best = max(0, best + delta × len). Why clamp at 0? Because the empty subarray is always an option.",
+              title: "Hint 2 — The Lazy Application",
+              body: "When a node is completely covered by an assignment of value V, every single element in its range becomes V. The total sum becomes V * length. For the optimal prefix, suffix, and overall subarray: if V is positive, we take the whole segment (V * length). If V is negative, we take the empty subarray (0).",
             },
             {
-              title: "Hint 3 — push_down uses applyAdd",
-              body: "In push_down, apply applyAdd(child_node, lazy[v], child_length) to each child, then accumulate lazy[child] += lazy[v]. The merge function is identical to Problem 2 — no changes needed there.",
+              title: "Hint 3 — The Sentinel",
+              body: "Because an assignment of 0 is a completely valid operation, we cannot check if an update is pending using `if (lazy[node] != 0)`. We must initialize and reset our lazy array using a sentinel value, such as `LLONG_MIN`.",
             },
           ],
-          backendChallengeId: "lazy_range_add_max_subarray",
+          backendChallengeId: "lazy_range_assign_max_sub",
           sampleTestCases: [
             {
-              label: "Basic: range add shifts answer",
+              label: "Basic: range assign shifts answer",
               input: "5 3\n-2 1 -3 4 -1\n0 4 1\n2 4 3\n0 2 -10",
-              expected: "4\n9\n9\n4",
+              expected: "4\n5\n11\n4",
             },
             {
               label: "All negative — empty subarray stays 0",
               input: "3 2\n-5 -3 -8\n0 2 -1\n0 2 100",
-              expected: "0\n0\n89",
-            },
-            {
-              label: "Large range add improves answer",
-              input: "4 2\n1 2 3 4\n0 3 10\n1 2 -20",
-              expected: "10\n50\n40",
+              expected: "0\n0\n300",
             },
           ],
           starterCode: { cpp: STARTER_CPP, python: STARTER_PYTHON },
           referenceBoilerplate: {
-            cpp: REF_CPP_CAPSTONE,
-            python: REF_PYTHON_CAPSTONE,
+            cpp: `// Reference implementation is available in the editorial after your first submission.`,
+            python: `# Reference implementation is available in the editorial after your first submission.`,
           },
+          editorial: [
+            {
+              kind: "callout",
+              variant: "insight",
+              title: "The Concept",
+              body: "This problem is the ultimate test of Segment Tree mastery. It requires combining a multi-variable node state (tracking sum, pref, suf, and best) with absolute Lazy Propagation (Range Assignments).",
+            },
+            {
+              kind: "text",
+              text: "**The Node Transitions (Merge)**\nWhen merging a left child and right child, the logic is identical to a standard point-update maximum subarray tree:\n\n`sum = left.sum + right.sum`\n`pref = max(left.pref, left.sum + right.pref)`\n`suf = max(right.suf, right.sum + left.suf)`\n`best = max({left.best, right.best, left.suf + right.pref})`",
+            },
+            {
+              kind: "text",
+              text: "**The Lazy Application (The Secret Sauce)**\nWhen a node is completely covered by an assignment of value `V`, every single element in its range becomes `V`. This makes calculating its new state incredibly simple:\n- The total sum becomes `V * length`.\n- For the optimal prefix, suffix, and overall subarray: if `V` is positive, we take the whole segment (`V * length`). If `V` is negative, we take the empty subarray (`0`).\n\nWe define a helper function `applyAssign(node, val, len)` that instantly overwrites the node's 4 variables and updates its lazy tag.",
+            },
+            {
+              kind: "callout",
+              variant: "gotcha",
+              title: "The Sentinel",
+              body: "Because an assignment of 0 is a completely valid operation, we cannot check if an update is pending using `if (lazy[node] != 0)`. We must initialize and reset our lazy array using a sentinel value, such as `LLONG_MIN`.",
+            },
+            {
+              kind: "text",
+              text: "**C++ Solution (Accepted)**"
+            },
+            {
+              kind: "code",
+              language: "cpp",
+              code: `#include <iostream>\n#include <vector>\n#include <algorithm>\n#include <climits>\n\nusing namespace std;\n\nconst long long NO_OP = LLONG_MIN; // The vital sentinel\n\nstruct Node {\n    long long sum, pref, suf, best;\n};\n\nconst int MAXN = 100005;\nNode tree[4 * MAXN];\nlong long lazy[4 * MAXN];\nlong long A[MAXN];\n\nNode combine(Node l, Node r) {\n    return {\n        l.sum + r.sum,\n        max(l.pref, l.sum + r.pref),\n        max(r.suf, r.sum + l.suf),\n        max({l.best, r.best, l.suf + r.pref})\n    };\n}\n\nvoid applyAssign(int node, long long val, int len) {\n    tree[node].sum = val * len;\n    long long max_val = max(0LL, val * len);\n    tree[node].pref = max_val;\n    tree[node].suf = max_val;\n    tree[node].best = max_val;\n    lazy[node] = val;\n}\n\nvoid build(int node, int s, int e) {\n    lazy[node] = NO_OP;\n    if (s == e) {\n        long long v = A[s];\n        tree[node] = {v, max(0LL, v), max(0LL, v), max(0LL, v)};\n        return;\n    }\n    int m = s + (e - s) / 2;\n    build(2 * node, s, m);\n    build(2 * node + 1, m + 1, e);\n    tree[node] = combine(tree[2 * node], tree[2 * node + 1]);\n}\n\nvoid push_down(int node, int s, int e) {\n    if (lazy[node] != NO_OP) {\n        int m = s + (e - s) / 2;\n        applyAssign(2 * node, lazy[node], m - s + 1);\n        applyAssign(2 * node + 1, lazy[node], e - m);\n        lazy[node] = NO_OP;\n    }\n}\n\nvoid update(int node, int s, int e, int l, int r, long long v) {\n    if (r < s || e < l) return;\n    if (l <= s && e <= r) {\n        applyAssign(node, v, e - s + 1);\n        return;\n    }\n    push_down(node, s, e);\n    int m = s + (e - s) / 2;\n    update(2 * node, s, m, l, r, v);\n    update(2 * node + 1, m + 1, e, l, r, v);\n    tree[node] = combine(tree[2 * node], tree[2 * node + 1]);\n}\n\nint main() {\n    ios_base::sync_with_stdio(false);\n    cin.tie(NULL);\n\n    int n, q;\n    if (!(cin >> n >> q)) return 0;\n    \n    for (int i = 0; i < n; i++) cin >> A[i];\n    \n    build(1, 0, n - 1);\n    cout << tree[1].best << "\\n";\n    \n    while (q--) {\n        int l, r;\n        long long v;\n        cin >> l >> r >> v;\n        update(1, 0, n - 1, l, r, v);\n        cout << tree[1].best << "\\n";\n    }\n    \n    return 0;\n}`
+            }
+          ],
         },
       },
     },
