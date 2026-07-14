@@ -146,7 +146,7 @@ func main() {
 		Format: "[${time}] ${status} ${method} ${path} ${latency}\n",
 	}))
 	fiberApp.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000, https://code-mortem2-0.vercel.app",
+		AllowOrigins:     "http://localhost:3000, https://code-mortem2-0.vercel.app, https://codemortem.dev, https://www.codemortem.dev",
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
