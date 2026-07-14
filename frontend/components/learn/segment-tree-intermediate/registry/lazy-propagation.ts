@@ -1441,7 +1441,7 @@ int main() {
             {
               label: "Basic: range assign shifts answer",
               input: "5 3\n-2 1 -3 4 -1\n0 4 1\n2 4 3\n0 2 -10",
-              expected: "4\n5\n11\n4",
+              expected: "4\n5\n11\n6",
             },
             {
               label: "All negative — empty subarray stays 0",
