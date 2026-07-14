@@ -7,9 +7,9 @@ services:
     container_name: codemortem-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: codemortem
-      POSTGRES_PASSWORD: codemortem_dev_2026
-      POSTGRES_DB: codemortem
+      POSTGRES_USER: ${DB_USER:-codemortem}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-codemortem_dev_2026}
+      POSTGRES_DB: ${DB_NAME:-codemortem}
     ports:
       - "5433:5432"
     volumes:
