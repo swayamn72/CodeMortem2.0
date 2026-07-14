@@ -146,9 +146,10 @@ func main() {
 		Format: "[${time}] ${status} ${method} ${path} ${latency}\n",
 	}))
 	fiberApp.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+		AllowOrigins:     "http://localhost:3000, https://code-mortem2-0.vercel.app",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
+		AllowCredentials: true,
 	}))
 
 	// Initialize rate limiter with Redis store
