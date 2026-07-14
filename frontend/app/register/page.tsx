@@ -261,6 +261,21 @@ export default function RegisterPage() {
                 </div>
               )}
 
+              {/* Non-Somaiya free trial teaser — shows once email is entered and isn't Somaiya */}
+              {email && !isSomaiya && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 14px", marginBottom: 16,
+                  background: "rgba(168,85,247,0.06)", border: "1px solid rgba(168,85,247,0.25)",
+                  borderRadius: "var(--radius-md)",
+                }}>
+                  <span style={{ fontSize: "1.2rem" }}>🎁</span>
+                  <span style={{ fontSize: 13, color: "#a855f7", fontWeight: 600 }}>
+                    New users get 1 month Premium free — no credit card needed!
+                  </span>
+                </div>
+              )}
+
               <form className="auth-form" onSubmit={handleStep1}>
                 <div className="input-group">
                   <label className="input-label" htmlFor="username">Username</label>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import { Crown } from "lucide-react";
 
 interface NavbarProps {
   activeTab?: 'dashboard' | 'learn' | 'leaderboard' | 'premium' | 'settings';
@@ -184,7 +185,21 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
                 }}
                 className="navbar-user-btn"
               >
-                {isPremiumActive && <span style={{ color: "#ffd700" }}>👑</span>}
+                {isPremiumActive && (
+                  <span className="navbar-crown-wrapper" title="">
+                    <Crown size={14} className="navbar-crown-icon" />
+                    <span className="navbar-crown-tooltip">
+                      <span className="navbar-crown-tooltip-label">Premium</span>
+                      {user.premiumExpiresAt
+                        ? (() => {
+                            const days = Math.ceil((new Date(user.premiumExpiresAt).getTime() - Date.now()) / 86400000);
+                            return <span className="navbar-crown-tooltip-expiry">Expires in {days} day{days !== 1 ? "s" : ""}</span>;
+                          })()
+                        : <span className="navbar-crown-tooltip-expiry">Active</span>
+                      }
+                    </span>
+                  </span>
+                )}
                 <span style={{ color: getRankColor(user.rating) }}>
                   {user.username}
                 </span>

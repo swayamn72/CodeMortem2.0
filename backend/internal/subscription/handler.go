@@ -51,6 +51,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router, authMw fiber.Handler) {
 	sub.Get("/status", authMw, h.GetStatus)
 	sub.Post("/create-order", authMw, h.CreateOrder)
 	sub.Post("/verify", authMw, h.VerifyPayment)
+	sub.Post("/claim-trial", authMw, h.ClaimTrial)
 	sub.Post("/webhook", h.Webhook)
 }
 
@@ -244,6 +245,18 @@ func (h *Handler) Webhook(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusOK)
+}
+
+// ClaimTrial grants a 1-month free trial to a non-Somaiya user who hasn't claimed one before.
+func (h *Handler) ClaimTrial(c *fiber.Ctx) error {
+	userID := auth.GetUserID(c)
+	if err := h.repo.ClaimFreeTrial(c.Context(), userID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "1-month free trial activated!",
+	})
 }
 
 func randomHex(n int) string {

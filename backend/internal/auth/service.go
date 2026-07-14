@@ -158,7 +158,7 @@ func somaiyaPremiumDetails(email string) (bool, *time.Time, *string) {
 	}
 
 	exp := time.Now().AddDate(0, 3, 0)
-	plan := "institutional_free"
+	plan := "quarterly"
 	return true, &exp, &plan
 }
 

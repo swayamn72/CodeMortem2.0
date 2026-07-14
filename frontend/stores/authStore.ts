@@ -22,6 +22,7 @@ interface User {
   premiumExpiresAt: string | null;
   premiumPlan: string | null;
   emailVerified: boolean;
+  trialClaimedAt: string | null;
 }
 
 interface Tokens {

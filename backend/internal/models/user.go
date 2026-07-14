@@ -37,6 +37,7 @@ type User struct {
 	PremiumExpiresAt  *time.Time `json:"premiumExpiresAt" db:"premium_expires_at"`
 	PremiumPlan       *string    `json:"premiumPlan" db:"premium_plan"`
 	EmailVerified     bool       `json:"emailVerified" db:"email_verified"`
+	TrialClaimedAt   *time.Time `json:"trialClaimedAt" db:"trial_claimed_at"`
 
 	CreatedAt    time.Time `json:"createdAt" db:"created_at"`
 	UpdatedAt    time.Time `json:"updatedAt" db:"updated_at"`
@@ -76,6 +77,7 @@ type UserPublic struct {
 	PremiumExpiresAt    *time.Time `json:"premiumExpiresAt"`
 	PremiumPlan         *string    `json:"premiumPlan"`
 	EmailVerified       bool       `json:"emailVerified"`
+	TrialClaimedAt      *time.Time `json:"trialClaimedAt"`
 	CreatedAt           time.Time  `json:"createdAt"`
 }
 
@@ -102,6 +104,7 @@ func (u *User) ToPublic() *UserPublic {
 		PremiumExpiresAt:    u.PremiumExpiresAt,
 		PremiumPlan:         u.PremiumPlan,
 		EmailVerified:       u.EmailVerified,
+		TrialClaimedAt:      u.TrialClaimedAt,
 		CreatedAt:           u.CreatedAt,
 	}
 }

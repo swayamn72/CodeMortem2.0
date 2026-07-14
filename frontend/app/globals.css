@@ -1104,3 +1104,267 @@ a:hover {
   transform: translateY(-1px);
   box-shadow: 0 0 32px rgba(34, 211, 238, 0.4) !important;
 }
+
+/* ── Crown Tooltip ── */
+.navbar-crown-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.navbar-crown-icon {
+  color: #ffd700;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+  transition: filter 0.2s;
+}
+
+.navbar-crown-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  background: rgba(15, 15, 20, 0.97);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 10px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s, visibility 0.18s, transform 0.18s;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,215,0,0.08);
+  z-index: 9999;
+}
+
+.navbar-crown-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: rgba(255, 215, 0, 0.3);
+}
+
+.navbar-crown-wrapper:hover .navbar-crown-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.navbar-crown-wrapper:hover .navbar-crown-icon {
+  filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.9));
+}
+
+.navbar-crown-tooltip-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd700;
+  letter-spacing: 0.5px;
+}
+
+.navbar-crown-tooltip-expiry {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+}
+
+/* ── Dashboard Glassmorphism Stat Cards ── */
+.dash-stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 20px 24px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(34,211,238,0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.dash-stat-card:hover {
+  border-color: rgba(34, 211, 238, 0.2);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.06);
+  transform: translateY(-2px);
+}
+
+.dash-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.dash-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Dashboard Action Cards ── */
+.dash-action-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  padding: 24px;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.22s ease;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.dash-action-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(34,211,238,0.03) 100%);
+  opacity: 0;
+  transition: opacity 0.22s;
+  pointer-events: none;
+}
+
+.dash-action-card:hover {
+  border-color: rgba(34, 211, 238, 0.22);
+  box-shadow: 0 0 32px rgba(34, 211, 238, 0.08), 0 4px 24px rgba(0,0,0,0.3);
+  transform: translateY(-3px);
+}
+
+.dash-action-card:hover::before {
+  opacity: 1;
+}
+
+.dash-action-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22D3EE;
+  flex-shrink: 0;
+}
+
+.dash-action-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.dash-action-card p {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Free Trial Offer Banner ── */
+@keyframes trialSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.trial-offer-banner {
+  position: fixed;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  width: min(560px, calc(100vw - 32px));
+  background: linear-gradient(135deg, rgba(15,15,22,0.97) 0%, rgba(18,12,30,0.97) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: trialSlideIn 0.3s ease;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(168, 85, 247, 0.15), 0 0 0 1px rgba(168, 85, 247, 0.1);
+}
+
+.trial-offer-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+}
+
+.trial-offer-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.trial-offer-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.trial-offer-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+}
+
+.trial-offer-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.18s;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+}
+
+.trial-offer-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px rgba(168, 85, 247, 0.5);
+}
+
+.trial-offer-close {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.3);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.trial-offer-close:hover {
+  color: rgba(255,255,255,0.7);
+}

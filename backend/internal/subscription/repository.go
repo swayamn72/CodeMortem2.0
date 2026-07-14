@@ -3,6 +3,7 @@ package subscription
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -116,3 +117,43 @@ func (r *Repository) GetPremiumStatus(ctx context.Context, userID string) (bool,
 	isActive := result.IsPremium && (result.PremiumExpiresAt == nil || result.PremiumExpiresAt.After(time.Now()))
 	return isActive, result.PremiumExpiresAt, result.PremiumPlan, nil
 }
+
+// ClaimFreeTrial grants a 1-month free trial to an eligible user.
+// It returns an error if the user has already claimed a trial or is a Somaiya premium user.
+func (r *Repository) ClaimFreeTrial(ctx context.Context, userID string) error {
+	var result struct {
+		Email           string     `db:"email"`
+		TrialClaimedAt  *time.Time `db:"trial_claimed_at"`
+		IsPremium       bool       `db:"is_premium"`
+	}
+	if err := r.db.GetContext(ctx, &result, `
+		SELECT email, trial_claimed_at, is_premium FROM users WHERE id = $1
+	`, userID); err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	// Already claimed a trial
+	if result.TrialClaimedAt != nil {
+		return fmt.Errorf("free trial already claimed")
+	}
+
+	// Somaiya users already get 3 months free — no additional trial
+	if strings.HasSuffix(strings.ToLower(result.Email), "@somaiya.edu") {
+		return fmt.Errorf("Somaiya students already receive 3 months free")
+	}
+
+	now := time.Now()
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE users
+		SET trial_claimed_at = $1,
+		    is_premium = TRUE,
+		    premium_expires_at = GREATEST(COALESCE(premium_expires_at, NOW()), NOW()) + INTERVAL '1 month',
+		    premium_plan = 'trial'
+		WHERE id = $2
+	`, now, userID)
+	if err != nil {
+		return fmt.Errorf("activate trial: %w", err)
+	}
+	return nil
+}
+
