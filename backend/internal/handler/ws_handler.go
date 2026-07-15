@@ -2,8 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -45,7 +43,7 @@ func HandleGameMessage(c *game.Client, msg *game.ClientMessage, ctr *app.Contain
 		if !ctr.SubmissionLimiter.IsAllowed(c.ID) {
 			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 				Type: "error",
-				Data: map[string]string{"message": "you are submitting too fast, please wait a moment"},
+				Data: map[string]string{"message": "submitting too fast, please wait a moment"},
 			})
 			return
 		}
@@ -72,6 +70,8 @@ func HandleGameMessage(c *game.Client, msg *game.ClientMessage, ctr *app.Contain
 	}
 }
 
+// ── Queue ────────────────────────────────────────────────────────────────────
+
 // handleJoinQueue handles the "join_queue" WebSocket message.
 func handleJoinQueue(ctx context.Context, c *game.Client, ctr *app.Container) {
 	u, err := ctr.UserRepo.GetByID(ctx, c.ID)
@@ -86,7 +86,7 @@ func handleJoinQueue(ctx context.Context, c *game.Client, ctr *app.Container) {
 	if u.CFHandle == nil || !u.CFVerified {
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 			Type: "error",
-			Data: map[string]string{"message": "You must link and verify your Codeforces handle before entering matchmaking. Go to Settings → Link Codeforces."},
+			Data: map[string]string{"message": "link and verify your Codeforces handle before matchmaking (Settings → Link Codeforces)"},
 		})
 		return
 	}
@@ -107,37 +107,31 @@ func handleJoinQueue(ctx context.Context, c *game.Client, ctr *app.Container) {
 		return
 	}
 
-	ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-		Type: "queue_joined",
-		Data: map[string]interface{}{"rating": u.Rating},
-	})
+	ctr.Hub.SendToUser(c.ID, &game.ServerMessage{Type: "queue_joined"})
+	log.Printf("[queue] %s (%.0f) joined matchmaking", u.Username, u.Rating)
 
-	go waitForMatch(ctx, c, matchCh, ctr)
+	go waitForMatch(ctx, c, matchCh, ctr, u)
 }
 
-// waitForMatch waits for a match result or timeout.
-func waitForMatch(ctx context.Context, c *game.Client, matchCh chan *matchmaking.MatchResult, ctr *app.Container) {
+// waitForMatch blocks until the matchmaker finds an opponent or the user leaves.
+func waitForMatch(ctx context.Context, c *game.Client, matchCh <-chan *matchmaking.MatchResult, ctr *app.Container, u *models.User) {
 	select {
 	case result, ok := <-matchCh:
-		if !ok || result == nil {
+		if !ok {
 			return
 		}
-
+		// Only Player 1 creates the session to avoid duplication
 		if result.Player1.UserID == c.ID {
 			go createMatchSession(ctx, c, result, ctr)
 		}
-
 	case <-time.After(3 * time.Minute):
 		ctr.MMQueue.Leave(ctx, c.ID)
-		ctr.MMQueue.Unsubscribe(c.ID)
-		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-			Type: "queue_timeout",
-			Data: map[string]string{"message": "no opponents found, please try again"},
-		})
+		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{Type: "queue_timeout"})
+		log.Printf("[queue] %s timed out", u.Username)
 	}
 }
 
-// createMatchSession creates a CF game session after a match is found (Player 1 only).
+// createMatchSession runs after a match is found (executed by Player 1's goroutine).
 func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking.MatchResult, ctr *app.Container) {
 	ctx2 := context.Background()
 	avgRating := int((result.Player1.Rating + result.Player2.Rating) / 2)
@@ -149,8 +143,7 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 		return
 	}
 
-	// Notify both players immediately so they don't stare at a blank screen
-	// while we fetch CF problems (can take 5-15s)
+	// Immediately notify both players so they don't wait silently
 	ctr.Hub.SendToUser(u1.ID, &game.ServerMessage{
 		Type: "match_preparing",
 		Data: map[string]interface{}{
@@ -164,7 +157,7 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 		},
 	})
 
-	// Fetch solved problems for both players in parallel
+	// Fetch both users' solved problems in parallel (so we can avoid assigning them)
 	var solved1, solved2 map[codeforces.ProblemKey]bool
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -182,15 +175,11 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 	}()
 	wg.Wait()
 
+	// Select CF problems appropriate for both players' rating
 	cfProblems, err := ctr.CFClient.SelectProblemsForRating(avgRating, solved1, solved2)
 	if err != nil {
 		log.Printf("[match] ❌ CF problem selection failed: %v", err)
-		sendErrorToBoth(ctr, result, "failed to select Codeforces problems")
-		return
-	}
-
-	questionIDs, err := upsertCFQuestions(ctx2, ctr, cfProblems, result, "match")
-	if err != nil {
+		sendErrorToBoth(ctr, result, "failed to select Codeforces problems for your rating range")
 		return
 	}
 
@@ -206,10 +195,10 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 	session, err := ctr.SessionMgr.CreateCFSession(ctx2,
 		u1.ID, u1.Username, cfHandle1, u1.Rating, u1.RatingDeviation, u1.Volatility,
 		u2.ID, u2.Username, cfHandle2, u2.Rating, u2.RatingDeviation, u2.Volatility,
-		questionIDs, cfProblems,
+		cfProblems,
 	)
 	if err != nil {
-		log.Printf("[match] ❌ CF session creation failed: %v", err)
+		log.Printf("[match] ❌ session creation failed: %v", err)
 		sendErrorToBoth(ctr, result, "match setup failed, please try again")
 		return
 	}
@@ -235,13 +224,15 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 		},
 	})
 
-	log.Printf("[match] ✓ CF session created: %s (%s vs %s)", matchID, u1.Username, u2.Username)
+	log.Printf("[match] ✓ created: %s (%s vs %s)", matchID, u1.Username, u2.Username)
 }
+
+// ── Solo ─────────────────────────────────────────────────────────────────────
 
 // handleStartSolo handles the "start_solo" WebSocket message.
 func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessage, ctr *app.Container) {
 	u, err := ctr.UserRepo.GetByID(ctx, c.ID)
-	if err != nil {
+	if err != nil || u == nil {
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 			Type: "error",
 			Data: map[string]string{"message": "failed to get user info"},
@@ -252,12 +243,12 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 	if u.CFHandle == nil || !u.CFVerified {
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 			Type: "error",
-			Data: map[string]string{"message": "You must link and verify your Codeforces handle before playing. Go to Settings → Link Codeforces."},
+			Data: map[string]string{"message": "link and verify your Codeforces handle before starting solo practice"},
 		})
 		return
 	}
 
-	// Immediately notify so the user sees something while CF problems are fetched
+	// Notify immediately so the user sees the "preparing" screen
 	ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 		Type: "match_preparing",
 		Data: map[string]interface{}{"message": "Selecting problems from Codeforces..."},
@@ -267,15 +258,13 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 		ctx2 := context.Background()
 		avgRating := int(u.Rating)
 
-		var solved1 map[codeforces.ProblemKey]bool
+		// Fetch user's solved problems to avoid repeats
+		var solved map[codeforces.ProblemKey]bool
 		if u.CFHandle != nil {
-			solved1, _ = ctr.CFClient.GetUserSolvedProblems(*u.CFHandle)
+			solved, _ = ctr.CFClient.GetUserSolvedProblems(*u.CFHandle)
 		}
 
-		duration := msg.DurationSecs
-		if duration == 0 {
-			duration = 30 * 60
-		}
+		// Parse config from message
 		rMin := msg.RatingMin
 		if rMin == 0 {
 			rMin = avgRating - 200
@@ -288,22 +277,17 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 		if limit == 0 {
 			limit = 5
 		}
+		duration := msg.DurationSecs
+		if duration == 0 {
+			duration = 30 * 60
+		}
 
-		cfProblems, err := ctr.CFClient.SelectProblemsForRange(rMin, rMax, limit, solved1)
+		cfProblems, err := ctr.CFClient.SelectProblemsForRange(rMin, rMax, limit, solved)
 		if err != nil {
 			log.Printf("[solo] ❌ CF problem selection failed: %v", err)
 			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 				Type: "error",
-				Data: map[string]string{"message": "failed to select Codeforces problems — check your rating range"},
-			})
-			return
-		}
-
-		questionIDs, err := upsertCFQuestions(ctx2, ctr, cfProblems, nil, "solo")
-		if err != nil {
-			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-				Type: "error",
-				Data: map[string]string{"message": "failed to prepare solo questions"},
+				Data: map[string]string{"message": "failed to find Codeforces problems — try adjusting your rating range"},
 			})
 			return
 		}
@@ -316,9 +300,10 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 		session, err := ctr.SessionMgr.CreateCFSession(ctx2,
 			u.ID, u.Username, cfHandle, u.Rating, u.RatingDeviation, u.Volatility,
 			"", "", "", 0, 0, 0,
-			questionIDs, cfProblems,
+			cfProblems,
 		)
 		if err != nil {
+			log.Printf("[solo] ❌ session creation failed: %v", err)
 			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 				Type: "error",
 				Data: map[string]string{"message": "failed to create solo session"},
@@ -326,6 +311,7 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 			return
 		}
 
+		// Record practice session metadata
 		practiceSession := &models.PracticeSession{
 			UserID:       u.ID,
 			MatchID:      &session.Match.ID,
@@ -335,7 +321,7 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 			NumProblems:  limit,
 		}
 		if err := ctr.UserRepo.CreatePracticeSession(ctx2, practiceSession); err != nil {
-			log.Printf("[solo] warning: failed to create practice session record: %v", err)
+			log.Printf("[solo] warning: failed to record practice session: %v", err)
 		}
 
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
@@ -347,8 +333,12 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 				"countdown": 3,
 			},
 		})
+
+		log.Printf("[solo] ✓ session %s for %s (%d problems, %d-%d rating)", session.Match.ID, u.Username, limit, rMin, rMax)
 	}()
 }
+
+// ── Match Arena ───────────────────────────────────────────────────────────────
 
 // handleJoinMatch handles the "join_match" WebSocket message.
 func handleJoinMatch(ctx context.Context, c *game.Client, msg *game.ClientMessage, ctr *app.Container) {
@@ -377,7 +367,7 @@ func handleJoinMatch(ctx context.Context, c *game.Client, msg *game.ClientMessag
 	})
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 // sendErrorToBoth sends an error message to both players in a match result.
 func sendErrorToBoth(ctr *app.Container, result *matchmaking.MatchResult, message string) {
@@ -389,56 +379,4 @@ func sendErrorToBoth(ctr *app.Container, result *matchmaking.MatchResult, messag
 		Type: "error",
 		Data: map[string]string{"message": message},
 	})
-}
-
-// upsertCFQuestions upserts CF questions into the DB, returning their IDs.
-// Uses a semaphore to fetch statements concurrently while respecting CF rate limits.
-func upsertCFQuestions(ctx context.Context, ctr *app.Container, cfProblems []*codeforces.SelectedProblem, result *matchmaking.MatchResult, logPrefix string) ([]string, error) {
-	questionIDs := make([]string, len(cfProblems))
-	errors := make([]error, len(cfProblems))
-
-	// Semaphore: max 2 concurrent CF HTTP requests to avoid rate limiting
-	sem := make(chan struct{}, 2)
-	var wg sync.WaitGroup
-
-	for i, cfp := range cfProblems {
-		wg.Add(1)
-		go func(i int, cfp *codeforces.SelectedProblem) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			stmt, inFmt, outFmt, constr, examples, fetchErr := ctr.CFClient.FetchProblemStatement(cfp.ContestID, cfp.Index)
-			if fetchErr != nil {
-				log.Printf("[%s] warning: could not fetch statement for CF %d%s: %v", logPrefix, cfp.ContestID, cfp.Index, fetchErr)
-				stmt = "Problem statement could not be loaded. Please view on Codeforces."
-				inFmt = "See Codeforces"
-				outFmt = "See Codeforces"
-			}
-
-			examplesJSON, _ := json.Marshal(examples)
-			q, err := ctr.QRepo.UpsertCFQuestion(ctx,
-				cfp.ContestID, cfp.Index, cfp.Name,
-				stmt, inFmt, outFmt, constr,
-				examplesJSON, cfp.Rating, cfp.Tags, cfp.URL,
-			)
-			if err != nil {
-				log.Printf("[%s] ❌ failed to upsert CF question %d%s: %v", logPrefix, cfp.ContestID, cfp.Index, err)
-				errors[i] = err
-				return
-			}
-			questionIDs[i] = q.ID
-		}(i, cfp)
-	}
-	wg.Wait()
-
-	for i, err := range errors {
-		if err != nil {
-			if result != nil {
-				sendErrorToBoth(ctr, result, "failed to prepare match questions")
-			}
-			return nil, fmt.Errorf("upsert CF question[%d]: %w", i, err)
-		}
-	}
-	return questionIDs, nil
 }

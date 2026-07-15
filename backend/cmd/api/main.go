@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -219,6 +220,46 @@ func main() {
 	// Learning path routes (authenticated)
 	lp := api.Group("/learning-path", authMw)
 	handler.RegisterLearningPathRoutes(lp, judgeClient, db)
+
+	// CF problem statement — lazy-loaded by the match arena, cached 24h in Redis
+	api.Get("/cf/statement/:contestId/:index", authMw, func(c *fiber.Ctx) error {
+		contestID := c.Params("contestId")
+		index := c.Params("index")
+		if contestID == "" || index == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "missing contestId or index"})
+		}
+
+		cacheKey := "cf:stmt:" + contestID + ":" + index
+		if cached, err := rdb.Get(c.Context(), cacheKey).Bytes(); err == nil {
+			c.Set("Content-Type", "application/json")
+			return c.Send(cached)
+		}
+
+		var cid int
+		if _, err := fmt.Sscanf(contestID, "%d", &cid); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "invalid contestId"})
+		}
+
+		stmt, inFmt, outFmt, constr, examples, err := cfClient.FetchProblemStatement(cid, index)
+		if err != nil {
+			log.Printf("[cf-statement] fetch error for %s%s: %v", contestID, index, err)
+			return c.Status(502).JSON(fiber.Map{"error": "could not fetch problem statement from Codeforces"})
+		}
+
+		payload := fiber.Map{
+			"statement":    stmt,
+			"inputFormat":  inFmt,
+			"outputFormat": outFmt,
+			"constraints":  constr,
+			"examples":     examples,
+		}
+
+		if b, err := json.Marshal(payload); err == nil {
+			rdb.Set(c.Context(), cacheKey, b, 24*time.Hour)
+		}
+
+		return c.JSON(payload)
+	})
 
 	// WebSocket endpoint for matchmaking + game
 	fiberApp.Use("/ws", func(c *fiber.Ctx) error {

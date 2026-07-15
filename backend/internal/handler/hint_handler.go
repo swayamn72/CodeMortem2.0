@@ -8,10 +8,9 @@ import (
 	"codemortem/internal/ai"
 	"codemortem/internal/app"
 	"codemortem/internal/game"
-	"codemortem/internal/models"
 )
 
-// HandleHintRequest processes a hint request during a match.
+// HandleHintRequest processes a hint request during a CF match.
 func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMessage, ctr *app.Container) {
 	if c.MatchID == "" {
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
@@ -21,7 +20,7 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 		return
 	}
 
-	if msg.QuestionIndex < 1 || msg.QuestionIndex > models.MatchQuestionCount {
+	if msg.QuestionIndex < 1 {
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 			Type: "error",
 			Data: map[string]string{"message": "invalid question index"},
@@ -42,6 +41,19 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 		return
 	}
 
+	// Validate problem index against actual problem count
+	session.RLock()
+	numProblems := len(session.CFProblems)
+	session.RUnlock()
+
+	if msg.QuestionIndex > numProblems {
+		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
+			Type: "error",
+			Data: map[string]string{"message": "invalid question index"},
+		})
+		return
+	}
+
 	// Read player state under lock
 	session.RLock()
 	player := session.GetPlayer(c.ID)
@@ -49,10 +61,11 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 		session.RUnlock()
 		return
 	}
-
 	currentLevel := player.HintsUsed[msg.QuestionIndex]
 	alreadySolved := player.Solved[msg.QuestionIndex]
 	previousHints := player.HintTexts[msg.QuestionIndex]
+	mcp := session.CFProblems[msg.QuestionIndex-1]
+	isSolo := session.Player2 == nil
 	session.RUnlock()
 
 	if msg.HintLevel <= currentLevel {
@@ -79,18 +92,6 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 		return
 	}
 
-	mq := session.Questions[msg.QuestionIndex-1]
-
-	qDetail, err := ctr.QRepo.GetByID(ctx, mq.QuestionID)
-	if err != nil {
-		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-			Type: "error",
-			Data: map[string]string{"message": "failed to load question details"},
-		})
-		return
-	}
-
-	isSolo := session.Player2 == nil
 	cost := ai.HintCost(ai.HintLevel(msg.HintLevel), isSolo)
 
 	ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
@@ -102,12 +103,19 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 	})
 
 	go func() {
+		// Build a concise problem summary for the AI from CF metadata
+		// Full statement is not stored server-side (fetched lazily by frontend)
+		problemDesc := fmt.Sprintf(
+			"Codeforces problem: %s (Contest %d, Problem %s, Rating %d, Tags: %v)",
+			mcp.CFName, mcp.CFContestID, mcp.CFProblemIndex, mcp.CFRating, []string(mcp.CFTags),
+		)
+
 		hintReq := &ai.HintRequest{
-			ProblemTitle:     qDetail.Title,
-			ProblemStatement: qDetail.Statement,
-			Constraints:      qDetail.Constraints,
-			Tags:             qDetail.Tags,
-			Difficulty:       qDetail.Difficulty,
+			ProblemTitle:     mcp.CFName,
+			ProblemStatement: problemDesc, // AI uses metadata since full statement is on CF
+			Constraints:      fmt.Sprintf("CF rating: %d", mcp.CFRating),
+			Tags:             []string(mcp.CFTags),
+			Difficulty:       mcp.CFRating / 200, // rough 1-17 scale
 			HintLevel:        ai.HintLevel(msg.HintLevel),
 			PlayerCode:       msg.Code,
 			PreviousHints:    previousHints,
@@ -123,8 +131,7 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 			return
 		}
 
-		// Deduct points and track hint usage (needs write access to player state)
-		// Note: this accesses player directly; the player pointer is stable for the session's lifetime.
+		// Deduct points and track hint usage
 		if cost > 0 {
 			player.Score -= cost
 			if player.Score < 0 {
@@ -151,7 +158,7 @@ func HandleHintRequest(ctx context.Context, c *game.Client, msg *game.ClientMess
 	}()
 }
 
-// HandleExplanationRequest processes a solution explanation request.
+// HandleExplanationRequest processes a solution explanation request after a CF match.
 func HandleExplanationRequest(ctx context.Context, c *game.Client, msg *game.ClientMessage, ctr *app.Container) {
 	if c.MatchID == "" {
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
@@ -161,7 +168,7 @@ func HandleExplanationRequest(ctx context.Context, c *game.Client, msg *game.Cli
 		return
 	}
 
-	if msg.QuestionIndex < 1 || msg.QuestionIndex > models.MatchQuestionCount {
+	if msg.QuestionIndex < 1 {
 		return
 	}
 
@@ -170,25 +177,23 @@ func HandleExplanationRequest(ctx context.Context, c *game.Client, msg *game.Cli
 		return
 	}
 
-	mq := session.Questions[msg.QuestionIndex-1]
+	session.RLock()
+	numProblems := len(session.CFProblems)
+	session.RUnlock()
 
-	// Read last verdict under lock
+	if msg.QuestionIndex > numProblems {
+		return
+	}
+
+	// Read state under lock
 	session.RLock()
 	player := session.GetPlayer(c.ID)
 	lastVerdict := ""
 	if player != nil {
 		lastVerdict = player.LastVerdicts[msg.QuestionIndex]
 	}
+	mcp := session.CFProblems[msg.QuestionIndex-1]
 	session.RUnlock()
-
-	qDetail, err := ctr.QRepo.GetByID(ctx, mq.QuestionID)
-	if err != nil {
-		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-			Type: "error",
-			Data: map[string]string{"message": "failed to load question"},
-		})
-		return
-	}
 
 	ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 		Type: "explanation_loading",
@@ -196,12 +201,17 @@ func HandleExplanationRequest(ctx context.Context, c *game.Client, msg *game.Cli
 	})
 
 	go func() {
+		problemDesc := fmt.Sprintf(
+			"Codeforces problem: %s (Contest %d, Problem %s, Rating %d, Tags: %v)",
+			mcp.CFName, mcp.CFContestID, mcp.CFProblemIndex, mcp.CFRating, []string(mcp.CFTags),
+		)
+
 		req := &ai.ExplainRequest{
-			ProblemTitle:     qDetail.Title,
-			ProblemStatement: qDetail.Statement,
-			Constraints:      qDetail.Constraints,
-			Tags:             qDetail.Tags,
-			Difficulty:       qDetail.Difficulty,
+			ProblemTitle:     mcp.CFName,
+			ProblemStatement: problemDesc,
+			Constraints:      fmt.Sprintf("CF rating: %d", mcp.CFRating),
+			Tags:             []string(mcp.CFTags),
+			Difficulty:       mcp.CFRating / 200,
 			PlayerCode:       msg.Code,
 			PlayerVerdict:    lastVerdict,
 		}

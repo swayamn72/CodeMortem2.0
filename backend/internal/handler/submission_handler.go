@@ -7,7 +7,6 @@ import (
 	"codemortem/internal/app"
 	"codemortem/internal/game"
 	"codemortem/internal/judge"
-	"codemortem/internal/models"
 )
 
 // HandleSubmission processes a code submission — judges against all test cases.
@@ -26,13 +25,20 @@ func HandleSubmission(ctx context.Context, c *game.Client, msg *game.ClientMessa
 		return
 	}
 
-	if msg.QuestionIndex < 1 || msg.QuestionIndex > models.MatchQuestionCount {
+	// Validate problem index against actual problem count
+	session.RLock()
+	numProblems := len(session.CFProblems)
+	problemID := ""
+	if msg.QuestionIndex >= 1 && msg.QuestionIndex <= numProblems {
+		problemID = session.CFProblems[msg.QuestionIndex-1].ID
+	}
+	session.RUnlock()
+
+	if msg.QuestionIndex < 1 || msg.QuestionIndex > numProblems || problemID == "" {
 		return
 	}
 
-	mq := session.Questions[msg.QuestionIndex-1]
-
-	// Already solved by this player? (read under lock)
+	// Already solved by this player?
 	session.RLock()
 	player := session.GetPlayer(c.ID)
 	alreadySolved := player != nil && player.Solved[msg.QuestionIndex]
@@ -59,9 +65,11 @@ func HandleSubmission(ctx context.Context, c *game.Client, msg *game.ClientMessa
 		},
 	})
 
-	// Run against all test cases asynchronously
+	// Run against test cases (or single-pass if no test cases)
 	go func() {
-		testCases, err := ctr.QRepo.GetTestCases(ctx, mq.QuestionID)
+		// For CF problems, there are no test cases in our DB.
+		// Judge0 is used for local testing only; actual solve detection is via CF poller.
+		testCases, err := ctr.QRepo.GetTestCases(ctx, problemID)
 		if err != nil || len(testCases) == 0 {
 			resp, err := ctr.JudgeClient.Submit(ctx, &judge.SubmissionRequest{
 				SourceCode: msg.Code,
