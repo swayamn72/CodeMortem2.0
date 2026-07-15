@@ -18,6 +18,7 @@ export default function QueuePage() {
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -60,6 +61,15 @@ export default function QueuePage() {
           setStatus("searching");
           break;
 
+        case "match_preparing": {
+          // Opponent found — session is being prepared server-side.
+          // Show an intermediate screen so the user knows something is happening.
+          setOpponent(msg.data?.opponent || null);
+          setStatus("preparing");
+          if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+          break;
+        }
+
         case "match_found":
           setStatus("found");
           setOpponent(msg.data.opponent);
@@ -86,6 +96,7 @@ export default function QueuePage() {
 
         case "queue_timeout":
           setStatus("idle");
+          setErrorMsg("No opponents found within 3 minutes. Please try again.");
           if (searchTimerRef.current) clearInterval(searchTimerRef.current);
           break;
 
@@ -94,7 +105,9 @@ export default function QueuePage() {
           break;
 
         case "error":
-          console.error("[ws] error:", msg.data);
+          setErrorMsg(msg.data?.message || "Something went wrong. Please try again.");
+          setStatus("idle");
+          if (searchTimerRef.current) clearInterval(searchTimerRef.current);
           break;
       }
     };
@@ -194,6 +207,21 @@ export default function QueuePage() {
           Code<span className="brand-accent">Mortem</span>
         </Link>
 
+        {/* Error banner */}
+        {errorMsg && (
+          <div style={{
+            background: "rgba(255,59,59,0.12)", border: "1px solid rgba(255,59,59,0.4)",
+            borderRadius: 12, padding: "12px 18px", marginBottom: 24,
+            color: "#ff6b6b", fontSize: 14, textAlign: "center", maxWidth: 420,
+          }}>
+            ⚠️ {errorMsg}
+            <button onClick={() => { setErrorMsg(""); setStatus("searching"); connectWs(); }}
+              style={{ marginLeft: 12, background: "none", border: "none", color: "var(--cm-cyan)", cursor: "pointer", fontWeight: 600, fontSize: 13 }}>
+              Try Again
+            </button>
+          </div>
+        )}
+
         {(status === "searching") && (
           <>
             <div className={styles.searchingAnim}>
@@ -216,6 +244,35 @@ export default function QueuePage() {
             <button className="btn btn-secondary" onClick={handleCancel}>
               Cancel
             </button>
+          </>
+        )}
+
+        {/* Intermediate state: opponent matched, problems being prepared */}
+        {status === "preparing" && opponent && (
+          <>
+            <h1 className={styles.queueTitle}>
+              <span className={styles.matchFoundText}>⚔️ Opponent Found!</span>
+            </h1>
+            <div className={styles.vsContainer}>
+              <div className={styles.playerCard}>
+                <span className={styles.playerRating} style={{ color: "var(--cm-cyan)" }}>
+                  {user.rating.toFixed(0)}
+                </span>
+                <span className={styles.playerName}>{user.username}</span>
+                <span className={styles.playerRank}>{user.rankTitle}</span>
+              </div>
+              <div className={styles.vsText}>VS</div>
+              <div className={styles.playerCard}>
+                <span className={styles.playerRating} style={{ color: "var(--cm-red)" }}>
+                  {opponent.rating?.toFixed(0) ?? "—"}
+                </span>
+                <span className={styles.playerName}>{opponent.username}</span>
+              </div>
+            </div>
+            <p className={styles.queueSubtext} style={{ marginTop: 24, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ display: "inline-block", width: 16, height: 16, border: "2px solid var(--cm-cyan)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+              Selecting problems from Codeforces...
+            </p>
           </>
         )}
 

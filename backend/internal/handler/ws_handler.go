@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"codemortem/internal/app"
@@ -148,13 +149,38 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 		return
 	}
 
+	// Notify both players immediately so they don't stare at a blank screen
+	// while we fetch CF problems (can take 5-15s)
+	ctr.Hub.SendToUser(u1.ID, &game.ServerMessage{
+		Type: "match_preparing",
+		Data: map[string]interface{}{
+			"opponent": map[string]interface{}{"username": u2.Username, "rating": u2.Rating},
+		},
+	})
+	ctr.Hub.SendToUser(u2.ID, &game.ServerMessage{
+		Type: "match_preparing",
+		Data: map[string]interface{}{
+			"opponent": map[string]interface{}{"username": u1.Username, "rating": u1.Rating},
+		},
+	})
+
+	// Fetch solved problems for both players in parallel
 	var solved1, solved2 map[codeforces.ProblemKey]bool
-	if u1.CFHandle != nil {
-		solved1, _ = ctr.CFClient.GetUserSolvedProblems(*u1.CFHandle)
-	}
-	if u2.CFHandle != nil {
-		solved2, _ = ctr.CFClient.GetUserSolvedProblems(*u2.CFHandle)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if u1.CFHandle != nil {
+			solved1, _ = ctr.CFClient.GetUserSolvedProblems(*u1.CFHandle)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if u2.CFHandle != nil {
+			solved2, _ = ctr.CFClient.GetUserSolvedProblems(*u2.CFHandle)
+		}
+	}()
+	wg.Wait()
 
 	cfProblems, err := ctr.CFClient.SelectProblemsForRating(avgRating, solved1, solved2)
 	if err != nil {
@@ -184,6 +210,7 @@ func createMatchSession(ctx context.Context, c *game.Client, result *matchmaking
 	)
 	if err != nil {
 		log.Printf("[match] ❌ CF session creation failed: %v", err)
+		sendErrorToBoth(ctr, result, "match setup failed, please try again")
 		return
 	}
 
@@ -230,6 +257,12 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 		return
 	}
 
+	// Immediately notify so the user sees something while CF problems are fetched
+	ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
+		Type: "match_preparing",
+		Data: map[string]interface{}{"message": "Selecting problems from Codeforces..."},
+	})
+
 	go func() {
 		ctx2 := context.Background()
 		avgRating := int(u.Rating)
@@ -261,38 +294,18 @@ func handleStartSolo(ctx context.Context, c *game.Client, msg *game.ClientMessag
 			log.Printf("[solo] ❌ CF problem selection failed: %v", err)
 			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 				Type: "error",
-				Data: map[string]string{"message": "failed to select Codeforces problems"},
+				Data: map[string]string{"message": "failed to select Codeforces problems — check your rating range"},
 			})
 			return
 		}
 
-		questionIDs := make([]string, len(cfProblems))
-		for i, cfp := range cfProblems {
-			stmt, inFmt, outFmt, constr, examples, fetchErr := ctr.CFClient.FetchProblemStatement(cfp.ContestID, cfp.Index)
-			if fetchErr != nil {
-				log.Printf("[solo] warning: could not fetch statement for CF %d%s: %v", cfp.ContestID, cfp.Index, fetchErr)
-				stmt = "Problem statement could not be loaded. Please view on Codeforces."
-				inFmt = "See Codeforces"
-				outFmt = "See Codeforces"
-			}
-
-			examplesJSON, _ := json.Marshal(examples)
-
-			q, err := ctr.QRepo.UpsertCFQuestion(ctx2,
-				cfp.ContestID, cfp.Index, cfp.Name,
-				stmt, inFmt, outFmt, constr,
-				examplesJSON, cfp.Rating, cfp.Tags, cfp.URL,
-			)
-			if err != nil {
-				log.Printf("[solo] ❌ failed to upsert CF question: %v", err)
-				ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-					Type: "error",
-					Data: map[string]string{"message": "failed to prepare solo questions"},
-				})
-				return
-			}
-			questionIDs[i] = q.ID
-			time.Sleep(500 * time.Millisecond)
+		questionIDs, err := upsertCFQuestions(ctx2, ctr, cfProblems, nil, "solo")
+		if err != nil {
+			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
+				Type: "error",
+				Data: map[string]string{"message": "failed to prepare solo questions"},
+			})
+			return
 		}
 
 		cfHandle := ""
@@ -379,33 +392,53 @@ func sendErrorToBoth(ctr *app.Container, result *matchmaking.MatchResult, messag
 }
 
 // upsertCFQuestions upserts CF questions into the DB, returning their IDs.
+// Uses a semaphore to fetch statements concurrently while respecting CF rate limits.
 func upsertCFQuestions(ctx context.Context, ctr *app.Container, cfProblems []*codeforces.SelectedProblem, result *matchmaking.MatchResult, logPrefix string) ([]string, error) {
 	questionIDs := make([]string, len(cfProblems))
+	errors := make([]error, len(cfProblems))
+
+	// Semaphore: max 2 concurrent CF HTTP requests to avoid rate limiting
+	sem := make(chan struct{}, 2)
+	var wg sync.WaitGroup
+
 	for i, cfp := range cfProblems {
-		stmt, inFmt, outFmt, constr, examples, fetchErr := ctr.CFClient.FetchProblemStatement(cfp.ContestID, cfp.Index)
-		if fetchErr != nil {
-			log.Printf("[%s] warning: could not fetch statement for CF %d%s: %v", logPrefix, cfp.ContestID, cfp.Index, fetchErr)
-			stmt = "Problem statement could not be loaded. Please view on Codeforces."
-			inFmt = "See Codeforces"
-			outFmt = "See Codeforces"
-		}
+		wg.Add(1)
+		go func(i int, cfp *codeforces.SelectedProblem) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		examplesJSON, _ := json.Marshal(examples)
+			stmt, inFmt, outFmt, constr, examples, fetchErr := ctr.CFClient.FetchProblemStatement(cfp.ContestID, cfp.Index)
+			if fetchErr != nil {
+				log.Printf("[%s] warning: could not fetch statement for CF %d%s: %v", logPrefix, cfp.ContestID, cfp.Index, fetchErr)
+				stmt = "Problem statement could not be loaded. Please view on Codeforces."
+				inFmt = "See Codeforces"
+				outFmt = "See Codeforces"
+			}
 
-		q, err := ctr.QRepo.UpsertCFQuestion(ctx,
-			cfp.ContestID, cfp.Index, cfp.Name,
-			stmt, inFmt, outFmt, constr,
-			examplesJSON, cfp.Rating, cfp.Tags, cfp.URL,
-		)
+			examplesJSON, _ := json.Marshal(examples)
+			q, err := ctr.QRepo.UpsertCFQuestion(ctx,
+				cfp.ContestID, cfp.Index, cfp.Name,
+				stmt, inFmt, outFmt, constr,
+				examplesJSON, cfp.Rating, cfp.Tags, cfp.URL,
+			)
+			if err != nil {
+				log.Printf("[%s] ❌ failed to upsert CF question %d%s: %v", logPrefix, cfp.ContestID, cfp.Index, err)
+				errors[i] = err
+				return
+			}
+			questionIDs[i] = q.ID
+		}(i, cfp)
+	}
+	wg.Wait()
+
+	for i, err := range errors {
 		if err != nil {
-			log.Printf("[%s] ❌ failed to upsert CF question %d%s: %v", logPrefix, cfp.ContestID, cfp.Index, err)
 			if result != nil {
 				sendErrorToBoth(ctr, result, "failed to prepare match questions")
 			}
-			return nil, fmt.Errorf("upsert CF question: %w", err)
+			return nil, fmt.Errorf("upsert CF question[%d]: %w", i, err)
 		}
-		questionIDs[i] = q.ID
-		time.Sleep(500 * time.Millisecond)
 	}
 	return questionIDs, nil
 }

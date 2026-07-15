@@ -16,6 +16,7 @@ export default function SoloPage() {
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState("config"); // config, preparing, countdown
   const [countdown, setCountdown] = useState(3);
+  const [errorMsg, setErrorMsg] = useState("");
   
   const [duration, setDuration] = useState(30 * 60);
   const [ratingMin, setRatingMin] = useState(Math.max(800, Math.floor((user?.rating || 1000) - 200)));
@@ -57,6 +58,11 @@ export default function SoloPage() {
       const msg = JSON.parse(event.data);
 
       switch (msg.type) {
+        case "match_preparing":
+          // Server acknowledged the request; problems are being fetched.
+          // The UI is already in "preparing" state; nothing to change.
+          break;
+
         case "match_found":
           setStatus("countdown");
           
@@ -77,9 +83,8 @@ export default function SoloPage() {
 
         case "error":
           console.error("[ws] error:", msg.data);
-          // Go back on error
-          alert(msg.data?.message || "Failed to start solo match");
-          router.push("/dashboard");
+          setErrorMsg(msg.data?.message || "Failed to start solo match. Please try again.");
+          setStatus("config");
           break;
       }
     };
@@ -172,6 +177,17 @@ export default function SoloPage() {
               fontSize: "1.75rem", fontWeight: 800, color: "var(--text-primary)",
               textAlign: "center", marginBottom: "2rem", letterSpacing: "-0.5px"
             }}>Practice Setup</h1>
+
+            {/* Error banner */}
+            {errorMsg && (
+              <div style={{
+                background: "rgba(255,59,59,0.12)", border: "1px solid rgba(255,59,59,0.35)",
+                borderRadius: 10, padding: "10px 14px", marginBottom: "1.5rem",
+                color: "#ff6b6b", fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+              }}>
+                <span>⚠️</span><span>{errorMsg}</span>
+              </div>
+            )}
             
             <div style={{ marginBottom: "1.75rem" }}>
               <label style={{ display: "block", marginBottom: "0.75rem", fontSize: "0.8rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Duration</label>
@@ -275,7 +291,7 @@ export default function SoloPage() {
             </div>
             <h1 className={styles.queueTitle}>Generating Problem Set...</h1>
             <p className={styles.queueSubtext}>
-              Preparing questions based on your rating
+              Selecting Codeforces problems for your rating range
             </p>
           </>
         )}
