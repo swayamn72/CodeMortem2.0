@@ -5,7 +5,7 @@ interface Opponent {
   rating: number;
 }
 
-type QueueStatus = "idle" | "searching" | "found" | "countdown" | "in_match";
+type QueueStatus = "idle" | "searching" | "preparing" | "found" | "countdown" | "in_match";
 
 interface QueueState {
   status: QueueStatus;
