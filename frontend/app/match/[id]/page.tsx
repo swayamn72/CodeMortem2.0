@@ -329,7 +329,7 @@ export default function MatchPage() {
       <div className={styles.arenaBody}>
         <Group orientation="horizontal" id="arena-main-group">
           {/* Question Sidebar */}
-          <Panel id="sidebar-panel" defaultSize={12} minSize={8} maxSize={25}>
+          <Panel id="sidebar-panel" defaultSize={16} minSize={13} maxSize={25}>
             <aside className={styles.sidebar}>
           <div className={styles.sidebarTitle}>Questions</div>
           {store.questions.map((q) => {
