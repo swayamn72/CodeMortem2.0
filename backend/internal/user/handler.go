@@ -320,22 +320,44 @@ func (h *Handler) VerifyCFLink(c *fiber.Ctx) error {
 		})
 	}
 
-	// Calibrate CM rating based on CF rating (linear mapping with floor)
-	cmRating := float64(cfInfo.Rating)
-	if cmRating < 800 {
-		cmRating = 800
+	// Seed the CodeMortem rating from CF exactly once (banded). On re-verify,
+	// only refresh cf_rating and leave the match-earned rating untouched.
+	if !user.RatingCalibrated {
+		cmRating := SeedRatingFromCF(cfInfo.Rating)
+		n, err := h.repo.VerifyCFFirstTime(c.Context(), userID, cfInfo.Rating, cmRating)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "failed to verify"})
+		}
+		if n == 0 {
+			// Lost the calibration race (another request seeded first) —
+			// re-verify without touching rating and report the existing value.
+			if err := h.repo.VerifyCFAgain(c.Context(), userID, cfInfo.Rating); err != nil {
+				return c.Status(500).JSON(fiber.Map{"error": "failed to verify"})
+			}
+			return c.JSON(fiber.Map{
+				"verified": true,
+				"cfRating": cfInfo.Rating,
+				"cmRating": user.Rating,
+				"message":  "Codeforces account re-verified (rating unchanged)",
+			})
+		}
+		return c.JSON(fiber.Map{
+			"verified": true,
+			"cfRating": cfInfo.Rating,
+			"cmRating": cmRating,
+			"message":  "Codeforces account verified and rating calibrated!",
+		})
 	}
 
-	err = h.repo.VerifyCF(c.Context(), userID, cfInfo.Rating, cmRating)
-	if err != nil {
+	if err := h.repo.VerifyCFAgain(c.Context(), userID, cfInfo.Rating); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "failed to verify"})
 	}
 
 	return c.JSON(fiber.Map{
 		"verified": true,
 		"cfRating": cfInfo.Rating,
-		"cmRating": cmRating,
-		"message":  "Codeforces account verified and rating calibrated!",
+		"cmRating": user.Rating,
+		"message":  "Codeforces account re-verified (rating unchanged)",
 	})
 }
 

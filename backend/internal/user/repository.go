@@ -91,17 +91,40 @@ func (r *Repository) UpdateCFLink(ctx context.Context, userID string, handle str
 	return err
 }
 
-// VerifyCF marks a user's Codeforces account as verified and updates their rating.
-func (r *Repository) VerifyCF(ctx context.Context, userID string, cfRating int, cmRating float64) error {
-	_, err := r.db.ExecContext(ctx, `
+// VerifyCFFirstTime marks a user's Codeforces account as verified and seeds
+// their CodeMortem rating from CF for the first (and only) time. The
+// rating_calibrated=FALSE guard makes concurrent double-verify safe: only the
+// first UPDATE seeds rating and sets the flag. It returns the number of rows
+// affected so the caller can detect a lost race (0 rows).
+func (r *Repository) VerifyCFFirstTime(ctx context.Context, userID string, cfRating int, cmRating float64) (int64, error) {
+	res, err := r.db.ExecContext(ctx, `
 		UPDATE users SET 
 			cf_verified = TRUE, 
 			cf_rating = $1, 
 			rating = $2, 
+			rating_calibrated = TRUE,
 			cf_verify_token = NULL,
 			updated_at = NOW()
-		WHERE id = $3
+		WHERE id = $3 AND rating_calibrated = FALSE
 	`, cfRating, cmRating, userID)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+// VerifyCFAgain re-verifies an already-calibrated user's Codeforces account.
+// It refreshes cf_rating but never touches the match-earned CodeMortem rating
+// or the rating_calibrated flag.
+func (r *Repository) VerifyCFAgain(ctx context.Context, userID string, cfRating int) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE users SET 
+			cf_verified = TRUE, 
+			cf_rating = $1, 
+			cf_verify_token = NULL,
+			updated_at = NOW()
+		WHERE id = $2
+	`, cfRating, userID)
 	return err
 }
 
