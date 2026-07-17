@@ -6,6 +6,8 @@ import (
 	"codemortem/internal/judge"
 	"codemortem/internal/matchmaking"
 	"codemortem/internal/user"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // Container holds all service dependencies, replacing the 16-parameter god function.
@@ -17,4 +19,5 @@ type Container struct {
 	MMQueue           *matchmaking.Queue
 	SubmissionLimiter *game.SubmissionRateLimiter
 	CFClient          *codeforces.Client
+	Redis             *redis.Client // used by HandleRunSamples for cf:stmt cache
 }

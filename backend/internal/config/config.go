@@ -18,6 +18,14 @@ type Config struct {
 	OAuth    OAuthConfig
 	Email    EmailConfig
 	Razorpay RazorpayConfig
+	Features FeatureConfig
+}
+
+// FeatureConfig holds feature-flag settings.
+type FeatureConfig struct {
+	// CFDirectSubmit enables the extension-bridge direct-submit path.
+	// Set CF_DIRECT_SUBMIT_ENABLED=true to activate. Default: false.
+	CFDirectSubmit bool
 }
 
 type ServerConfig struct {
@@ -147,6 +155,9 @@ func Load() *Config {
 			KeySecret:     getEnv("RAZORPAY_KEY_SECRET", ""),
 			WebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET", ""),
 		},
+		Features: FeatureConfig{
+			CFDirectSubmit: getBoolEnv("CF_DIRECT_SUBMIT_ENABLED", false),
+		},
 	}
 
 	// Safety check: refuse to start in production with default/insecure secrets
@@ -197,6 +208,15 @@ func getDurationEnv(key string, fallback time.Duration) time.Duration {
 	if val := os.Getenv(key); val != "" {
 		if d, err := time.ParseDuration(val); err == nil {
 			return d
+		}
+	}
+	return fallback
+}
+
+func getBoolEnv(key string, fallback bool) bool {
+	if val := os.Getenv(key); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			return b
 		}
 	}
 	return fallback

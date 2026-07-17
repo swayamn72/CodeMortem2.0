@@ -5,10 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { useQueueStore } from "@/stores/queueStore";
-import { api } from "@/lib/api";
+import { connectGameSocket, GAME_WS_URL } from "@/hooks/useGameSocket";
 import styles from "./page.module.css";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws/game";
 
 export default function QueuePage() {
   const { user, tokens, isAuthenticated } = useAuthStore();
@@ -37,99 +36,86 @@ export default function QueuePage() {
   const connectWs = useCallback(() => {
     if (!tokens?.accessToken) return;
 
-    const ws = new WebSocket(`${WS_URL}?token=${tokens.accessToken}`);
-    wsRef.current = ws;
-    setWs(ws);
+    connectGameSocket(tokens.accessToken, {
+      onOpen: (ws) => {
+        console.log("[ws] connected");
+        setWs(ws);
+        wsRef.current = ws;
+        // Auto join queue
+        ws.send(JSON.stringify({ type: "join_queue" }));
+        setStatus("searching");
 
-    ws.onopen = () => {
-      console.log("[ws] connected");
-      // Auto join queue
-      ws.send(JSON.stringify({ type: "join_queue" }));
-      setStatus("searching");
+        // Start search timer
+        searchTimerRef.current = setInterval(() => {
+          setSearchTime(useQueueStore.getState().searchTime + 1);
+        }, 1000);
+      },
+      onMessage: (msg) => {
+        switch (msg.type) {
+          case "queue_joined":
+            setStatus("searching");
+            break;
 
-      // Start search timer
-      searchTimerRef.current = setInterval(() => {
-        setSearchTime(useQueueStore.getState().searchTime + 1);
-      }, 1000);
-    };
+          case "match_preparing": {
+            setOpponent((msg.data?.opponent as { username: string; rating: number }) || null);
+            setStatus("preparing");
+            if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+            break;
+          }
 
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
+          case "match_found": {
+            setStatus("found");
+            setOpponent(msg.data!.opponent as { username: string; rating: number });
+            if (searchTimerRef.current) clearInterval(searchTimerRef.current);
 
-      switch (msg.type) {
-        case "queue_joined":
-          setStatus("searching");
-          break;
-
-        case "match_preparing": {
-          // Opponent found — session is being prepared server-side.
-          // Show an intermediate screen so the user knows something is happening.
-          setOpponent(msg.data?.opponent || null);
-          setStatus("preparing");
-          if (searchTimerRef.current) clearInterval(searchTimerRef.current);
-          break;
-        }
-
-        case "match_found":
-          setStatus("found");
-          setOpponent(msg.data.opponent);
-          if (searchTimerRef.current) clearInterval(searchTimerRef.current);
-
-          // Start countdown
-          let count = msg.data.countdown || 10;
-          setCountdown(count);
-          setStatus("countdown");
-
-          countdownRef.current = setInterval(() => {
-            count--;
+            let count = (msg.data!.countdown as number) || 10;
             setCountdown(count);
-            if (count <= 0) {
-              if (countdownRef.current) clearInterval(countdownRef.current);
-              setStatus("in_match");
-              // Navigate to match arena
-              if (msg.data.matchId) {
-                router.push(`/match/${msg.data.matchId}`);
+            setStatus("countdown");
+
+            countdownRef.current = setInterval(() => {
+              count--;
+              setCountdown(count);
+              if (count <= 0) {
+                if (countdownRef.current) clearInterval(countdownRef.current);
+                setStatus("in_match");
+                if (msg.data!.matchId) {
+                  router.push(`/match/${msg.data!.matchId}`);
+                }
               }
-            }
-          }, 1000);
-          break;
+            }, 1000);
+            break;
+          }
 
-        case "queue_timeout":
-          setStatus("idle");
-          setErrorMsg("No opponents found within 3 minutes. Please try again.");
-          if (searchTimerRef.current) clearInterval(searchTimerRef.current);
-          break;
+          case "queue_timeout":
+            setStatus("idle");
+            setErrorMsg("No opponents found within 3 minutes. Please try again.");
+            if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+            break;
 
-        case "queue_left":
-          setStatus("idle");
-          break;
+          case "queue_left":
+            setStatus("idle");
+            break;
 
-        case "error":
-          setErrorMsg(msg.data?.message || "Something went wrong. Please try again.");
-          setStatus("idle");
-          if (searchTimerRef.current) clearInterval(searchTimerRef.current);
-          break;
+          case "error":
+            setErrorMsg((msg.data?.message as string) || "Something went wrong. Please try again.");
+            setStatus("idle");
+            if (searchTimerRef.current) clearInterval(searchTimerRef.current);
+            break;
+        }
+      },
+      onClose: () => console.log("[ws] disconnected"),
+      onError: (err) => console.error("[ws] error:", err),
+    }).then((ws) => {
+      if (!ws) {
+        setErrorMsg("Failed to connect. Please try again.");
       }
-    };
-
-    ws.onclose = () => {
-      console.log("[ws] disconnected");
-    };
-
-    ws.onerror = (err) => {
-      console.error("[ws] error:", err);
-    };
+    });
   }, [tokens, setWs, setStatus, setOpponent, setCountdown, setSearchTime, router]);
+
 
   useEffect(() => {
     if (mounted && isAuthenticated) {
-      // Ping the API first to ensure our token is fresh. 
-      // If it's expired, our api interceptor will automatically refresh it.
-      api.get("/users/me").then(() => {
-        connectWs();
-      }).catch((err: unknown) => {
-        console.error("Failed to verify session for matchmaking:", err);
-      });
+      connectWs();
     }
 
     return () => {
@@ -139,6 +125,7 @@ export default function QueuePage() {
       reset();
     };
   }, [mounted, isAuthenticated, connectWs, reset]);
+
 
   const handleCancel = () => {
     leaveQueue();

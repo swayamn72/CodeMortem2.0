@@ -109,6 +109,7 @@ func main() {
 		MMQueue:           mmQueue,
 		SubmissionLimiter: submissionLimiter,
 		CFClient:          cfClient,
+		Redis:             rdb,
 	}
 
 	// Create Fiber app

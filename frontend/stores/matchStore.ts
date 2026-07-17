@@ -45,6 +45,24 @@ export interface RunResult {
   status: string;
 }
 
+export interface SampleCase {
+  index: number;
+  input: string;
+  expectedOutput: string;
+  actualOutput: string;
+  passed: boolean;
+  status: string;
+  time?: string;
+}
+
+export interface SampleRunResult {
+  questionIndex: number;
+  passed: number;
+  total: number;
+  cases: SampleCase[];
+  error?: string;
+}
+
 export interface MatchPlayer {
   userId: string;
   username: string;
@@ -92,8 +110,10 @@ interface MatchState {
   // Submission state
   isSubmitting: boolean;
   isRunning: boolean;
+  isRunningSamples: boolean;
   lastSubmissionResult: SubmissionResult | null;
   lastRunResult: RunResult | null;
+  sampleRunResult: SampleRunResult | null;
   
   // Match end
   matchEndData: MatchEndData | null;
@@ -123,8 +143,10 @@ interface MatchState {
   setRemainingSeconds: (secs: number) => void;
   setSubmitting: (v: boolean) => void;
   setRunning: (v: boolean) => void;
+  setRunningSamples: (v: boolean) => void;
   setSubmissionResult: (result: SubmissionResult) => void;
   setRunResult: (result: RunResult) => void;
+  setSampleRunResult: (result: SampleRunResult) => void;
   recordMySolve: (questionIndex: number, points: number) => void;
   recordOpponentSolve: (questionIndex: number, opponentScore: number) => void;
   setMatchEnd: (data: MatchEndData) => void;
@@ -213,8 +235,10 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   codeStates: buildInitialCodeStates(),
   isSubmitting: false,
   isRunning: false,
+  isRunningSamples: false,
   lastSubmissionResult: null,
   lastRunResult: null,
+  sampleRunResult: null,
   matchEndData: null,
   consoleOutput: "Ready. Write your solution and click Run or Submit.",
   consoleType: "info",
@@ -226,7 +250,7 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   setMatchId: (matchId) => set({ matchId }),
   setStatus: (status) => set({ status }),
   setQuestions: (questions) => set({ questions }),
-  setActiveQuestion: (activeQuestionIndex) => set({ activeQuestionIndex, lastSubmissionResult: null, lastRunResult: null }),
+  setActiveQuestion: (activeQuestionIndex) => set({ activeQuestionIndex, lastSubmissionResult: null, lastRunResult: null, sampleRunResult: null }),
   setMyId: (myId) => set({ myId }),
 
   updateCode: (questionIndex, code) =>
@@ -251,6 +275,7 @@ export const useMatchStore = create<MatchState>((set, get) => ({
   setRemainingSeconds: (remainingSeconds) => set({ remainingSeconds }),
   setSubmitting: (isSubmitting) => set({ isSubmitting }),
   setRunning: (isRunning) => set({ isRunning }),
+  setRunningSamples: (isRunningSamples) => set({ isRunningSamples }),
   
   setSubmissionResult: (result) => set({ 
     lastSubmissionResult: result, 
@@ -287,6 +312,8 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     });
   },
 
+  setSampleRunResult: (sampleRunResult) => set({ sampleRunResult, isRunningSamples: false }),
+
   recordMySolve: (questionIndex, points) =>
     set((state) => {
       return { mySolved: { ...state.mySolved, [questionIndex]: true }, myScore: state.myScore + points };
@@ -319,8 +346,10 @@ export const useMatchStore = create<MatchState>((set, get) => ({
     codeStates: buildInitialCodeStates(),
     isSubmitting: false,
     isRunning: false,
+    isRunningSamples: false,
     lastSubmissionResult: null,
     lastRunResult: null,
+    sampleRunResult: null,
     matchEndData: null,
     consoleOutput: "Ready. Write your solution and click Run or Submit.",
     consoleType: "info",

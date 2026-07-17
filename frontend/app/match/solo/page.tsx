@@ -4,9 +4,9 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import { connectGameSocket } from "@/hooks/useGameSocket";
 import styles from "../queue/page.module.css";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080/ws/game";
 
 export default function SoloPage() {
   const { user, tokens, isAuthenticated } = useAuthStore();
@@ -39,64 +39,57 @@ export default function SoloPage() {
   const connectWs = useCallback(() => {
     if (!tokens?.accessToken) return;
 
-    const ws = new WebSocket(`${WS_URL}?token=${tokens.accessToken}`);
-    wsRef.current = ws;
+    connectGameSocket(tokens.accessToken, {
+      onOpen: (ws) => {
+        console.log("[ws] connected for solo match");
+        wsRef.current = ws;
+        ws.send(JSON.stringify({
+          type: "start_solo",
+          durationSecs: duration,
+          ratingMin: ratingMin,
+          ratingMax: ratingMax,
+          numProblems: numProblems,
+        }));
+      },
+      onMessage: (msg) => {
+        switch (msg.type) {
+          case "match_preparing":
+            break;
 
-    ws.onopen = () => {
-      console.log("[ws] connected for solo match");
-      // Request solo match with config
-      ws.send(JSON.stringify({ 
-        type: "start_solo",
-        durationSecs: duration,
-        ratingMin: ratingMin,
-        ratingMax: ratingMax,
-        numProblems: numProblems
-      }));
-    };
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-
-      switch (msg.type) {
-        case "match_preparing":
-          // Server acknowledged the request; problems are being fetched.
-          // The UI is already in "preparing" state; nothing to change.
-          break;
-
-        case "match_found":
-          setStatus("countdown");
-          
-          let count = msg.data.countdown || 3;
-          setCountdown(count);
-
-          countdownRef.current = setInterval(() => {
-            count--;
+          case "match_found": {
+            setStatus("countdown");
+            let count = (msg.data?.countdown as number) || 3;
             setCountdown(count);
-            if (count <= 0) {
-              if (countdownRef.current) clearInterval(countdownRef.current);
-              if (msg.data.matchId) {
-                router.push(`/match/${msg.data.matchId}`);
+            countdownRef.current = setInterval(() => {
+              count--;
+              setCountdown(count);
+              if (count <= 0) {
+                if (countdownRef.current) clearInterval(countdownRef.current);
+                if (msg.data?.matchId) {
+                  router.push(`/match/${msg.data.matchId}`);
+                }
               }
-            }
-          }, 1000);
-          break;
+            }, 1000);
+            break;
+          }
 
-        case "error":
-          console.error("[ws] error:", msg.data);
-          setErrorMsg(msg.data?.message || "Failed to start solo match. Please try again.");
-          setStatus("config");
-          break;
+          case "error":
+            console.error("[ws] error:", msg.data);
+            setErrorMsg((msg.data?.message as string) || "Failed to start solo match. Please try again.");
+            setStatus("config");
+            break;
+        }
+      },
+      onClose: () => console.log("[ws] disconnected"),
+      onError: (err) => console.error("[ws] error:", err),
+    }).then((ws) => {
+      if (!ws) {
+        setErrorMsg("Failed to connect. Please try again.");
+        setStatus("config");
       }
-    };
+    });
+  }, [tokens, router, duration, ratingMin, ratingMax, numProblems]);
 
-    ws.onclose = () => {
-      console.log("[ws] disconnected");
-    };
-
-    ws.onerror = (err) => {
-      console.error("[ws] error:", err);
-    };
-  }, [tokens, router]);
 
   useEffect(() => {
     // We no longer auto-connect. User clicks Start.

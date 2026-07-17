@@ -59,6 +59,23 @@ func HandleGameMessage(c *game.Client, msg *game.ClientMessage, ctr *app.Contain
 		}
 		HandleRunCode(ctx, c, msg, ctr)
 
+	case "run_samples":
+		if c.MatchID == "" {
+			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
+				Type: "error",
+				Data: map[string]string{"message": "not in a match"},
+			})
+			return
+		}
+		if !ctr.SubmissionLimiter.IsAllowed(c.ID) {
+			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
+				Type: "error",
+				Data: map[string]string{"message": "running code too frequently, please wait"},
+			})
+			return
+		}
+		HandleRunSamples(ctx, c, msg, ctr)
+
 	case "heartbeat":
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{Type: "heartbeat_ack"})
 	}

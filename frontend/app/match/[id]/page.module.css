@@ -417,7 +417,8 @@
   font-size: 12px;
   margin: 0;
   white-space: pre-wrap;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
   line-height: 1.7;
 }
 
@@ -500,3 +501,60 @@
     display: none;
   }
 }
+
+/* ── Sample Test Results (F5) ── */
+.sampleSummary {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 4px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 8px;
+}
+
+.sampleCase {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  margin-bottom: 6px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.samplePass {
+  background: rgba(0, 232, 122, 0.05);
+  border-color: rgba(0, 232, 122, 0.18) !important;
+}
+
+.sampleFail {
+  background: rgba(255, 77, 106, 0.05);
+  border-color: rgba(255, 77, 106, 0.18) !important;
+}
+
+.sampleBadge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.sampleBadge.samplePass {
+  background: rgba(0, 232, 122, 0.15);
+  color: #00e87a;
+  border: 1px solid rgba(0, 232, 122, 0.3);
+}
+
+.sampleBadge.sampleFail {
+  background: rgba(255, 77, 106, 0.15);
+  color: #ff4d6a;
+  border: 1px solid rgba(255, 77, 106, 0.3);
+}
+
+.sampleIO {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.6);
+}

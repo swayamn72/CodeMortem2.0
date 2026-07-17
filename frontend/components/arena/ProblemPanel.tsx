@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import type { MatchQuestion } from "@/stores/matchStore";
 import { useAuthStore } from "@/stores/authStore";
 import styles from "./ProblemPanel.module.css";
@@ -19,6 +22,43 @@ interface ProblemPanelProps {
   question: MatchQuestion | null;
 }
 
+/**
+ * StatementMarkdown renders problem text with full math support.
+ *
+ * For CF-source problems (isCF=true) we convert backtick spans `...` → $...$
+ * so remark-math picks them up as inline LaTeX. This matches the CF HTML scraper
+ * which wraps math in backtick spans. For non-CF problems backticks remain as
+ * literal inline code.
+ */
+function StatementMarkdown({
+  source,
+  isCF,
+}: {
+  source: string;
+  isCF: boolean;
+}) {
+  const text = isCF
+    ? source
+        // backtick spans → inline LaTeX
+        .replace(/`([^`]+)`/g, "$$$1$")
+        // normalize single \n to hard break (two spaces + \n)
+        .replace(/(?<!\n)\n(?!\n)/g, "  \n")
+    : source;
+
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkMath]}
+      rehypePlugins={[rehypeKatex]}
+      components={{
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        p: ({ children, ...props }: any) => <p className={styles.statementP} {...props}>{children}</p>,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
+
 export default function ProblemPanel({ question }: ProblemPanelProps) {
   const { tokens } = useAuthStore();
   const [stmtData, setStmtData] = useState<StatementData | null>(null);
@@ -27,6 +67,7 @@ export default function ProblemPanel({ question }: ProblemPanelProps) {
 
   const q = question?.question;
   const needsLazyLoad = q?.source === "codeforces" && !q.statement && q.cfContestId && q.cfIndex;
+  const isCF = q?.source === "codeforces";
 
   const loadStatement = useCallback(async () => {
     if (!q || !tokens?.accessToken) return;
@@ -142,25 +183,33 @@ export default function ProblemPanel({ question }: ProblemPanelProps) {
             {statement && (
               <section className={styles.section}>
                 <h3>Problem Statement</h3>
-                <div className={styles.statement} dangerouslySetInnerHTML={{ __html: formatStatement(statement) }} />
+                <div className={styles.statement}>
+                  <StatementMarkdown source={statement} isCF={!!isCF} />
+                </div>
               </section>
             )}
             {inputFormat && (
               <section className={styles.section}>
                 <h3>Input Format</h3>
-                <div className={styles.formatBlock}>{inputFormat}</div>
+                <div className={styles.statement}>
+                  <StatementMarkdown source={inputFormat} isCF={!!isCF} />
+                </div>
               </section>
             )}
             {outputFormat && (
               <section className={styles.section}>
                 <h3>Output Format</h3>
-                <div className={styles.formatBlock}>{outputFormat}</div>
+                <div className={styles.statement}>
+                  <StatementMarkdown source={outputFormat} isCF={!!isCF} />
+                </div>
               </section>
             )}
             {constraints && (
               <section className={styles.section}>
                 <h3>Constraints</h3>
-                <div className={styles.constraints} dangerouslySetInnerHTML={{ __html: formatConstraints(constraints) }} />
+                <div className={styles.statement}>
+                  <StatementMarkdown source={constraints} isCF={!!isCF} />
+                </div>
               </section>
             )}
             {examples && examples.length > 0 && (
@@ -200,18 +249,4 @@ export default function ProblemPanel({ question }: ProblemPanelProps) {
       </div>
     </div>
   );
-}
-
-function formatStatement(text: string): string {
-  return text
-    .replace(/\n/g, "<br/>")
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-}
-
-function formatConstraints(text: string): string {
-  return text
-    .replace(/\n/g, "<br/>")
-    .replace(/(\d+)\s*≤\s*(\w+)\s*≤\s*(\d+)/g, '<span style="font-family: var(--font-mono)">$1 ≤ $2 ≤ $3</span>')
-    .replace(/(\d+)\s*<=\s*(\w+)\s*<=\s*(\d+)/g, '<span style="font-family: var(--font-mono)">$1 ≤ $2 ≤ $3</span>');
 }

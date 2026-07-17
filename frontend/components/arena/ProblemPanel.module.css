@@ -198,3 +198,23 @@
   border: 1px solid var(--border-primary);
   color: var(--text-muted);
 }
+
+/* ── KaTeX math rendering ── */
+/* Force KaTeX to inherit the panel's text color on dark backgrounds */
+.statement :global(.katex),
+.statement :global(.katex-html) {
+  color: inherit;
+}
+
+/* Prevent horizontal overflow for large block equations */
+.statement :global(.katex-display) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+
+/* Paragraph spacing inside statement blocks */
+.statementP {
+  margin: 0 0 0.65em 0;
+  line-height: 1.7;
+}

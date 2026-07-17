@@ -33,7 +33,7 @@ export default function MatchPage() {
   const [mounted, setMounted] = useState(false);
   const [customInput, setCustomInput] = useState("");
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [consoleTab, setConsoleTab] = useState<"output" | "input">("output");
+  const [consoleTab, setConsoleTab] = useState<"output" | "input" | "samples">("output");
 
   // Mount check
   useEffect(() => {
@@ -138,6 +138,12 @@ export default function MatchPage() {
         break;
       }
 
+      case "run_samples_result": {
+        store.setSampleRunResult(msg.data as unknown as import("@/stores/matchStore").SampleRunResult);
+        setConsoleTab("samples");
+        break;
+      }
+
       case "opponent_solved": {
         const d = msg.data;
         store.recordOpponentSolve(d.questionIndex as number, d.opponentScore as number);
@@ -229,6 +235,7 @@ export default function MatchPage() {
 
     store.setRunning(true);
     store.setConsole("⏳ Running code...", "info");
+    setConsoleTab("output");
 
     ws.send(JSON.stringify({
       type: "run_code",
@@ -236,6 +243,27 @@ export default function MatchPage() {
       language: codeState.language,
       code: codeState.code,
       customInput,
+    }));
+  };
+
+  const handleRunSamples = () => {
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const codeState = store.codeStates[store.activeQuestionIndex];
+    if (!codeState?.code?.trim()) {
+      store.setConsole("Cannot run empty code.", "error");
+      return;
+    }
+
+    store.setRunningSamples(true);
+    setConsoleTab("samples");
+
+    ws.send(JSON.stringify({
+      type: "run_samples",
+      questionIndex: store.activeQuestionIndex,
+      language: codeState.language,
+      code: codeState.code,
     }));
   };
 
@@ -365,6 +393,16 @@ export default function MatchPage() {
               >
                 {store.isRunning ? "Running..." : "▶ Run"}
               </button>
+              {store.isCF && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleRunSamples}
+                  disabled={store.isRunningSamples || store.status !== "active"}
+                  title="Run against CF sample test cases"
+                >
+                  {store.isRunningSamples ? "Testing..." : "🧪 Samples"}
+                </button>
+              )}
               <button
                 className="btn btn-primary btn-sm"
                 onClick={handleSubmit}
@@ -405,6 +443,14 @@ export default function MatchPage() {
               >
                 Custom Input
               </button>
+              {store.isCF && (
+                <button
+                  className={`${styles.consoleTab} ${consoleTab === "samples" ? styles.consoleTabActive : ""}`}
+                  onClick={() => setConsoleTab("samples")}
+                >
+                  Samples {store.sampleRunResult ? `${store.sampleRunResult.passed}/${store.sampleRunResult.total}` : ""}
+                </button>
+              )}
             </div>
 
             <div className={styles.consoleBody}>
@@ -420,6 +466,54 @@ export default function MatchPage() {
                 >
                   {store.consoleOutput}
                 </pre>
+              ) : consoleTab === "samples" ? (
+                <div>
+                  {store.isRunningSamples ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "1rem", color: "rgba(255,255,255,0.45)" }}>
+                      <div style={{ width: 16, height: 16, border: "2px solid rgba(0,220,180,0.3)", borderTopColor: "#00dcb4", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                      Running against sample test cases...
+                    </div>
+                  ) : store.sampleRunResult?.error ? (
+                    <pre className={styles.consoleError}>⚠️ {store.sampleRunResult.error}</pre>
+                  ) : store.sampleRunResult ? (
+                    <div style={{ padding: "0.5rem 0" }}>
+                      <div className={styles.sampleSummary}>
+                        <span style={{ color: store.sampleRunResult.passed === store.sampleRunResult.total ? "#00e87a" : "#ff4d6a", fontWeight: 700 }}>
+                          {store.sampleRunResult.passed}/{store.sampleRunResult.total} passed
+                        </span>
+                      </div>
+                      {store.sampleRunResult.cases.map((sc) => (
+                        <div key={sc.index} className={`${styles.sampleCase} ${sc.passed ? styles.samplePass : styles.sampleFail}`}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            <span className={`${styles.sampleBadge} ${sc.passed ? styles.samplePass : styles.sampleFail}`}>
+                              {sc.passed ? "✓ PASS" : "✗ FAIL"}
+                            </span>
+                            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>Case {sc.index}</span>
+                            {sc.time && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginLeft: "auto" }}>{sc.time}s</span>}
+                          </div>
+                          <div className={styles.sampleIO}>
+                            <div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 3 }}>Input</div>
+                              <pre style={{ margin: 0, fontSize: 11 }}>{sc.input}</pre>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 3 }}>Expected</div>
+                              <pre style={{ margin: 0, fontSize: 11 }}>{sc.expectedOutput}</pre>
+                            </div>
+                            {!sc.passed && (
+                              <div>
+                                <div style={{ fontSize: 9, color: "rgba(255,77,106,0.7)", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 3 }}>Got</div>
+                                <pre style={{ margin: 0, fontSize: 11, color: "#ff4d6a" }}>{sc.actualOutput || sc.status}</pre>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <pre className={styles.consoleInfo}>Click 🧪 Samples to run against the CF sample test cases.</pre>
+                  )}
+                </div>
               ) : (
                 <textarea
                   className={styles.customInput}
