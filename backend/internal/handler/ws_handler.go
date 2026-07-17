@@ -61,12 +61,6 @@ func HandleGameMessage(c *game.Client, msg *game.ClientMessage, ctr *app.Contain
 
 	case "heartbeat":
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{Type: "heartbeat_ack"})
-
-	case "request_hint":
-		HandleHintRequest(ctx, c, msg, ctr)
-
-	case "request_explanation":
-		HandleExplanationRequest(ctx, c, msg, ctr)
 	}
 }
 

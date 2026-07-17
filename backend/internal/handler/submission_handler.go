@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"log"
 
 	"codemortem/internal/app"
 	"codemortem/internal/game"
@@ -28,13 +27,9 @@ func HandleSubmission(ctx context.Context, c *game.Client, msg *game.ClientMessa
 	// Validate problem index against actual problem count
 	session.RLock()
 	numProblems := len(session.CFProblems)
-	problemID := ""
-	if msg.QuestionIndex >= 1 && msg.QuestionIndex <= numProblems {
-		problemID = session.CFProblems[msg.QuestionIndex-1].ID
-	}
 	session.RUnlock()
 
-	if msg.QuestionIndex < 1 || msg.QuestionIndex > numProblems || problemID == "" {
+	if msg.QuestionIndex < 1 || msg.QuestionIndex > numProblems {
 		return
 	}
 
@@ -65,127 +60,35 @@ func HandleSubmission(ctx context.Context, c *game.Client, msg *game.ClientMessa
 		},
 	})
 
-	// Run against test cases (or single-pass if no test cases)
+	// CF problems have no local test cases — Judge0 is used for a single-pass
+	// compile/run smoke check only. Actual solve detection is via the CF poller.
 	go func() {
-		// For CF problems, there are no test cases in our DB.
-		// Judge0 is used for local testing only; actual solve detection is via CF poller.
-		testCases, err := ctr.QRepo.GetTestCases(ctx, problemID)
-		if err != nil || len(testCases) == 0 {
-			resp, err := ctr.JudgeClient.Submit(ctx, &judge.SubmissionRequest{
-				SourceCode: msg.Code,
-				LanguageID: langID,
-			})
-			if err != nil {
-				ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-					Type: "submission_result",
-					Data: map[string]interface{}{
-						"questionIndex": msg.QuestionIndex,
-						"verdict":       "internal_error",
-						"message":       "judge service unavailable",
-					},
-				})
-				return
-			}
-			verdict := judge.MapVerdict(resp.Status.ID)
-			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
-				Type: "submission_result",
-				Data: map[string]interface{}{
-					"questionIndex": msg.QuestionIndex,
-					"verdict":       verdict,
-					"points":        0,
-					"isFirstSolve":  false,
-					"testsPassed":   0,
-					"testsTotal":    0,
-				},
-			})
-			return
-		}
-
-		inputs := make([]string, len(testCases))
-		outputs := make([]string, len(testCases))
-		for i, tc := range testCases {
-			inputs[i] = tc.Input
-			outputs[i] = tc.ExpectedOutput
-		}
-
-		results, err := ctr.JudgeClient.BatchJudge(ctx, langID, msg.Code, inputs, outputs)
+		resp, err := ctr.JudgeClient.Submit(ctx, &judge.SubmissionRequest{
+			SourceCode: msg.Code,
+			LanguageID: langID,
+		})
 		if err != nil {
 			ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 				Type: "submission_result",
 				Data: map[string]interface{}{
 					"questionIndex": msg.QuestionIndex,
 					"verdict":       "internal_error",
-					"message":       "judge service error",
+					"message":       "judge service unavailable",
 				},
 			})
 			return
 		}
-
-		passed := 0
-		total := len(results)
-		overallVerdict := "accepted"
-		var firstFailStderr, firstFailCompile *string
-		var lastTime *string
-		var lastMemory *float64
-
-		for _, r := range results {
-			if r == nil {
-				overallVerdict = "internal_error"
-				continue
-			}
-
-			v := judge.MapVerdict(r.Status.ID)
-			if r.Time != nil {
-				lastTime = r.Time
-			}
-			if r.Memory != nil {
-				lastMemory = r.Memory
-			}
-
-			if v == "accepted" {
-				passed++
-			} else {
-				if overallVerdict == "accepted" {
-					overallVerdict = v
-					firstFailStderr = r.Stderr
-					firstFailCompile = r.CompileOutput
-				}
-			}
-		}
-
-		points := 0
-		if passed == total {
-			overallVerdict = "accepted"
-			points, err = ctr.SessionMgr.RecordSolve(ctx, c.MatchID, c.ID, msg.QuestionIndex)
-			if err != nil {
-				log.Printf("[judge] record solve error: %v", err)
-			}
-		}
-
-		result := map[string]interface{}{
-			"questionIndex": msg.QuestionIndex,
-			"verdict":       overallVerdict,
-			"points":        points,
-			"isFirstSolve":  points > 0,
-			"testsPassed":   passed,
-			"testsTotal":    total,
-		}
-		if lastTime != nil {
-			result["executionTime"] = *lastTime
-		}
-		if lastMemory != nil {
-			result["memory"] = *lastMemory
-		}
-		if firstFailCompile != nil {
-			result["compileOutput"] = *firstFailCompile
-		}
-		if firstFailStderr != nil {
-			result["stderr"] = *firstFailStderr
-		}
-
+		verdict := judge.MapVerdict(resp.Status.ID)
 		ctr.Hub.SendToUser(c.ID, &game.ServerMessage{
 			Type: "submission_result",
-			Data: result,
+			Data: map[string]interface{}{
+				"questionIndex": msg.QuestionIndex,
+				"verdict":       verdict,
+				"points":        0,
+				"isFirstSolve":  false,
+				"testsPassed":   0,
+				"testsTotal":    0,
+			},
 		})
 	}()
 }

@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"codemortem/internal/ai"
 	"codemortem/internal/app"
 	"codemortem/internal/auth"
 	"codemortem/internal/challenges"
@@ -27,7 +26,6 @@ import (
 	"codemortem/internal/handler"
 	"codemortem/internal/judge"
 	"codemortem/internal/matchmaking"
-	"codemortem/internal/question"
 	"codemortem/internal/subscription"
 	"codemortem/internal/user"
 
@@ -97,20 +95,6 @@ func main() {
 	mmQueue := matchmaking.NewQueue(rdb, &cfg.Match)
 	submissionLimiter := game.NewSubmissionRateLimiter(20)
 
-	// AI + Question services
-	aiClient := ai.NewClient(&cfg.AI)
-	qGen := ai.NewQuestionGenerator(aiClient)
-	hintGen := ai.NewHintGenerator(aiClient)
-	explainer := ai.NewSolutionExplainer(aiClient)
-	analyzer := ai.NewPerformanceAnalyzer(aiClient)
-	qRepo := question.NewRepository(db)
-	qSeeder := question.NewBankSeeder(qRepo, qGen, &cfg.AI)
-	qHandler := question.NewHandler(qRepo, qGen, qSeeder, &cfg.AI)
-
-	// NOTE: Auto-seeding is disabled — uncomment below when a valid AI key is available.
-	_ = qSeeder // keep reference to avoid unused-variable error
-	log.Println("ℹ️  AI question bank seeder disabled (not needed yet)")
-
 	// Start matchmaker in background
 	matchCtx, matchCancel := context.WithCancel(context.Background())
 	defer matchCancel()
@@ -121,15 +105,9 @@ func main() {
 		SessionMgr:        sessionMgr,
 		Hub:               hub,
 		JudgeClient:       judgeClient,
-		QRepo:             qRepo,
-		QSeeder:           qSeeder,
 		UserRepo:          userRepo,
 		MMQueue:           mmQueue,
 		SubmissionLimiter: submissionLimiter,
-		HintGen:           hintGen,
-		Explainer:         explainer,
-		Analyzer:          analyzer,
-		AICfg:             &cfg.AI,
 		CFClient:          cfClient,
 	}
 
@@ -208,9 +186,6 @@ func main() {
 
 	// User routes
 	userHandler.RegisterRoutes(api, authMw)
-
-	// Question routes
-	qHandler.RegisterRoutes(api, authMw)
 
 	// Subscription routes
 	subRepo := subscription.NewRepository(db)

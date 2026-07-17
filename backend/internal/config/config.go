@@ -14,7 +14,6 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	Judge0   Judge0Config
-	AI       AIConfig
 	Match    MatchConfig
 	OAuth    OAuthConfig
 	Email    EmailConfig
@@ -59,12 +58,6 @@ type Judge0Config struct {
 	CPUTimeLimit  float64
 	WallTimeLimit float64
 	MemoryLimit   int // KB
-}
-
-type AIConfig struct {
-	Provider string // "openai" or "gemini"
-	APIKey   string
-	Model    string
 }
 
 type OAuthConfig struct {
@@ -131,11 +124,6 @@ func Load() *Config {
 			CPUTimeLimit:  2.0,
 			WallTimeLimit: 5.0,
 			MemoryLimit:   262144, // 256 MB
-		},
-		AI: AIConfig{
-			Provider: getEnv("AI_PROVIDER", "openai"),
-			APIKey:   getEnv("AI_API_KEY", ""),
-			Model:    getEnv("AI_MODEL", "gpt-4o"),
 		},
 		Match: MatchConfig{
 			Duration:         30 * time.Minute,
