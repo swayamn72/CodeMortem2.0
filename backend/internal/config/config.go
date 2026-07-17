@@ -79,6 +79,7 @@ type MatchConfig struct {
 	RatingExpand     int // expand range by this every interval
 	ExpandInterval   time.Duration
 	MaxRatingRange   int
+	UnboundedAfter   time.Duration // after this wait, match any opponent regardless of rating gap
 }
 
 type EmailConfig struct {
@@ -144,6 +145,7 @@ func Load() *Config {
 			RatingExpand:     50,
 			ExpandInterval:   10 * time.Second,
 			MaxRatingRange:   500,
+			UnboundedAfter:   60 * time.Second,
 		},
 		OAuth: OAuthConfig{
 			GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),

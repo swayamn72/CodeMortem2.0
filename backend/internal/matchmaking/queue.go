@@ -148,6 +148,27 @@ func (q *Queue) StartMatcher(ctx context.Context) {
 }
 
 // tryMatch attempts to find and create matches from the queue.
+// acceptableRange returns the maximum rating gap allowed when pairing a player
+// who has waited for the given duration. The window starts at RatingRange and
+// grows by RatingExpand every ExpandInterval, soft-capped at MaxRatingRange
+// during the closest-preferred phase. Once the player has waited at least
+// UnboundedAfter, the window becomes unbounded (math.MaxFloat64) so any
+// opponent qualifies and no player is ever stuck in the queue.
+func acceptableRange(cfg *config.MatchConfig, wait time.Duration) float64 {
+	if cfg.UnboundedAfter > 0 && wait >= cfg.UnboundedAfter {
+		return math.MaxFloat64
+	}
+	expandSteps := 0
+	if cfg.ExpandInterval > 0 {
+		expandSteps = int(wait.Seconds()) / int(cfg.ExpandInterval.Seconds())
+	}
+	r := float64(cfg.RatingRange + expandSteps*cfg.RatingExpand)
+	if r > float64(cfg.MaxRatingRange) {
+		return float64(cfg.MaxRatingRange)
+	}
+	return r
+}
+
 func (q *Queue) tryMatch(ctx context.Context) {
 	// Fast-path: skip the full scan if fewer than 2 players in queue
 	count, err := q.rdb.ZCard(ctx, q.queueKey).Result()
@@ -173,12 +194,10 @@ func (q *Queue) tryMatch(ctx context.Context) {
 		p1JoinedAt := q.getJoinedAt(ctx, p1ID)
 		waitDuration := time.Since(p1JoinedAt)
 
-		// Calculate expanded range based on wait time
-		expandSteps := int(waitDuration.Seconds()) / int(q.cfg.ExpandInterval.Seconds())
-		maxRange := float64(q.cfg.RatingRange + expandSteps*q.cfg.RatingExpand)
-		if maxRange > float64(q.cfg.MaxRatingRange) {
-			maxRange = float64(q.cfg.MaxRatingRange)
-		}
+		// Calculate acceptable rating range based on wait time.
+		// Closest-rating pairing is preferred early; after UnboundedAfter the
+		// window is unbounded so no player is ever stuck in the queue.
+		maxRange := acceptableRange(q.cfg, waitDuration)
 
 		// Find closest opponent within range
 		bestMatch := -1
