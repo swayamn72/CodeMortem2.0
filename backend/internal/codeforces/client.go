@@ -417,18 +417,34 @@ func (c *Client) FetchProblemStatement(contestID int, index string) (statement, 
 
 	html := string(body)
 
-	// Parse problem statement from HTML
-	statement = extractSection(html, `<div class="problem-statement">`, `<div class="input-specification">`)
-	if statement == "" {
-		// Fallback: just get everything in problem-statement div
-		statement = extractSection(html, `<div class="problem-statement">`, `</div>`)
+	// Parse problem statement from HTML.
+	// The CF problem-statement div contains a header div (title, time/memory limits)
+	// followed by the actual statement paragraphs. We skip the header by starting
+	// after </div> (closing the header) or directly at the first <p> after the header.
+
+	// Strategy: extract the full problem-statement block first, then trim the header.
+	fullBlock := extractSection(html, `<div class="problem-statement">`, `<div class="input-specification">`)
+	if fullBlock == "" {
+		fullBlock = extractSection(html, `<div class="problem-statement">`, `</div>`)
 	}
 
-	// Clean HTML tags for a text-based display
-	statement = cleanHTML(statement)
+	// The CF header div has class "header". Strip it: find </div> that closes the header.
+	// The header always starts with <div class="title"> and ends with </div></div>.
+	// Simple approach: advance past the first </div></div> block (header closes with two </div>).
+	headerEnd := strings.Index(fullBlock, "</div></div>")
+	if headerEnd != -1 {
+		fullBlock = fullBlock[headerEnd+len("</div></div>"):]
+	}
+
+	statement = cleanHTML(fullBlock)
 	if statement == "" {
 		statement = "Problem statement could not be parsed. Please view on Codeforces."
 	}
+
+	// Post-process: remove any leading lines that look like leftover CF metadata
+	// (e.g. "B. Title", "time limit per test", "N seconds", "memory limit per test",
+	//  "N megabytes", "input", "standard input", "output", "standard output").
+	statement = stripCFHeaderLines(statement)
 
 	inputFormat = cleanHTML(extractSection(html, `<div class="input-specification">`, `<div class="output-specification">`))
 	outputFormat = cleanHTML(extractSection(html, `<div class="output-specification">`, `<div class="sample-tests">`))
@@ -444,6 +460,47 @@ func (c *Client) FetchProblemStatement(contestID int, index string) (statement, 
 	constraints = "See problem statement for constraints."
 
 	return statement, inputFormat, outputFormat, constraints, examples, nil
+}
+
+// stripCFHeaderLines removes lines at the top of a scraped statement that are
+// leftover CF problem-header boilerplate (title line, time/memory limits, I/O format labels).
+func stripCFHeaderLines(text string) string {
+	if text == "" {
+		return text
+	}
+	lines := strings.Split(text, "\n")
+	var filtered []string
+	skip := true
+	for _, line := range lines {
+		lower := strings.ToLower(strings.TrimSpace(line))
+		if skip {
+			// Skip known CF header patterns
+			switch {
+			case lower == "":
+				continue
+			case strings.HasPrefix(lower, "time limit per test"),
+				strings.HasPrefix(lower, "memory limit per test"),
+				lower == "input", lower == "output",
+				lower == "standard input", lower == "standard output",
+				lower == "stdin", lower == "stdout",
+				// problem number + title line: e.g. "A. Two Sum", "B. Battleship"
+				len(lower) > 2 && lower[1] == '.' && lower[0] >= 'a' && lower[0] <= 'z':
+				continue
+			// values like "1.5 seconds", "256 megabytes"
+			case strings.HasSuffix(lower, "seconds"),
+				strings.HasSuffix(lower, "megabytes"),
+				strings.HasSuffix(lower, "megabyte"):
+				continue
+			default:
+				// First non-header line — stop skipping
+				skip = false
+				filtered = append(filtered, line)
+			}
+		} else {
+			filtered = append(filtered, line)
+		}
+	}
+	return strings.Join(filtered, "\n")
 }
 
 // extractSection extracts text between two HTML markers.

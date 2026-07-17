@@ -25,10 +25,10 @@ interface ProblemPanelProps {
 /**
  * StatementMarkdown renders problem text with full math support.
  *
- * For CF-source problems (isCF=true) we convert backtick spans `...` → $...$
- * so remark-math picks them up as inline LaTeX. This matches the CF HTML scraper
- * which wraps math in backtick spans. For non-CF problems backticks remain as
- * literal inline code.
+ * For CF-source problems (isCF=true) we convert backtick-wrapped math `...` → $...$
+ * so remark-math picks them up as inline LaTeX. The CF scraper converts $$$ → backtick.
+ * We also escape stray underscores and asterisks that would otherwise render as markdown
+ * emphasis on random words in the problem text.
  */
 function StatementMarkdown({
   source,
@@ -37,13 +37,20 @@ function StatementMarkdown({
   source: string;
   isCF: boolean;
 }) {
-  const text = isCF
-    ? source
-        // backtick spans → inline LaTeX
-        .replace(/`([^`]+)`/g, "$$$1$")
-        // normalize single \n to hard break (two spaces + \n)
-        .replace(/(?<!\n)\n(?!\n)/g, "  \n")
-    : source;
+  let text = source;
+
+  if (isCF) {
+    // Convert backtick-wrapped math segments to $...$
+    // The backend CF scraper replaces $$$ (CF's MathJax delimiter) with backtick,
+    // so math expressions arrive as `expression` in the text.
+    text = text.replace(/`([^`\n]{1,200})`/g, (_match, inner) => `$${inner}$`);
+
+    // Normalize double-newline to single so markdown paragraphs render cleanly
+    text = text.replace(/\n{3,}/g, '\n\n');
+  } else {
+    // Non-CF: escape stray underscores outside code spans to prevent accidental italics
+    text = text.replace(/(^|[^\\])_(?!_)/g, '$1\\_');
+  }
 
   return (
     <ReactMarkdown

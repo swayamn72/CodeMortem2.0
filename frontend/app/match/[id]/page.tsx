@@ -339,11 +339,27 @@ export default function MatchPage() {
                 key={q.questionIndex}
                 className={tabClass}
                 onClick={() => store.setActiveQuestion(q.questionIndex)}
+                title={q.question.title}
               >
-                <span className={styles.qTabIdx}>Q{q.questionIndex}</span>
-                <span className={styles.qTabPts}>+{q.pointsValue}</span>
-                {isMySolved && <span className={styles.qTabIcon}>✓</span>}
-                {!store.isSolo && isOppSolved && !isMySolved && <span className={styles.qTabIcon}>✗</span>}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4 }}>
+                  <span className={styles.qTabIdx}>Q{q.questionIndex}</span>
+                  {isMySolved && <span className={styles.qTabIcon}>✓</span>}
+                  {!store.isSolo && isOppSolved && !isMySolved && <span className={styles.qTabIcon}>✗</span>}
+                  <span className={styles.qTabPts}>+{q.pointsValue}</span>
+                </div>
+                <span style={{
+                  fontSize: 10,
+                  color: isActive ? 'rgba(0,220,180,0.8)' : 'rgba(255,255,255,0.3)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  width: '100%',
+                  display: 'block',
+                  lineHeight: 1.3,
+                  marginTop: 2,
+                }}>
+                  {q.question.title}
+                </span>
               </button>
             );
           })}

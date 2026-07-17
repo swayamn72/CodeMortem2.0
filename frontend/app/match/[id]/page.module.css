@@ -199,10 +199,11 @@
 
 .qTab {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
   padding: 8px 10px;
-  white-space: nowrap;
+  overflow: hidden;
   border-radius: 7px;
   border: 1px solid transparent;
   background: transparent;
