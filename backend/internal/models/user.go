@@ -24,6 +24,10 @@ type User struct {
 	CFVerified    bool    `json:"cfVerified" db:"cf_verified"`
 	CFVerifyToken *string `json:"-" db:"cf_verify_token"`
 
+	// RatingCalibrated is set TRUE the first time the CodeMortem rating is
+	// seeded from Codeforces. Once set, re-verifying CF never re-seeds rating.
+	RatingCalibrated bool `json:"ratingCalibrated" db:"rating_calibrated"`
+
 	// Stats
 	MatchesPlayed       int `json:"matchesPlayed" db:"matches_played"`
 	MatchesWon          int `json:"matchesWon" db:"matches_won"`

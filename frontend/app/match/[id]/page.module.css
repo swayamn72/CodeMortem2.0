@@ -200,8 +200,9 @@
 .qTab {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   padding: 8px 10px;
+  white-space: nowrap;
   border-radius: 7px;
   border: 1px solid transparent;
   background: transparent;
@@ -241,19 +242,30 @@
 .qTabIdx {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 11px;
-  min-width: 20px;
+  font-size: 12px;
+  min-width: 22px;
+  flex-shrink: 0;
 }
 
 .qTabPts {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  color: rgba(255, 255, 255, 0.18);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.28);
   margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.qTabActive .qTabPts {
+  color: rgba(0, 220, 180, 0.6);
+}
+
+.qTabMySolved .qTabPts {
+  color: rgba(0, 232, 122, 0.55);
 }
 
 .qTabIcon {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -267,7 +279,7 @@
 .sidebarStats {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 9px;
   padding: 0 4px;
 }
 
@@ -283,13 +295,15 @@
   color: rgba(255, 255, 255, 0.22);
   text-transform: uppercase;
   letter-spacing: 0.8px;
+  white-space: nowrap;
 }
 
 .sidebarStatValue {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
 }
 
 /* ── Problem Panel ── */

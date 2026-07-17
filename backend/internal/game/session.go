@@ -41,11 +41,6 @@ type SessionPlayer struct {
 	Score    int
 	Solved   map[int]bool // problemIndex → solved
 	CFHandle string
-
-	// AI hint tracking (per question index)
-	HintsUsed    map[int]int      // problemIndex → highest hint level used
-	HintTexts    map[int][]string // problemIndex → list of hint texts shown
-	LastVerdicts map[int]string   // problemIndex → last submission verdict
 }
 
 // SessionManager manages all active game sessions.
@@ -132,9 +127,6 @@ func (sm *SessionManager) CreateCFSession(ctx context.Context,
 			Score:    0,
 			Solved:   make(map[int]bool),
 			CFHandle: p1CFHandle,
-			HintsUsed:    make(map[int]int),
-			HintTexts:    make(map[int][]string),
-			LastVerdicts: make(map[int]string),
 		},
 		IsCF:      true,
 		StartedAt: now,
@@ -152,9 +144,6 @@ func (sm *SessionManager) CreateCFSession(ctx context.Context,
 			Score:    0,
 			Solved:   make(map[int]bool),
 			CFHandle: p2CFHandle,
-			HintsUsed:    make(map[int]int),
-			HintTexts:    make(map[int][]string),
-			LastVerdicts: make(map[int]string),
 		}
 	}
 

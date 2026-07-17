@@ -10,9 +10,6 @@ import ProblemPanel from "@/components/arena/ProblemPanel";
 import MatchTimer from "@/components/arena/MatchTimer";
 import MatchResults from "@/components/arena/MatchResults";
 import LanguageSelector from "@/components/editor/LanguageSelector";
-import HintPanel from "@/components/arena/HintPanel";
-import SolutionExplainer from "@/components/arena/SolutionExplainer";
-import MatchReportView from "@/components/arena/MatchReport";
 import styles from "./page.module.css";
 
 const CodeEditor = dynamic(() => import("@/components/editor/CodeEditor"), {
@@ -160,41 +157,8 @@ export default function MatchPage() {
       case "heartbeat_ack":
         break;
 
-      case "hint_response": {
-        const h = msg.data;
-        store.addHint(h.questionIndex as number, h.hintText as string);
-        if (typeof h.newScore === "number") {
-          const penalty = h.pointsDeducted as number;
-          if (penalty > 0) {
-            store.setConsole(`💡 Hint received (-${penalty} pts)`, "info");
-          } else {
-            store.setConsole(`💡 Hint received (free in solo mode)`, "info");
-          }
-        }
-        break;
-      }
-
-      case "hint_loading":
-        store.setHintsPending(true);
-        break;
-
-      case "explanation_response": {
-        const e = msg.data;
-        store.setExplanation(
-          e.questionIndex as number,
-          e.explanation as import("@/stores/matchStore").SolutionExplanation
-        );
-        break;
-      }
-
-      case "explanation_loading":
-        store.setExplanationPending(msg.data.questionIndex as number);
-        break;
-
       case "error":
         store.setConsole(`Error: ${(msg.data as { message: string }).message}`, "error");
-        store.setHintsPending(false);
-        store.setExplanationPending(null);
         break;
     }
   }, [store]);
@@ -329,7 +293,7 @@ export default function MatchPage() {
       <div className={styles.arenaBody}>
         <Group orientation="horizontal" id="arena-main-group">
           {/* Question Sidebar */}
-          <Panel id="sidebar-panel" defaultSize={12} minSize={8} maxSize={25}>
+          <Panel id="sidebar-panel" defaultSize={16} minSize={13} maxSize={25}>
             <aside className={styles.sidebar}>
           <div className={styles.sidebarTitle}>Questions</div>
           {store.questions.map((q) => {
@@ -377,12 +341,6 @@ export default function MatchPage() {
           <Panel id="problem-panel" defaultSize={38} minSize={20}>
             <div className={styles.problemPanel}>
           <ProblemPanel question={currentQuestion || null} />
-          {currentQuestion && (
-            <HintPanel
-              questionIndex={store.activeQuestionIndex}
-              isSolo={store.isSolo}
-            />
-          )}
             </div>
           </Panel>
 
@@ -414,9 +372,6 @@ export default function MatchPage() {
               >
                 {store.mySolved[store.activeQuestionIndex] ? "✓ Solved" : store.isCF ? "Submit on CF" : store.isSubmitting ? "Judging..." : "Submit"}
               </button>
-              {store.mySolved[store.activeQuestionIndex] && (
-                <SolutionExplainer questionIndex={store.activeQuestionIndex} />
-              )}
             </div>
           </div>
 

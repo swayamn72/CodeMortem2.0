@@ -14,7 +14,6 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	Judge0   Judge0Config
-	AI       AIConfig
 	Match    MatchConfig
 	OAuth    OAuthConfig
 	Email    EmailConfig
@@ -61,12 +60,6 @@ type Judge0Config struct {
 	MemoryLimit   int // KB
 }
 
-type AIConfig struct {
-	Provider string // "openai" or "gemini"
-	APIKey   string
-	Model    string
-}
-
 type OAuthConfig struct {
 	GoogleClientID string
 }
@@ -79,6 +72,7 @@ type MatchConfig struct {
 	RatingExpand     int // expand range by this every interval
 	ExpandInterval   time.Duration
 	MaxRatingRange   int
+	UnboundedAfter   time.Duration // after this wait, match any opponent regardless of rating gap
 }
 
 type EmailConfig struct {
@@ -131,11 +125,6 @@ func Load() *Config {
 			WallTimeLimit: 5.0,
 			MemoryLimit:   262144, // 256 MB
 		},
-		AI: AIConfig{
-			Provider: getEnv("AI_PROVIDER", "openai"),
-			APIKey:   getEnv("AI_API_KEY", ""),
-			Model:    getEnv("AI_MODEL", "gpt-4o"),
-		},
 		Match: MatchConfig{
 			Duration:         30 * time.Minute,
 			QuestionCount:    7,
@@ -144,6 +133,7 @@ func Load() *Config {
 			RatingExpand:     50,
 			ExpandInterval:   10 * time.Second,
 			MaxRatingRange:   500,
+			UnboundedAfter:   60 * time.Second,
 		},
 		OAuth: OAuthConfig{
 			GoogleClientID: getEnv("GOOGLE_CLIENT_ID", ""),
