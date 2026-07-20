@@ -251,6 +251,18 @@ export default function ProblemPanel({ question }: ProblemPanelProps) {
                 </div>
               </section>
             )}
+            
+            {/* Fallback if backend returned empty statement due to CF anti-bot / scraper failure */}
+            {!statement && !inputFormat && (!examples || examples.length === 0) && (
+              <div style={{ padding: "3rem 1rem", textAlign: "center", color: "var(--text-muted)" }}>
+                <p style={{ marginBottom: "1rem", fontSize: 15 }}>⚠️ The problem statement could not be loaded directly.</p>
+                {q?.cfUrl && (
+                  <a href={q.cfUrl} target="_blank" rel="noopener noreferrer" className={styles.cfLink} style={{ fontSize: 16, fontWeight: 500 }}>
+                    Read the full statement on Codeforces ↗
+                  </a>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

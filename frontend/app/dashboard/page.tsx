@@ -73,6 +73,18 @@ export default function DashboardPage() {
     );
   }
 
+  const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mounted && isAuthenticated) {
+      api.get("/matches/active").then(res => {
+        if (res.data?.matchId) {
+          setActiveMatchId(res.data.matchId);
+        }
+      }).catch(err => console.error("Failed to check active match:", err));
+    }
+  }, [mounted, isAuthenticated]);
+
   const rankColor = getRankColor(user.rating);
 
   return (
@@ -109,6 +121,20 @@ export default function DashboardPage() {
       <div className="grid-bg" />
 
       <main className={styles.dashboard}>
+        {activeMatchId && (
+          <div style={{ margin: "20px 20px 0 20px", background: "rgba(0,220,180,0.1)", border: "1px solid rgba(0,220,180,0.3)", borderRadius: 12, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#00dcb4", boxShadow: "0 0 10px #00dcb4", animation: "pulse 2s infinite" }} />
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, color: "#00dcb4", fontFamily: "'Syne', sans-serif", fontWeight: 700 }}>Match in Progress!</h3>
+                <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 4 }}>You have an active match. Rejoin before the time runs out.</p>
+              </div>
+            </div>
+            <Link href={`/match/${activeMatchId}`} className="btn btn-primary">
+              Rejoin Match
+            </Link>
+          </div>
+        )}
         {/* ── Hero Header ── */}
         <div className={styles.hero}>
           <div className={styles.heroText}>

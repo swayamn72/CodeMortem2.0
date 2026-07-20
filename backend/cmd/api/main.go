@@ -197,6 +197,16 @@ func main() {
 	lp := api.Group("/learning-path", authMw)
 	handler.RegisterLearningPathRoutes(lp, judgeClient, db)
 
+	// Check if user is currently in an active match
+	api.Get("/matches/active", authMw, func(c *fiber.Ctx) error {
+		userID := c.Locals("userId").(string)
+		matchID, ok := sessionMgr.GetUserActiveMatch(userID)
+		if !ok {
+			return c.JSON(fiber.Map{"matchId": nil})
+		}
+		return c.JSON(fiber.Map{"matchId": matchID})
+	})
+
 	// CF problem statement — lazy-loaded by the match arena, cached 24h in Redis
 	api.Get("/cf/statement/:contestId/:index", authMw, func(c *fiber.Ctx) error {
 		contestID := c.Params("contestId")
@@ -230,8 +240,11 @@ func main() {
 			"examples":     examples,
 		}
 
-		if b, err := json.Marshal(payload); err == nil {
-			rdb.Set(c.Context(), cacheKey, b, 24*time.Hour)
+		// Only cache if we actually scraped something, to avoid caching Cloudflare blocks
+		if stmt != "" || len(examples) > 0 {
+			if b, err := json.Marshal(payload); err == nil {
+				rdb.Set(c.Context(), cacheKey, b, 24*time.Hour)
+			}
 		}
 
 		return c.JSON(payload)
