@@ -90,7 +90,22 @@ export default function MatchPage() {
         useMatchStore.setState({ isSolo: d.isSolo as boolean });
         if (!d.isSolo) {
           store.setOpponent(d.opponent as string);
+          useMatchStore.setState({ opponentScore: (d.opponentScore as number) || 0 });
         }
+        
+        useMatchStore.setState({ myScore: (d.myScore as number) || 0 });
+        
+        const mySolved: Record<number, boolean> = {};
+        const oppSolved: Record<number, boolean> = {};
+        
+        if (Array.isArray(d.questions)) {
+          d.questions.forEach((q: any) => {
+             if (q.solvedBy === "you") mySolved[q.questionIndex] = true;
+             if (q.solvedBy === "opponent") oppSolved[q.questionIndex] = true;
+          });
+        }
+        
+        useMatchStore.setState({ mySolved, opponentSolved: oppSolved });
         store.setRemainingSeconds(d.remainingSeconds as number);
         store.setStatus("active");
         
@@ -321,7 +336,7 @@ export default function MatchPage() {
       <div className={styles.arenaBody}>
         <Group orientation="horizontal" id="arena-main-group">
           {/* Question Sidebar */}
-          <Panel id="sidebar-panel" defaultSize={16} minSize={13} maxSize={25}>
+          <Panel id="sidebar-panel" defaultSize={15} minSize={13} maxSize={25}>
             <aside className={styles.sidebar}>
           <div className={styles.sidebarTitle}>Questions</div>
           {store.questions.map((q) => {
@@ -382,7 +397,7 @@ export default function MatchPage() {
           <Separator id="sep-1" className={styles.resizeHandle} />
 
           {/* Problem Panel */}
-          <Panel id="problem-panel" defaultSize={38} minSize={20}>
+          <Panel id="problem-panel" defaultSize={35} minSize={20}>
             <div className={styles.problemPanel}>
           <ProblemPanel question={currentQuestion || null} />
             </div>
@@ -531,13 +546,30 @@ export default function MatchPage() {
                   )}
                 </div>
               ) : (
-                <textarea
-                  className={styles.customInput}
-                  value={customInput}
-                  onChange={(e) => setCustomInput(e.target.value)}
-                  placeholder="Enter custom input here..."
-                  spellCheck={false}
-                />
+                <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+                  {currentQuestion?.question.examples && currentQuestion.question.examples.length > 0 && (
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8, flexShrink: 0 }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ fontSize: 10, padding: "2px 8px", minHeight: "auto", height: 24 }}
+                        onClick={() => {
+                          const allInputs = currentQuestion.question.examples.map(ex => ex.input).join("\n");
+                          setCustomInput(allInputs.trim());
+                        }}
+                      >
+                        Load Sample Input
+                      </button>
+                    </div>
+                  )}
+                  <textarea
+                    className={styles.customInput}
+                    value={customInput}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    placeholder="Enter custom input here..."
+                    spellCheck={false}
+                    style={{ flex: 1 }}
+                  />
+                </div>
               )}
             </div>
           </div>

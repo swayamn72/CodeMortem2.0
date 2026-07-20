@@ -623,17 +623,7 @@ func (sm *SessionManager) startCFVerificationPoller(matchID string) {
 							},
 						})
 
-						// Notify opponent if 1v1
-						if session.Player2 != nil {
-							sm.hub.SendToOpponent(matchID, player.UserID, &ServerMessage{
-								Type: "cf_solved",
-								Data: map[string]interface{}{
-									"questionIndex": mcp.ProblemIndex,
-									"solvedBy":      "opponent",
-									"points":        0,
-								},
-							})
-						}
+						// Opponent is already notified via opponent_solved event inside RecordCFSolve
 					}
 				}
 
