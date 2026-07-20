@@ -65,14 +65,6 @@ export default function DashboardPage() {
     }
   };
 
-  if (!mounted || !user) {
-    return (
-      <div className="auth-page">
-        <div className="skeleton" style={{ width: 200, height: 24 }} />
-      </div>
-    );
-  }
-
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -84,6 +76,16 @@ export default function DashboardPage() {
       }).catch(err => console.error("Failed to check active match:", err));
     }
   }, [mounted, isAuthenticated]);
+
+  if (!mounted || !user) {
+    return (
+      <div className="auth-page">
+        <div className="skeleton" style={{ width: 200, height: 24 }} />
+      </div>
+    );
+  }
+
+
 
   const rankColor = getRankColor(user.rating);
 
