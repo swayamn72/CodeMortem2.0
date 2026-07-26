@@ -19,10 +19,17 @@ export interface Question {
 
 export interface MatchQuestion {
   questionIndex: number;
+  /** Live decayed points value — counts down as match progresses */
   pointsValue: number;
-  solvedBy: string | null;
+  /** Original base point value (before decay) */
+  basePointsValue?: number;
+  solvedBy: string | null; // "you" | "opponent" | "both" | null
   solvedAt: string | null;
   question: Question;
+  /** Actual points this player earned (set when solved) */
+  myPointsEarned?: number | null;
+  /** Actual points opponent earned (set when they solved) */
+  oppPointsEarned?: number | null;
 }
 
 export interface SubmissionResult {
@@ -148,7 +155,7 @@ interface MatchState {
   setRunResult: (result: RunResult) => void;
   setSampleRunResult: (result: SampleRunResult) => void;
   recordMySolve: (questionIndex: number, points: number) => void;
-  recordOpponentSolve: (questionIndex: number, opponentScore: number) => void;
+  recordOpponentSolve: (questionIndex: number, opponentScore: number, pointsEarned?: number) => void;
   setMatchEnd: (data: MatchEndData) => void;
   setConsole: (output: string, type: "info" | "success" | "error") => void;
   setOpponent: (username: string) => void;
@@ -316,12 +323,35 @@ export const useMatchStore = create<MatchState>((set, get) => ({
 
   recordMySolve: (questionIndex, points) =>
     set((state) => {
-      return { mySolved: { ...state.mySolved, [questionIndex]: true }, myScore: state.myScore + points };
+      // Update the question's myPointsEarned
+      const updatedQuestions = state.questions.map((q) =>
+        q.questionIndex === questionIndex
+          ? { ...q, solvedBy: q.solvedBy === "opponent" ? "both" : "you", myPointsEarned: points }
+          : q
+      );
+      return {
+        mySolved: { ...state.mySolved, [questionIndex]: true },
+        myScore: state.myScore + points,
+        questions: updatedQuestions,
+      };
     }),
 
-  recordOpponentSolve: (questionIndex, opponentScore) =>
+  recordOpponentSolve: (questionIndex, opponentScore, pointsEarned?) =>
     set((state) => {
-      return { opponentSolved: { ...state.opponentSolved, [questionIndex]: true }, opponentScore };
+      const updatedQuestions = state.questions.map((q) =>
+        q.questionIndex === questionIndex
+          ? {
+              ...q,
+              solvedBy: q.solvedBy === "you" || q.solvedBy === "both" ? "both" : "opponent",
+              oppPointsEarned: pointsEarned ?? q.oppPointsEarned,
+            }
+          : q
+      );
+      return {
+        opponentSolved: { ...state.opponentSolved, [questionIndex]: true },
+        opponentScore,
+        questions: updatedQuestions,
+      };
     }),
 
   setMatchEnd: (matchEndData) => set({ matchEndData, status: "ended" }),

@@ -161,9 +161,13 @@ export default function MatchPage() {
 
       case "opponent_solved": {
         const d = msg.data;
-        store.recordOpponentSolve(d.questionIndex as number, d.opponentScore as number);
+        store.recordOpponentSolve(
+          d.questionIndex as number,
+          d.opponentScore as number,
+          d.pointsEarned as number | undefined,
+        );
         store.setConsole(
-          `⚠️ Opponent solved Q${d.questionIndex}! Their score: ${d.opponentScore}`,
+          `⚡ Opponent solved Q${d.questionIndex} (+${d.pointsEarned ?? "?"}pts)! Their score: ${d.opponentScore}`,
           "error"
         );
         break;
@@ -338,59 +342,90 @@ export default function MatchPage() {
           {/* Question Sidebar */}
           <Panel id="sidebar-panel" defaultSize={15} minSize={13} maxSize={25}>
             <aside className={styles.sidebar}>
-          <div className={styles.sidebarTitle}>Questions</div>
-          {store.questions.map((q) => {
-            const isMySolved = !!store.mySolved[q.questionIndex];
-            const isOppSolved = !!store.opponentSolved[q.questionIndex];
-            const isActive = q.questionIndex === store.activeQuestionIndex;
+              <div className={styles.sidebarTitle}>Questions</div>
+              {store.questions.map((q) => {
+                const isMySolved   = !!store.mySolved[q.questionIndex];
+                const isOppSolved  = !!store.opponentSolved[q.questionIndex];
+                const isBothSolved = isMySolved && isOppSolved;
+                const isActive     = q.questionIndex === store.activeQuestionIndex;
 
-            let tabClass = styles.qTab;
-            if (isActive) tabClass += ` ${styles.qTabActive}`;
-            if (isMySolved) tabClass += ` ${styles.qTabMySolved}`;
-            else if (isOppSolved) tabClass += ` ${styles.qTabOppSolved}`;
+                let tabClass = styles.qTab;
+                if (isActive)         tabClass += ` ${styles.qTabActive}`;
+                else if (isBothSolved) tabClass += ` ${styles.qTabBothSolved}`;
+                else if (isMySolved)   tabClass += ` ${styles.qTabMySolved}`;
+                else if (isOppSolved)  tabClass += ` ${styles.qTabOppSolved}`;
 
-            return (
-              <button
-                key={q.questionIndex}
-                className={tabClass}
-                onClick={() => store.setActiveQuestion(q.questionIndex)}
-                title={q.question.title}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 4 }}>
-                  <span className={styles.qTabIdx}>Q{q.questionIndex}</span>
-                  {isMySolved && <span className={styles.qTabIcon}>✓</span>}
-                  {!store.isSolo && isOppSolved && !isMySolved && <span className={styles.qTabIcon}>✗</span>}
-                  <span className={styles.qTabPts}>+{q.pointsValue}</span>
+                // Live decaying point value (counts down via remainingSeconds)
+                const baseVal  = q.basePointsValue ?? q.pointsValue;
+                const elapsed  = 1800 - store.remainingSeconds; // 30-min match
+                const fraction = Math.min(Math.max(elapsed / 1800, 0), 1);
+                const liveVal  = isMySolved && q.myPointsEarned != null
+                  ? q.myPointsEarned
+                  : Math.max(Math.round(baseVal * (1 - 0.8 * fraction)), Math.max(Math.round(baseVal * 0.2), 50));
+
+                return (
+                  <button
+                    key={q.questionIndex}
+                    className={tabClass}
+                    onClick={() => store.setActiveQuestion(q.questionIndex)}
+                    title={q.question.title}
+                  >
+                    {/* Row 1: Q index + solve badges */}
+                    <div className={styles.qTabRow}>
+                      <span className={styles.qTabIdx}>Q{q.questionIndex}</span>
+                      <div className={styles.qTabBadges}>
+                        {isMySolved && (
+                          <span className={styles.qBadgeYou} title={`You earned ${q.myPointsEarned ?? liveVal}pts`}>
+                            You ✓
+                          </span>
+                        )}
+                        {!store.isSolo && isOppSolved && (
+                          <span className={styles.qBadgeOpp} title={`Opp earned ${q.oppPointsEarned ?? "?"}pts`}>
+                            Opp ✓
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: title */}
+                    <span className={styles.qTabTitle}>
+                      {q.question.title}
+                    </span>
+
+                    {/* Row 3: live points value */}
+                    <div className={styles.qTabPtsRow}>
+                      <span className={`${styles.qTabPts} ${!isMySolved ? styles.qTabPtsLive : styles.qTabPtsSolved}`}>
+                        {isMySolved && q.myPointsEarned != null
+                          ? `+${q.myPointsEarned}`
+                          : `+${liveVal}`
+                        }
+                      </span>
+                      {!isMySolved && !isOppSolved && (
+                        <span className={styles.qTabPtsDecay}>pts</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+
+              <div className={styles.sidebarDivider} />
+
+              <div className={styles.sidebarStats}>
+                <div className={styles.sidebarStat}>
+                  <span className={styles.sidebarStatLabel}>Solved</span>
+                  <span className={styles.sidebarStatValue}>{Object.keys(store.mySolved).length}/{store.isCF ? 5 : 7}</span>
                 </div>
-                <span style={{
-                  fontSize: 10,
-                  color: isActive ? 'rgba(0,220,180,0.8)' : 'rgba(255,255,255,0.3)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  width: '100%',
-                  display: 'block',
-                  lineHeight: 1.3,
-                  marginTop: 2,
-                }}>
-                  {q.question.title}
-                </span>
-              </button>
-            );
-          })}
-
-          <div className={styles.sidebarDivider} />
-
-          <div className={styles.sidebarStats}>
-            <div className={styles.sidebarStat}>
-              <span className={styles.sidebarStatLabel}>Solved</span>
-              <span className={styles.sidebarStatValue}>{Object.keys(store.mySolved).length}/{store.isCF ? 5 : 7}</span>
-            </div>
-            <div className={styles.sidebarStat}>
-              <span className={styles.sidebarStatLabel}>Score</span>
-              <span className={styles.sidebarStatValue} style={{ color: "var(--cm-cyan)" }}>{store.myScore}</span>
-            </div>
-          </div>
+                <div className={styles.sidebarStat}>
+                  <span className={styles.sidebarStatLabel}>Score</span>
+                  <span className={styles.sidebarStatValue} style={{ color: "var(--cm-cyan)" }}>{store.myScore}</span>
+                </div>
+                {!store.isSolo && (
+                  <div className={styles.sidebarStat}>
+                    <span className={styles.sidebarStatLabel}>Opp</span>
+                    <span className={styles.sidebarStatValue} style={{ color: "#ff4d6a" }}>{store.opponentScore}</span>
+                  </div>
+                )}
+              </div>
             </aside>
           </Panel>
 

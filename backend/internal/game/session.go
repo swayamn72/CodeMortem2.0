@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"sync"
 	"time"
 
@@ -178,8 +179,34 @@ func (sm *SessionManager) GetSession(matchID string) (*Session, bool) {
 	return s, ok
 }
 
-// RecordCFSolve records that a player solved a CF problem, updates scores + DB.
-// Returns points awarded (0 if already solved by someone).
+// icpcPoints computes the time-decayed point value for a problem in ICPC style.
+// Points start at basePoints and decay linearly to 20% of base at match end.
+//
+//	points = basePoints × (1 − 0.8 × fraction_elapsed)
+//	floor  = max(basePoints × 0.2, 50)
+func icpcPoints(basePoints int, solvedAt, matchStart time.Time, matchDurationSecs int) int {
+	if matchDurationSecs <= 0 {
+		return basePoints
+	}
+	elapsed := solvedAt.Sub(matchStart).Seconds()
+	fraction := elapsed / float64(matchDurationSecs)
+	if fraction < 0 {
+		fraction = 0
+	}
+	if fraction > 1 {
+		fraction = 1
+	}
+	points := float64(basePoints) * (1.0 - 0.8*fraction)
+	floorVal := math.Max(float64(basePoints)*0.2, 50)
+	if points < floorVal {
+		points = floorVal
+	}
+	return int(math.Round(points))
+}
+
+// RecordCFSolve records that a player solved a CF problem in ICPC mode.
+// Both players can independently earn (decayed) points from the same problem.
+// Returns points awarded (0 if this player already solved it).
 func (sm *SessionManager) RecordCFSolve(ctx context.Context, matchID, userID string, problemIndex int) (int, error) {
 	session, ok := sm.GetSession(matchID)
 	if !ok {
@@ -194,20 +221,66 @@ func (sm *SessionManager) RecordCFSolve(ctx context.Context, matchID, userID str
 	}
 
 	mcp := session.CFProblems[problemIndex-1]
-	if mcp.SolvedBy != nil {
-		return 0, nil // already solved
+
+	// Determine if this user is P1 or P2
+	isP1 := session.Player1 != nil && session.Player1.UserID == userID
+	isP2 := session.Player2 != nil && session.Player2.UserID == userID
+	if !isP1 && !isP2 {
+		return 0, fmt.Errorf("user %s not in match %s", userID, matchID)
+	}
+
+	// Check if THIS player already solved it (ICPC: per-player, not global)
+	if isP1 && mcp.SolvedByP1 != nil {
+		return 0, nil
+	}
+	if isP2 && mcp.SolvedByP2 != nil {
+		return 0, nil
 	}
 
 	now := time.Now()
-	mcp.SolvedBy = &userID
-	mcp.SolvedAt = &now
-	points := mcp.PointsValue
+	points := icpcPoints(mcp.PointsValue, now, session.StartedAt, session.Match.DurationSecs)
 
-	// Persist solve to DB
-	if _, err := sm.db.ExecContext(ctx, `
-		UPDATE match_cf_problems SET solved_by = $1, solved_at = $2 WHERE id = $3
-	`, userID, now, mcp.ID); err != nil {
-		log.Printf("[session] warning: failed to update match_cf_problems: %v", err)
+	// Update in-memory per-player solve state
+	if isP1 {
+		mcp.SolvedByP1 = &userID
+		mcp.SolvedAtP1 = &now
+		p := points
+		mcp.PointsAwardedP1 = &p
+		// Also update legacy SolvedBy if not yet set (first global solver)
+		if mcp.SolvedBy == nil {
+			mcp.SolvedBy = &userID
+			mcp.SolvedAt = &now
+		}
+	} else {
+		mcp.SolvedByP2 = &userID
+		mcp.SolvedAtP2 = &now
+		p := points
+		mcp.PointsAwardedP2 = &p
+		if mcp.SolvedBy == nil {
+			mcp.SolvedBy = &userID
+			mcp.SolvedAt = &now
+		}
+	}
+
+	// Persist to DB
+	if isP1 {
+		if _, err := sm.db.ExecContext(ctx, `
+			UPDATE match_cf_problems
+			SET solved_by_p1 = $1, solved_at_p1 = $2, points_awarded_p1 = $3,
+			    solved_by = COALESCE(solved_by, $1), solved_at = COALESCE(solved_at, $2)
+			WHERE id = $4
+		`, userID, now, points, mcp.ID); err != nil {
+			log.Printf("[session] warning: failed to update match_cf_problems (p1): %v", err)
+		}
+	} else {
+		if _, err := sm.db.ExecContext(ctx, `
+			UPDATE match_cf_problems
+			SET solved_by_p2 = $1, solved_at_p2 = $2, points_awarded_p2 = $3,
+			    solved_by = COALESCE(solved_by, $1), solved_at = COALESCE(solved_at, $2)
+			WHERE id = $4
+		`, userID, now, points, mcp.ID); err != nil {
+			log.Printf("[session] warning: failed to update match_cf_problems (p2): %v", err)
+		}
 	}
 
 	// Update in-memory score
@@ -228,6 +301,7 @@ func (sm *SessionManager) RecordCFSolve(ctx context.Context, matchID, userID str
 			Type: "opponent_solved",
 			Data: map[string]interface{}{
 				"questionIndex": problemIndex,
+				"pointsEarned":  points,
 				"opponentScore": func() int {
 					if player != nil {
 						return player.Score
@@ -245,20 +319,11 @@ func (sm *SessionManager) RecordCFSolve(ctx context.Context, matchID, userID str
 	}
 
 	if player != nil {
-		log.Printf("[session] %s solved problem %d in match %s (+%d pts)", player.Username, problemIndex, matchID, points)
+		log.Printf("[session] %s solved problem %d in match %s (+%d pts, ICPC decay)", player.Username, problemIndex, matchID, points)
 	}
 
-	// End match if all problems solved
-	allSolved := true
-	for _, p := range session.CFProblems {
-		if p.SolvedBy == nil {
-			allSolved = false
-			break
-		}
-	}
-	if allSolved {
-		go sm.EndMatch(ctx, matchID, "all_solved")
-	}
+	// NOTE: No auto-end on all-solved in ICPC mode — match always runs to timer.
+	// Both players can solve all problems, so "all solved globally" is not meaningful.
 
 	return points, nil
 }
@@ -449,22 +514,49 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 		oppScore = &opponent.Score
 	}
 
-	// Build question list from in-memory CFProblems (zero DB queries needed!)
+	// Build question list with ICPC dual-solve awareness
 	questions := make([]map[string]interface{}, len(session.CFProblems))
 	for i, mcp := range session.CFProblems {
-		solvedBy := ""
-		if mcp.SolvedBy != nil {
-			if *mcp.SolvedBy == userID {
-				solvedBy = "you"
-			} else {
-				solvedBy = "opponent"
-			}
+		// Determine per-player solve status for this viewer (userID)
+		isP1Viewer := session.Player1 != nil && session.Player1.UserID == userID
+		viewerSolved := false
+		oppSolved := false
+		var viewerPoints *int
+		var oppPoints *int
+
+		if isP1Viewer {
+			viewerSolved = mcp.SolvedByP1 != nil
+			oppSolved = mcp.SolvedByP2 != nil
+			viewerPoints = mcp.PointsAwardedP1
+			oppPoints = mcp.PointsAwardedP2
+		} else {
+			viewerSolved = mcp.SolvedByP2 != nil
+			oppSolved = mcp.SolvedByP1 != nil
+			viewerPoints = mcp.PointsAwardedP2
+			oppPoints = mcp.PointsAwardedP1
 		}
 
-		questions[i] = map[string]interface{}{
-			"questionIndex": mcp.ProblemIndex,
-			"pointsValue":   mcp.PointsValue,
-			"solvedBy":      solvedBy,
+		// solvedBy: "you", "opponent", "both", or ""
+		solvedBy := ""
+		switch {
+		case viewerSolved && oppSolved:
+			solvedBy = "both"
+		case viewerSolved:
+			solvedBy = "you"
+		case oppSolved:
+			solvedBy = "opponent"
+		}
+
+		// Compute live decayed points for unsolved problems
+		currentPoints := icpcPoints(mcp.PointsValue, time.Now(), session.StartedAt, session.Match.DurationSecs)
+
+		qEntry := map[string]interface{}{
+			"questionIndex":    mcp.ProblemIndex,
+			"pointsValue":      currentPoints, // live decayed value
+			"basePointsValue":  mcp.PointsValue,
+			"solvedBy":         solvedBy,
+			"myPointsEarned":   viewerPoints,
+			"oppPointsEarned":  oppPoints,
 			"question": map[string]interface{}{
 				"id":          mcp.ID,
 				"title":       mcp.CFName,
@@ -474,9 +566,9 @@ func (sm *SessionManager) GetMatchState(matchID, userID string) (map[string]inte
 				"cfRating":    mcp.CFRating,
 				"tags":        []string(mcp.CFTags),
 				"source":      "codeforces",
-				// "statement" is intentionally omitted — fetched lazily via GET /api/v1/cf/statement/:contestId/:index
 			},
 		}
+		questions[i] = qEntry
 	}
 
 	remaining := int(session.RemainingTime().Seconds())
@@ -542,6 +634,7 @@ func boolToInt(b bool) int {
 }
 
 // startCFVerificationPoller polls Codeforces for accepted submissions during a match.
+// In ICPC mode both players check every problem independently.
 func (sm *SessionManager) startCFVerificationPoller(matchID string) {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -579,8 +672,13 @@ func (sm *SessionManager) startCFVerificationPoller(matchID string) {
 				}
 
 				for _, mcp := range problems {
-					if mcp.SolvedBy != nil {
-						continue // already solved
+					// ICPC: skip only if THIS player already solved this problem
+					isP1Player := session.Player1 != nil && session.Player1.UserID == player.UserID
+					if isP1Player && mcp.SolvedByP1 != nil {
+						continue
+					}
+					if !isP1Player && mcp.SolvedByP2 != nil {
+						continue
 					}
 
 					subID, err := sm.cfClient.CheckRecentSubmission(
@@ -598,14 +696,22 @@ func (sm *SessionManager) startCFVerificationPoller(matchID string) {
 						log.Printf("[cf-poller] %s solved problem %d (CF sub %d) in match %s",
 							player.Username, mcp.ProblemIndex, subID, matchID)
 
-						// Mark CF-verified in DB
-						if _, err := sm.db.ExecContext(context.Background(), `
-							UPDATE match_cf_problems SET cf_verified = true, cf_submission_id = $1 WHERE id = $2
-						`, subID, mcp.ID); err != nil {
-							log.Printf("[cf-poller] warning: failed to update cf_verified: %v", err)
+						// Mark CF-verified in DB (per-player column)
+						if isP1Player {
+							if _, err := sm.db.ExecContext(context.Background(), `
+								UPDATE match_cf_problems SET cf_verified_p1 = true, cf_sub_id_p1 = $1 WHERE id = $2
+							`, subID, mcp.ID); err != nil {
+								log.Printf("[cf-poller] warning: failed to update cf_verified_p1: %v", err)
+							}
+						} else {
+							if _, err := sm.db.ExecContext(context.Background(), `
+								UPDATE match_cf_problems SET cf_verified_p2 = true, cf_sub_id_p2 = $1 WHERE id = $2
+							`, subID, mcp.ID); err != nil {
+								log.Printf("[cf-poller] warning: failed to update cf_verified_p2: %v", err)
+							}
 						}
 
-						// Record the solve
+						// Record the solve (ICPC: awards decayed points to this player only)
 						points, err := sm.RecordCFSolve(context.Background(), matchID, player.UserID, mcp.ProblemIndex)
 						if err != nil {
 							log.Printf("[cf-poller] record solve error: %v", err)
@@ -616,14 +722,13 @@ func (sm *SessionManager) startCFVerificationPoller(matchID string) {
 						sm.hub.SendToUser(player.UserID, &ServerMessage{
 							Type: "cf_solved",
 							Data: map[string]interface{}{
-								"questionIndex":   mcp.ProblemIndex,
-								"solvedBy":        "you",
-								"points":          points,
-								"cfSubmissionId":  subID,
+								"questionIndex":  mcp.ProblemIndex,
+								"solvedBy":       "you",
+								"points":         points,
+								"cfSubmissionId": subID,
 							},
 						})
-
-						// Opponent is already notified via opponent_solved event inside RecordCFSolve
+						// Opponent is notified via opponent_solved event inside RecordCFSolve
 					}
 				}
 
