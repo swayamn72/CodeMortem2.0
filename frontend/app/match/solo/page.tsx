@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import { connectGameSocket } from "@/hooks/useGameSocket";
+import { Settings, ArrowLeft, AlertTriangle, Play, User, Link as LinkIcon } from "lucide-react";
 import styles from "../queue/page.module.css";
 
 
@@ -19,8 +20,8 @@ export default function SoloPage() {
   const [errorMsg, setErrorMsg] = useState("");
   
   const [duration, setDuration] = useState(30 * 60);
-  const [ratingMin, setRatingMin] = useState(Math.max(800, Math.floor((user?.rating || 1000) - 200)));
-  const [ratingMax, setRatingMax] = useState(Math.floor((user?.rating || 1000) + 200));
+  const [ratingMin, setRatingMin] = useState(Math.max(800, Math.floor((user?.rating || 1000) / 100) * 100 - 200));
+  const [ratingMax, setRatingMax] = useState(Math.floor((user?.rating || 1000) / 100) * 100 + 200);
   const [numProblems, setNumProblems] = useState(5);
 
   useEffect(() => {
@@ -118,7 +119,9 @@ export default function SoloPage() {
             Code<span className="brand-accent">Mortem</span>
           </Link>
           <div style={{ textAlign: "center", maxWidth: 480 }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔗</div>
+            <div style={{ marginBottom: "1rem", color: "var(--cm-cyan)", display: "flex", justifyContent: "center" }}>
+              <LinkIcon size={48} />
+            </div>
             <h1 className={styles.queueTitle} style={{ fontSize: "1.8rem", marginBottom: "0.75rem", color: "var(--cm-cyan)" }}>
               Codeforces Required
             </h1>
@@ -126,12 +129,12 @@ export default function SoloPage() {
               Solo practice uses real Codeforces problems tailored to your rating.
               Link your Codeforces account first to get started.
             </p>
-            <Link href="/settings" className="btn btn-primary">
-              ⚙️ Link Codeforces Account
+            <Link href="/settings" className="btn btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+              <Settings size={18} /> Link Codeforces Account
             </Link>
             <div style={{ marginTop: "1rem" }}>
-              <Link href="/dashboard" className="btn btn-secondary btn-sm">
-                ← Back to Dashboard
+              <Link href="/dashboard" className="btn btn-secondary btn-sm" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                <ArrowLeft size={16} /> Back to Dashboard
               </Link>
             </div>
           </div>
@@ -178,7 +181,7 @@ export default function SoloPage() {
                 borderRadius: 10, padding: "10px 14px", marginBottom: "1.5rem",
                 color: "#ff6b6b", fontSize: 13, display: "flex", alignItems: "center", gap: 8,
               }}>
-                <span>⚠️</span><span>{errorMsg}</span>
+                <AlertTriangle size={16} /><span>{errorMsg}</span>
               </div>
             )}
             
@@ -264,6 +267,7 @@ export default function SoloPage() {
                 background: "linear-gradient(135deg, var(--cm-cyan), #00b3cc)",
                 color: "#000", fontSize: "1.1rem", fontWeight: 800, cursor: "pointer",
                 boxShadow: "0 6px 20px rgba(0,240,255,0.3)", transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                display: "flex", justifyContent: "center", alignItems: "center", gap: "8px"
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 25px rgba(0,240,255,0.4)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,240,255,0.3)"; }}
@@ -272,7 +276,7 @@ export default function SoloPage() {
                 connectWs();
               }}
             >
-              🚀 Start Practice
+              <Play size={20} style={{ fill: "currentColor" }} /> Start Practice
             </button>
           </div>
         )}
@@ -292,7 +296,9 @@ export default function SoloPage() {
         {status === "countdown" && (
           <>
             <h1 className={styles.queueTitle}>
-              <span className={styles.matchFoundText} style={{ color: "var(--cm-cyan)" }}>👤 SOLO MATCH READY</span>
+              <span className={styles.matchFoundText} style={{ color: "var(--cm-cyan)", display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+                <User size={32} /> SOLO MATCH READY
+              </span>
             </h1>
 
             <div className={styles.countdownDisplay}>

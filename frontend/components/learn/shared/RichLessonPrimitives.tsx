@@ -17,12 +17,12 @@ export interface ModuleConfig {
 // ── Inline text formatter ─────────────────────────────────────────────────────
 // Handles: **bold**, `code`, _italic_, base^exp (superscript)
 export function fmt(text: string, accentColor: string, accentRGB: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|_[^_]+_|[A-Za-z0-9]+\^-?[0-9]+)/g);
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`|_[^_]+_|[A-Za-z0-9]+\^-?[A-Za-z0-9]+)/g);
   return parts.map((chunk, i) => {
     if (chunk.startsWith("**") && chunk.endsWith("**"))
       return (
         <strong key={i} style={{ color: "var(--text-primary)", fontWeight: 700 }}>
-          {chunk.slice(2, -2)}
+          {fmt(chunk.slice(2, -2), accentColor, accentRGB)}
         </strong>
       );
     if (chunk.startsWith("`") && chunk.endsWith("`"))
@@ -39,18 +39,18 @@ export function fmt(text: string, accentColor: string, accentRGB: string) {
             border: `1px solid rgba(${accentRGB},0.18)`,
           }}
         >
-          {chunk.slice(1, -1)}
+          {fmt(chunk.slice(1, -1), accentColor, accentRGB)}
         </code>
       );
     if (chunk.startsWith("_") && chunk.endsWith("_"))
       return (
         <em key={i} style={{ color: "var(--text-secondary)", opacity: 0.85 }}>
-          {chunk.slice(1, -1)}
+          {fmt(chunk.slice(1, -1), accentColor, accentRGB)}
         </em>
       );
     // base^exp → <sup>
-    const caretIdx = chunk.indexOf("^");
-    if (caretIdx > 0 && caretIdx < chunk.length - 1) {
+    if (/^[A-Za-z0-9]+\^-?[A-Za-z0-9]+$/.test(chunk)) {
+      const caretIdx = chunk.indexOf("^");
       const base = chunk.slice(0, caretIdx);
       const exp = chunk.slice(caretIdx + 1);
       return (

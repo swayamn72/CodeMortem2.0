@@ -10,13 +10,15 @@ import Navbar from "@/components/Navbar";
 import { getModuleAssignment } from "@/components/learn/moduleAssignments";
 import { SEGMENT_TREE_COURSE } from "@/components/learn/segment-tree/config";
 import { ALL_LESSON_IDS as HLD_LESSON_IDS } from "@/components/learn/hld/registry";
+import { ALL_LESSON_IDS as ST_MED_LESSON_IDS } from "@/components/learn/segment-tree-intermediate/registry";
+import { ALL_LESSON_IDS as SOSDP_LESSON_IDS } from "@/components/learn/sos-dp/registry";
 import styles from "./page.module.css";
 
 interface Module {
   id: string;
   title: string;
-  subtitle: string;
-  description: string;
+  subtitle: React.ReactNode;
+  description: React.ReactNode;
   tag: string;
   tagColor: string;
   icon: string | LucideIcon;
@@ -38,7 +40,7 @@ const MODULES: Module[] = [
       "Master the fundamentals of Segment Trees with interactive visualizations. Learn how to answer range sum queries and perform point updates in O(log N) time.",
     tag: "Easy",
     tagColor: "#00ff88",
-    icon: "/assets/segment tree easy.png",
+    icon: TreePine,
     difficulty: "Easy",
     level: "Beginner",
     lessons: 18,
@@ -113,30 +115,12 @@ const MODULES: Module[] = [
     icon: TreePine,
     difficulty: "Medium",
     level: "Intermediate",
-    lessons: 7,
+    lessons: ST_MED_LESSON_IDS.length,
     href: "/learn/segment-tree-intermediate",
     available: true,
-    allLessonIds: [
-      "p1-motivation", "p1-insight", "p1-challenge",
-      "p2-motivation", "p2-insight", "p2-challenge",
-      "badge",
-    ],
+    allLessonIds: ST_MED_LESSON_IDS,
   },
-  {
-    id: "segment-tree-hard",
-    title: "Segment Tree",
-    subtitle: "Lazy propagation, merge sort tree & persistent ST",
-    description:
-      "Advanced techniques including lazy propagation for range updates, merge sort trees, fractional cascading, and persistent segment trees for competitive programming.",
-    tag: "Hard",
-    tagColor: "#ff2d55",
-    icon: Zap,
-    difficulty: "Hard",
-    level: "Advanced",
-    lessons: 8,
-    href: "#",
-    available: false,
-  },
+
   {
     id: "hld-hard",
     title: "Heavy-Light Decomposition",
@@ -152,6 +136,22 @@ const MODULES: Module[] = [
     href: "/learn/hld",
     available: true,
     allLessonIds: HLD_LESSON_IDS,
+  },
+  {
+    id: "sos-dp",
+    title: "Sum Over Subsets DP",
+    subtitle: <>Bitmasks &amp; O(N 2<sup>N</sup>) subset enumeration</>,
+    description:
+      "Master the Sum Over Subsets (SOS) Dynamic Programming technique. Learn to compute subset sums over N-dimensional hypercubes and solve hard bitmask problems efficiently.",
+    tag: "Hard",
+    tagColor: "#6366f1",
+    icon: Binary,
+    difficulty: "Hard",
+    level: "Advanced",
+    lessons: SOSDP_LESSON_IDS.length,
+    href: "/learn/sos-dp",
+    available: true,
+    allLessonIds: SOSDP_LESSON_IDS,
   },
 ];
 

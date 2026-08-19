@@ -27,4 +27,10 @@ Avoid "dull" text walls. A good lesson should have:
 ## 4. Checkpoint (MCQ)
 For multiple-choice questions or checkpoints, use the `MCQCheckpoint` component (`@/components/learn/shared/MCQCheckpoint`). It automatically supports the `fmt()` parser for questions, options, and explanations.
 
+## 5. Superscripts
+
+When writing text in plain React UI components (like `page.tsx`, `PrerequisitesScreen.tsx`) where the `RichLessonPrimitives` `fmt` parser is NOT used, **NEVER** use literal strings like `2^N` or `O(N 2^N)`. Always use HTML/React superscript tags (e.g. `2<sup>N</sup>`) to ensure superscripts are rendered correctly and maintain a polished UI.
+
+When authoring lesson content via `RichLessonPrimitives` `fmt`, you can use the syntax `base^exp` (e.g., `3^N`). The `fmt` parser will automatically replace the `^` character and wrap the exponent in an HTML `<sup>` tag. We have made `fmt` recursive, so this works perfectly even inside bold text (e.g., `**O(3^N)**` correctly parses as bold with an HTML `<sup>` exponent).
+
 By following these rules, all future courses will automatically look premium without needing to be redesigned.

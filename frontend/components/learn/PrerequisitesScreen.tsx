@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 export interface PrerequisiteItem {
   title: string;
-  description: string;
+  description: React.ReactNode;
 }
 
 export interface PrerequisitesProps {
