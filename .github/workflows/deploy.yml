@@ -19,12 +19,21 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          timeout: 30s
+          command_timeout: 10m
           script: |
+            # ── Free up disk space ────────────────────────────────────────────
+            # Remove stopped containers, dangling images, unused networks, and
+            # the entire build cache. This prevents "no space left on device"
+            # errors caused by Docker build cache accumulating over time.
+            docker system prune -af --volumes
+
             # Navigate to the project directory
             cd CodeMortem2.0
 
             # Pull the latest code from GitHub
             git pull origin main
 
-            # Rebuild and restart the Docker containers in the background
-            docker compose --profile web up -d --build
+            # Rebuild and restart containers; --remove-orphans cleans up any
+            # containers from services that were removed from docker-compose.yml
+            docker compose --profile web up -d --build --remove-orphans
