@@ -22,17 +22,15 @@ jobs:
           timeout: 30s
           command_timeout: 10m
           script: |
-            # ── Free up disk space ────────────────────────────────────────────
-            # Remove stopped containers, dangling images, unused networks, and
-            # the entire build cache. This prevents "no space left on device"
-            # errors caused by Docker build cache accumulating over time.
-            docker system prune -af --volumes
-
             # Navigate to the project directory
             cd CodeMortem2.0
 
             # Pull the latest code from GitHub
             git pull origin main
+
+            # Clean only dangling images and stopped containers (NOT volumes!)
+            # Avoids "no space left on device" without wiping the database.
+            docker system prune -f
 
             # Rebuild and restart containers; --remove-orphans cleans up any
             # containers from services that were removed from docker-compose.yml

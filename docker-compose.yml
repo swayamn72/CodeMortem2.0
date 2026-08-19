@@ -1,4 +1,6 @@
-# CodeMortem Docker Compose - Development
+# CodeMortem Docker Compose
+# Judge0 self-hosting removed — use Judge0 CE cloud API (free tier) instead.
+# Set JUDGE0_URL in backend/.env to your Judge0 CE endpoint.
 
 services:
   # PostgreSQL Database
@@ -20,6 +22,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
 
   # Redis Cache & Queue
   redis:
@@ -30,94 +37,17 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Judge0 - Code Execution Engine
-  judge0-server:
-    image: judge0/judge0:1.13.1
-    container_name: codemortem-judge0
-    restart: unless-stopped
-    ports:
-      - "2358:2358"
-    environment:
-      - REDIS_HOST=judge0-redis
-      - REDIS_PORT=6379
-      - POSTGRES_HOST=judge0-postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=judge0
-      - POSTGRES_USER=judge0
-      - POSTGRES_PASSWORD=${JUDGE0_POSTGRES_PASSWORD}
-      - RAILS_MAX_THREADS=8
-      - RAILS_SERVER_URL=http://0.0.0.0:2358
-      - CGROUP_VERSION=2
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    depends_on:
-      judge0-postgres:
-        condition: service_healthy
-      judge0-redis:
-        condition: service_healthy
-
-  # Judge0 Workers
-  judge0-workers:
-    image: judge0/judge0:1.13.1
-    container_name: codemortem-judge0-workers
-    restart: unless-stopped
-    command: [ "./scripts/workers" ]
-    environment:
-      - REDIS_HOST=judge0-redis
-      - REDIS_PORT=6379
-      - POSTGRES_HOST=judge0-postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=judge0
-      - POSTGRES_USER=judge0
-      - POSTGRES_PASSWORD=${JUDGE0_POSTGRES_PASSWORD}
-      - CGROUP_VERSION=2
-    privileged: true
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
-    depends_on:
-      judge0-postgres:
-        condition: service_healthy
-      judge0-redis:
-        condition: service_healthy
-
-  # Judge0's own PostgreSQL
-  judge0-postgres:
-    image: postgres:16-alpine
-    container_name: codemortem-judge0-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: judge0
-      POSTGRES_PASSWORD: ${JUDGE0_POSTGRES_PASSWORD}
-      POSTGRES_DB: judge0
-    volumes:
-      - judge0_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U judge0" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Judge0's own Redis
-  judge0-redis:
-    image: redis:7-alpine
-    container_name: codemortem-judge0-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    volumes:
-      - judge0_redis_data:/data
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+          cpus: "0.25"
 
   # CodeMortem API Backend
   api:
@@ -135,13 +65,17 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JUDGE0_URL=http://judge0-server:2358
-      - JUDGE0_CALLBACK_URL=
+      # Set JUDGE0_URL in backend/.env to your cloud Judge0 CE endpoint
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
 
   # CodeMortem Web Frontend (disabled by default — run `npm run dev` instead)
   web:
@@ -160,9 +94,12 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
     depends_on:
       - api
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.75"
 
 volumes:
   postgres_data:
   redis_data:
-  judge0_postgres_data:
-  judge0_redis_data:
