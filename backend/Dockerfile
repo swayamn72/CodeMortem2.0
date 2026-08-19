@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for CodeMortem Backend
 # Stage 1: Builder — compiles the Go binary (thrown away after build)
-FROM golang:1.23-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git build-base
 

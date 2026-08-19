@@ -25,6 +25,9 @@ jobs:
             # Navigate to the project directory
             cd CodeMortem2.0
 
+            # Discard any local changes so git pull never gets blocked
+            git reset --hard
+
             # Pull the latest code from GitHub
             git pull origin main
 
