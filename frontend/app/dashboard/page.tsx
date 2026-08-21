@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
 import Navbar from "@/components/Navbar";
+import { LiquidGlassButton } from "@/components/LiquidGlassButton";
 import { api } from "@/lib/api";
 import {
   Swords, BookOpen, Trophy, User, Link2, Crown, X, Sparkles,
@@ -155,15 +156,13 @@ export default function DashboardPage() {
           </div>
 
           <div className={styles.heroCta}>
-            <Link
-              href="/match/queue"
-              className="btn btn-primary btn-lg btn-pulse"
-              style={!user.cfVerified ? { opacity: 0.5, pointerEvents: "none" } : {}}
-              aria-disabled={!user.cfVerified}
+            <LiquidGlassButton
+              href={user.cfVerified ? "/match/queue" : undefined}
+              disabled={!user.cfVerified}
             >
-              <Zap size={15} style={{ display: "inline", marginRight: 6 }} />
-              Find a Match
-            </Link>
+              <Zap size={15} />
+              Start Competing
+            </LiquidGlassButton>
             <Link
               href="/match/solo"
               className="btn btn-secondary btn-lg"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/stores/authStore";
+import { LiquidGlassButton } from "@/components/LiquidGlassButton";
 import { Crown } from "lucide-react";
 
 interface NavbarProps {
@@ -109,7 +110,7 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
         <Image
           src="/assets/logo.png"
           alt="CodeMortem"
-          width={48}
+          width={32}
           height={32}
           style={{ objectFit: "contain" }}
         />
@@ -147,23 +148,9 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
         {isAuthenticated && user ? (
           <>
             {showFindMatch && (
-              <Link
-                href="/match/queue"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  padding: "7px 16px",
-                  borderRadius: 10,
-                  background: "linear-gradient(135deg, #22D3EE, #0E9DBB)",
-                  color: "#09090B",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  textDecoration: "none",
-                }}
-              >
+              <LiquidGlassButton href="/match/queue" size="sm">
                 ⚡ Find Match
-              </Link>
+              </LiquidGlassButton>
             )}
 
             <div ref={dropdownRef} style={{ position: "relative" }}>
@@ -254,40 +241,12 @@ export default function Navbar({ activeTab, showFindMatch = false }: NavbarProps
           </>
         ) : (
           <>
-            <Link
-              href="/login"
-              style={{
-                padding: "7px 16px",
-                borderRadius: 10,
-                background: "transparent",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#A1A1AA",
-                fontWeight: 600,
-                fontSize: 13,
-                textDecoration: "none",
-                transition: "all 0.18s",
-              }}
-              className="nav-signin-btn"
-            >
+            <LiquidGlassButton href="/login" size="sm" style={{ color: "#A1A1AA" }}>
               Sign In
-            </Link>
-            <Link
-              href="/register"
-              style={{
-                padding: "7px 16px",
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #22D3EE, #0E9DBB)",
-                color: "#09090B",
-                fontWeight: 700,
-                fontSize: 13,
-                textDecoration: "none",
-                boxShadow: "0 0 20px rgba(34,211,238,0.25)",
-                transition: "all 0.18s",
-              }}
-              className="nav-join-btn"
-            >
+            </LiquidGlassButton>
+            <LiquidGlassButton href="/register" size="sm">
               Join Now
-            </Link>
+            </LiquidGlassButton>
           </>
         )}
       </div>

@@ -21,6 +21,9 @@ export const metadata: Metadata = {
       "Real-time 1v1 competitive programming battles and interactive learning modules with ranked matchmaking.",
     type: "website",
   },
+  icons: {
+    icon: "/assets/logo.png",
+  },
 };
 
 export default function RootLayout({

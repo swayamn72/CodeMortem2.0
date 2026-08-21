@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
+import { LiquidGlassButton } from "@/components/LiquidGlassButton";
 import styles from "./page.module.css";
 
 // ─── Review data ──────────────────────────────────────────────────────────────
@@ -201,13 +202,6 @@ function CheckIcon() {
 function HeroSection() {
   return (
     <section id="hero" className={styles.hero}>
-      {/* Shimmer badge — exact Magic UI */}
-      <div className={styles.badge} style={{ "--delay": "0ms" } as React.CSSProperties}>
-        <p className={styles.shimmer} style={{ "--shimmer-width": "100px" } as React.CSSProperties}>
-          <span>✨ Introducing Live 1v1 Coding Battles</span>
-          <span className={styles.badgeArrowWrap}><ArrowRight size={12} /></span>
-        </p>
-      </div>
 
       {/* H1 — font-medium, tracking-tighter, leading-none, gradient */}
       <h1 className={styles.heroH1} style={{ "--delay": "200ms" } as React.CSSProperties}>
@@ -221,12 +215,11 @@ function HeroSection() {
         {" "}speed, precision, and developer-first design.
       </p>
 
-      {/* CTA — bg-primary with shine effect */}
-      <Link href="/register" className={`${styles.heroBtn} ${styles.btnGroup}`} style={{ "--delay": "600ms" } as React.CSSProperties}>
-        <span className={styles.btnShine} />
-        <span>Start Competing </span>
+      {/* CTA — liquid glass */}
+      <LiquidGlassButton href="/register" size="lg" animationDelay="600ms">
+        <span>Start Competing</span>
         <ArrowRight size={16} />
-      </Link>
+      </LiquidGlassButton>
 
       {/* Hero product image — [perspective:2000px] wrapper */}
       <div className={styles.heroImgWrap} style={{ "--delay": "400ms" } as React.CSSProperties}>
@@ -319,10 +312,9 @@ function Pricing() {
               <span className={styles.price}>₹0</span>
               <span className={styles.pricePer}> / forever</span>
             </div>
-            <Link href="/register" className={`${styles.planBtn} ${styles.btnGroup}`}>
-              <span className={styles.btnShine} />
-              <p>Get Started</p>
-            </Link>
+            <LiquidGlassButton href="/register" size="full">
+              Get Started
+            </LiquidGlassButton>
             <hr className={styles.planHr} />
             <ul className={styles.featureList}>
               {FREE_FEATURES.map(f => <li key={f} className={styles.featureItem}><CheckIcon /><span>{f}</span></li>)}
@@ -339,10 +331,9 @@ function Pricing() {
               <span className={styles.price}>{quarterly ? "₹1,200" : "₹500"}</span>
               <span className={styles.pricePer}>{quarterly ? " / 3 months" : " / month"}</span>
             </div>
-            <Link href="/premium" className={`${styles.planBtn} ${styles.btnGroup}`}>
-              <span className={styles.btnShine} />
-              <p>Subscribe</p>
-            </Link>
+            <LiquidGlassButton href="/premium" size="full">
+              Subscribe
+            </LiquidGlassButton>
             <hr className={styles.planHr} />
             <ul className={styles.featureList}>
               {PREM_FEATURES.map(f => <li key={f} className={styles.featureItem}><CheckIcon /><span>{f}</span></li>)}
@@ -381,15 +372,15 @@ function CTA() {
             {/* Center overlay */}
             <div className={styles.ctaCenter}>
               <div className={styles.ctaIconBox}>
-                <Image src="/assets/logo.png" alt="CodeMortem" width={64} height={64} className={styles.ctaLogo} />
+                <Image src="/assets/logo.png" alt="CodeMortem" width={128} height={128} className={styles.ctaLogo} />
               </div>
               <div className={styles.ctaText}>
                 <h1 className={styles.ctaH1}>Stop solving problems alone.</h1>
                 <p className={styles.ctaSubP}>Find your first match in under 60 seconds. No credit card required.</p>
-                <Link href="/register" className={styles.ctaBtn}>
+                <LiquidGlassButton href="/register" size="md" style={{ marginTop: 16 }}>
                   Get Started
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                </Link>
+                </LiquidGlassButton>
               </div>
               <div className={styles.ctaBgBlur} />
             </div>
@@ -418,7 +409,7 @@ function Footer() {
         <div className={styles.footerTop}>
           <div className={styles.footerBrand}>
             <Link href="/" className={styles.footerLogo}>
-              <Image src="/assets/logo.png" alt="CodeMortem" width={48} height={32} className={styles.footerLogoImg} />
+              <Image src="/assets/logo.png" alt="CodeMortem" width={32} height={32} className={styles.footerLogoImg} />
               <span className={styles.footerLogoText}>CodeMortem</span>
             </Link>
             <p className={styles.footerTagline}>Elite competitive programming. Built for developers.</p>

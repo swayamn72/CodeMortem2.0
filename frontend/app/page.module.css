@@ -53,7 +53,7 @@
    ────────────────────────────────────────────────────────────────*/
 .hero {
   position: relative;
-  margin: 128px auto 0;     /* mt-32 */
+  margin: 80px auto 0;
   max-width: 80rem;
   padding: 0 24px;
   text-align: center;
@@ -690,7 +690,7 @@
   border-radius: 2rem;
   border: 1px solid var(--border);
   background: rgba(9, 9, 11, 0.5);
-  padding: 12px;
+  padding: 24px;
   box-shadow: 0 25px 50px rgba(0,0,0,0.5);
   backdrop-filter: blur(12px);
   display: flex;
